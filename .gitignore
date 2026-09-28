@@ -1,0 +1,22 @@
+# Build outputs, caches, bundles
+/out/
+.vs/
+*.user
+*.aps
+*.ncb
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+CMakeUserPresets.json
+
+# Large or generated data (rebuilt by scripts/fetch-*.ps1 and scripts/build-content.ps1)
+/data/downloads/
+/data/generated/
+
+# Engine sources and networks are local only for now (D15); pins live in projects/pocketbook/engines/
+/libs/stockfish*/
+*.nnue
+
+# Golden-image mismatches written by the tests
+/tests/golden/actual/
