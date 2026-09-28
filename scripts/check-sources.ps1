@@ -52,7 +52,7 @@ Compare-Lists 'tests' $tests @(Get-VcxprojSources (Join-Path $msvc 'PocketChessT
 function Get-RelativeCpp([string]$dir) {
     $abs = Join-Path $RepoRoot $dir
     if (-not (Test-Path $abs)) { return @() }
-    return @(Get-ChildItem -LiteralPath $abs -Recurse -Filter *.cpp | ForEach-Object {
+    return @(Get-ChildItem -LiteralPath $abs -Recurse -File -Filter *.cpp | ForEach-Object {
         $_.FullName.Substring($RepoRoot.TrimEnd('\', '/').Length + 1).Replace('\', '/') })
 }
 foreach ($f in (Get-RelativeCpp 'src/core')) { if ($core -notcontains $f) { $errors.Add("not listed (core): $f") } }
@@ -65,7 +65,9 @@ foreach ($f in (Get-RelativeCpp 'tests')) {
 $forbidden = '^\s*#\s*include\s*[<"](SDL3/|SDL\.h|inkview\.h|windows\.h|unistd\.h|pthread\.h|sys/|psapi\.h|dlfcn\.h)'
 foreach ($dir in 'src/core', 'src/ui', 'src/app') {
     $abs = Join-Path $RepoRoot $dir
-    Get-ChildItem -LiteralPath $abs -Recurse -Include *.h, *.cpp | ForEach-Object {
+    # Windows PowerShell 5.1 ignores -Include together with -LiteralPath (it returned folders too),
+    # so filter by extension explicitly.
+    Get-ChildItem -LiteralPath $abs -Recurse -File | Where-Object { $_.Extension -in '.h', '.cpp' } | ForEach-Object {
         $n = 0
         foreach ($line in Get-Content -LiteralPath $_.FullName) {
             $n++
