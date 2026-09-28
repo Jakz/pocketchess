@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Pin for the Stockfish plug-in (D4, D15). Read by scripts/fetch-engines.ps1.
+# source_sha256 = TBD: the first fetch prints the archive hash; re-run with -Pin to record it.
+id = stockfish
+version = 19
+tag = sf_19
+source_url = https://github.com/official-stockfish/Stockfish/archive/refs/tags/sf_19.zip
+source_sha256 = TBD
+nets_base_url = https://tests.stockfishchess.org/api/nn/
+nets_fallback_url = https://github.com/official-stockfish/networks/raw/master/
+license = GPL-3.0-or-later

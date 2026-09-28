@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Engine plug-ins built into the bundle (D8). One id per line; each id needs:
+#   libs/<id>/                                   local sources (not in Git, scripts/fetch-engines.ps1)
+#   projects/pocketbook/engines/<id>/            CMakeLists.txt, BUILDING.md, engine.lock
+#   data/engines/<id>/engine.yaml                descriptor staged beside the binary
+stockfish
