@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Desktop|x64">
+      <Configuration>Desktop</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{6E2B7C41-3F7A-4C1E-9A11-0C5D2B7A1007}</ProjectGuid>
+    <RootNamespace>PocketBook</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Release'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Common.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <NMakeBuildCommandLine>powershell -NoProfile -ExecutionPolicy Bypass -File "$(RepoRoot)projects\pocketbook\build-zig.ps1" -Configuration $(Configuration)</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>powershell -NoProfile -ExecutionPolicy Bypass -File "$(RepoRoot)projects\pocketbook\build-zig.ps1" -Configuration $(Configuration) -Clean</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>powershell -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue '$(RepoRoot)out\pocketbook-zig\$(Configuration)'"</NMakeCleanCommandLine>
+    <NMakeOutput>$(RepoRoot)out\pocketbook-zig\$(Configuration)\pocketchess.app</NMakeOutput>
+    <NMakeIncludeSearchPath>$(RepoRoot)src;$(RepoRoot)tests;$(PocketBookToolchainRoot)\inkview\6.10\include;$(PocketBookToolchainRoot)\inkview\6.10\usr\include</NMakeIncludeSearchPath>
+    <NMakePreprocessorDefinitions>__linux__;__arm__</NMakePreprocessorDefinitions>
+    <AdditionalOptions>/std:c++20</AdditionalOptions>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\src\platform\pocketbook\InkViewPlatform.cpp" />
+    <None Include="..\..\src\platform\posix\PosixProcess.cpp" />
+    <None Include="..\..\src\platform\pocketbook\Main.cpp" />
+    <None Include="..\..\src\platform\pocketbook\SelfTestMain.cpp" />
+    <None Include="..\..\src\platform\pocketbook\InkViewPlatform.h" />
+    <None Include="..\..\src\platform\headless\Main.cpp" />
+    <None Include="..\..\projects\pocketbook\CMakeLists.txt" />
+    <None Include="..\..\projects\pocketbook\sources.cmake" />
+    <None Include="..\..\projects\pocketbook\build-zig.ps1" />
+    <None Include="..\..\projects\pocketbook\build-engine.ps1" />
+    <None Include="..\..\projects\pocketbook\check-elf.ps1" />
+    <None Include="..\..\projects\pocketbook\deploy.ps1" />
+    <None Include="..\..\projects\pocketbook\README.md" />
+    <None Include="..\..\projects\engines.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
