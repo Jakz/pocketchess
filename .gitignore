@@ -18,5 +18,11 @@ CMakeUserPresets.json
 /libs/stockfish*/
 *.nnue
 
+# SDL3 is copied from Enigmistica by scripts/vendor-libs.ps1 (run automatically by SDL3.vcxproj)
+/libs/sdl3/
+
 # Golden-image mismatches written by the tests
 /tests/golden/actual/
+
+# Cowork session outputs (screenshots, drafts), not part of the project
+/Claude outputs/

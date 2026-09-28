@@ -5,7 +5,7 @@ this table, rebuild **both** targets.
 
 | Dir | Library | Version / pin | Licence | Used by | Status |
 | --- | --- | --- | --- | --- | --- |
-| `sdl3/` | SDL 3 | same snapshot as Enigmistica (`scripts/vendor-libs.ps1` copies it) | Zlib | Windows app (`PocketChess.exe`) | **to vendor** — run `scripts/vendor-libs.ps1` |
+| `sdl3/` | SDL 3.4.16 (`include/`, `src/`, licence only) | [release-3.4.16](https://github.com/libsdl-org/SDL/releases/tag/release-3.4.16), commit `fa2c02bb6e21974a89ea9824bc53c9932abe5f9c` (Enigmistica's pin) | Zlib | Windows app (`PocketChess.exe`, as `SDL3.dll`) | copied from Enigmistica by `scripts/vendor-libs.ps1`, run automatically by the first build of `SDL3.vcxproj`; **not in Git** |
 | `sqlite/` | SQLite amalgamation | latest 3.x | Public domain | storage (M3/M4) | deferred to M3 |
 | `yaml/` | yaml-cpp 0.9.0 (Enigmistica's snapshot) | — | MIT | themes, descriptors (M2/M6) | deferred to M2 |
 | `zstd/` | zstd decoder | — | BSD | PuzzleImporter (M4) | deferred to M4 |
