@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{06EC3C37-5110-5402-811E-DE2BBF720F3C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\app">
+      <UniqueIdentifier>{BF7AFD56-3C5F-5D6C-83D3-9CC3AA3053B5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ui">
+      <UniqueIdentifier>{BCCDA545-68A1-510F-A9D3-46F17DDBDFF1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ui\board">
+      <UniqueIdentifier>{32D54FFF-D956-52F6-97DD-D2BF2D34B57B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ui\canvas">
+      <UniqueIdentifier>{F9E46D07-488A-553A-893B-953562E93284}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ui\input">
+      <UniqueIdentifier>{962A3638-E5B4-52CA-8493-6D00EC38A319}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ui\render">
+      <UniqueIdentifier>{A733BAD9-BE70-5949-B2B9-01D5774BC445}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ui\theme">
+      <UniqueIdentifier>{FC563811-F67C-5F25-A6B4-03FBB19D0260}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ui\widgets">
+      <UniqueIdentifier>{C94DF4C6-4321-53BA-AEB2-C67C7567D847}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\app\AnalyzeScreen.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\Application.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\Chrome.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\CommandLine.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\DiagnosticsScreen.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\Dialogs.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\HeadlessHost.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\HomeScreen.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\Screenshot.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\Script.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\board\BoardView.cpp">
+      <Filter>src\ui\board</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\canvas\Canvas.cpp">
+      <Filter>src\ui\canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\canvas\Color.cpp">
+      <Filter>src\ui\canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\canvas\Font.cpp">
+      <Filter>src\ui\canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\canvas\PngWriter.cpp">
+      <Filter>src\ui\canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\canvas\Rasterizer.cpp">
+      <Filter>src\ui\canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\canvas\TrueTypeFont.cpp">
+      <Filter>src\ui\canvas</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\input\Input.cpp">
+      <Filter>src\ui\input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\render\Refresh.cpp">
+      <Filter>src\ui\render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\theme\BoardTheme.cpp">
+      <Filter>src\ui\theme</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\theme\PieceSet.cpp">
+      <Filter>src\ui\theme</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\widgets\Widgets.cpp">
+      <Filter>src\ui\widgets</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\app\AnalyzeScreen.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\Application.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\Chrome.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\CommandLine.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\DiagnosticsScreen.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\Dialogs.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\HeadlessHost.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\HomeScreen.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\Screen.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\Screenshot.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\Script.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\Settings.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\board\BoardView.h">
+      <Filter>src\ui\board</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\canvas\Canvas.h">
+      <Filter>src\ui\canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\canvas\Color.h">
+      <Filter>src\ui\canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\canvas\Font.h">
+      <Filter>src\ui\canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\canvas\Geometry.h">
+      <Filter>src\ui\canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\canvas\PngWriter.h">
+      <Filter>src\ui\canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\canvas\Rasterizer.h">
+      <Filter>src\ui\canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\canvas\TrueTypeFont.h">
+      <Filter>src\ui\canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\input\Input.h">
+      <Filter>src\ui\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\render\Refresh.h">
+      <Filter>src\ui\render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\theme\BoardTheme.h">
+      <Filter>src\ui\theme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\theme\PieceSet.h">
+      <Filter>src\ui\theme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\widgets\Widgets.h">
+      <Filter>src\ui\widgets</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

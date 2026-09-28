@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Desktop|x64">
+      <Configuration>Desktop</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{6E2B7C41-3F7A-4C1E-9A11-0C5D2B7A1001}</ProjectGuid>
+    <RootNamespace>PchessCore</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Release'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Common.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <!-- Parity rule (build doc §6): the source lists must match projects/pocketbook/sources.cmake. -->
+  </PropertyGroup>
+  <Target Name="CheckSources" BeforeTargets="ClCompile" Condition="'$(SkipSourceCheck)'!='true'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(RepoRoot)scripts\check-sources.ps1&quot;" />
+  </Target>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\core\chess\Bitboard.cpp" />
+    <ClCompile Include="..\..\src\core\chess\Fen.cpp" />
+    <ClCompile Include="..\..\src\core\chess\GameTree.cpp" />
+    <ClCompile Include="..\..\src\core\chess\MoveCodec.cpp" />
+    <ClCompile Include="..\..\src\core\chess\MoveGen.cpp" />
+    <ClCompile Include="..\..\src\core\chess\Pgn.cpp" />
+    <ClCompile Include="..\..\src\core\chess\Position.cpp" />
+    <ClCompile Include="..\..\src\core\chess\Rules.cpp" />
+    <ClCompile Include="..\..\src\core\chess\San.cpp" />
+    <ClCompile Include="..\..\src\core\chess\Types.cpp" />
+    <ClCompile Include="..\..\src\core\chess\Zobrist.cpp" />
+    <ClCompile Include="..\..\src\core\engine\UciParser.cpp" />
+    <ClCompile Include="..\..\src\core\engine\UciProbe.cpp" />
+    <ClCompile Include="..\..\src\core\util\Clock.cpp" />
+    <ClCompile Include="..\..\src\core\util\Error.cpp" />
+    <ClCompile Include="..\..\src\core\util\Log.cpp" />
+    <ClCompile Include="..\..\src\core\util\Paths.cpp" />
+    <ClCompile Include="..\..\src\core\util\Utf8.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\core\chess\Bitboard.h" />
+    <ClInclude Include="..\..\src\core\chess\Fen.h" />
+    <ClInclude Include="..\..\src\core\chess\GameTree.h" />
+    <ClInclude Include="..\..\src\core\chess\Move.h" />
+    <ClInclude Include="..\..\src\core\chess\MoveCodec.h" />
+    <ClInclude Include="..\..\src\core\chess\MoveGen.h" />
+    <ClInclude Include="..\..\src\core\chess\Pgn.h" />
+    <ClInclude Include="..\..\src\core\chess\Position.h" />
+    <ClInclude Include="..\..\src\core\chess\Rules.h" />
+    <ClInclude Include="..\..\src\core\chess\San.h" />
+    <ClInclude Include="..\..\src\core\chess\Types.h" />
+    <ClInclude Include="..\..\src\core\chess\Zobrist.h" />
+    <ClInclude Include="..\..\src\core\engine\Process.h" />
+    <ClInclude Include="..\..\src\core\engine\UciParser.h" />
+    <ClInclude Include="..\..\src\core\engine\UciProbe.h" />
+    <ClInclude Include="..\..\src\core\util\Clock.h" />
+    <ClInclude Include="..\..\src\core\util\Error.h" />
+    <ClInclude Include="..\..\src\core\util\Log.h" />
+    <ClInclude Include="..\..\src\core\util\Paths.h" />
+    <ClInclude Include="..\..\src\core\util\Random.h" />
+    <ClInclude Include="..\..\src\core\util\Utf8.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

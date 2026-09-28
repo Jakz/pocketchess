@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Desktop|x64">
+      <Configuration>Desktop</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{6E2B7C41-3F7A-4C1E-9A11-0C5D2B7A1005}</ProjectGuid>
+    <RootNamespace>PocketChessTests</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Release'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Common.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <RunTestsAfterBuild Condition="'$(RunTestsAfterBuild)'==''">true</RunTestsAfterBuild>
+    <LocalDebuggerWorkingDirectory>$(RepoRoot)</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommandArguments>--verbose</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(RepoRoot)tests;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <Target Name="RunTests" AfterTargets="Build" Condition="'$(RunTestsAfterBuild)'=='true'">
+    <Exec Command="&quot;$(TargetPath)&quot;" WorkingDirectory="$(RepoRoot)" />
+  </Target>
+  <ItemGroup>
+    <ClCompile Include="..\..\tests\TestMain.cpp" />
+    <ClCompile Include="..\..\tests\app\AppTests.cpp" />
+    <ClCompile Include="..\..\tests\core\ChessTests.cpp" />
+    <ClCompile Include="..\..\tests\core\EngineTests.cpp" />
+    <ClCompile Include="..\..\tests\core\PerftTests.cpp" />
+    <ClCompile Include="..\..\tests\support\Golden.cpp" />
+    <ClCompile Include="..\..\tests\support\Test.cpp" />
+    <ClCompile Include="..\..\tests\support\TestTools.cpp" />
+    <ClCompile Include="..\..\tests\ui\UiTests.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\tests\support\Golden.h" />
+    <ClInclude Include="..\..\tests\support\Test.h" />
+    <ClInclude Include="..\..\tests\support\TestTools.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="PchessCore.vcxproj">
+      <Project>{6E2B7C41-3F7A-4C1E-9A11-0C5D2B7A1001}</Project>
+    </ProjectReference>
+    <ProjectReference Include="PchessUi.vcxproj">
+      <Project>{6E2B7C41-3F7A-4C1E-9A11-0C5D2B7A1002}</Project>
+    </ProjectReference>
+    <ProjectReference Include="PchessPlatformDesktop.vcxproj">
+      <Project>{6E2B7C41-3F7A-4C1E-9A11-0C5D2B7A1003}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

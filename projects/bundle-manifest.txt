@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Files staged into the pocketchess/ data tree (build doc §5), read by scripts/stage-bundle.ps1
+# for BOTH builds. Format: [target] <source relative to the repo> => <destination in the bundle>
+# The optional [windows] / [pocketbook] prefix limits a line to one target. A '*' in the source
+# copies every matching file into the destination folder. Engines come from projects/engines.txt.
+
+data/fonts/DejaVuSans.ttf => assets/fonts/DejaVuSans.ttf
+data/fonts/DejaVuSans-Bold.ttf => assets/fonts/DejaVuSans-Bold.ttf
+data/fonts/LICENSE-DejaVu.txt => assets/fonts/LICENSE-DejaVu.txt
+data/themes/*.yaml => assets/themes
+
+[windows] data/simulator/kaleido3.yaml => simulator/kaleido3.yaml
+[pocketbook] tests/golden/golden.txt => selftest/golden.txt

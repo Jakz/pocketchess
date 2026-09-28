@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Desktop|x64">
+      <Configuration>Desktop</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{6E2B7C41-3F7A-4C1E-9A11-0C5D2B7A1002}</ProjectGuid>
+    <RootNamespace>PchessUi</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Release'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Common.props" />
+  </ImportGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\app\AnalyzeScreen.cpp" />
+    <ClCompile Include="..\..\src\app\Application.cpp" />
+    <ClCompile Include="..\..\src\app\Chrome.cpp" />
+    <ClCompile Include="..\..\src\app\CommandLine.cpp" />
+    <ClCompile Include="..\..\src\app\DiagnosticsScreen.cpp" />
+    <ClCompile Include="..\..\src\app\Dialogs.cpp" />
+    <ClCompile Include="..\..\src\app\HeadlessHost.cpp" />
+    <ClCompile Include="..\..\src\app\HomeScreen.cpp" />
+    <ClCompile Include="..\..\src\app\Screenshot.cpp" />
+    <ClCompile Include="..\..\src\app\Script.cpp" />
+    <ClCompile Include="..\..\src\ui\board\BoardView.cpp" />
+    <ClCompile Include="..\..\src\ui\canvas\Canvas.cpp" />
+    <ClCompile Include="..\..\src\ui\canvas\Color.cpp" />
+    <ClCompile Include="..\..\src\ui\canvas\Font.cpp" />
+    <ClCompile Include="..\..\src\ui\canvas\PngWriter.cpp" />
+    <ClCompile Include="..\..\src\ui\canvas\Rasterizer.cpp" />
+    <ClCompile Include="..\..\src\ui\canvas\TrueTypeFont.cpp" />
+    <ClCompile Include="..\..\src\ui\input\Input.cpp" />
+    <ClCompile Include="..\..\src\ui\render\Refresh.cpp" />
+    <ClCompile Include="..\..\src\ui\theme\BoardTheme.cpp" />
+    <ClCompile Include="..\..\src\ui\theme\PieceSet.cpp" />
+    <ClCompile Include="..\..\src\ui\widgets\Widgets.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\app\AnalyzeScreen.h" />
+    <ClInclude Include="..\..\src\app\Application.h" />
+    <ClInclude Include="..\..\src\app\Chrome.h" />
+    <ClInclude Include="..\..\src\app\CommandLine.h" />
+    <ClInclude Include="..\..\src\app\DiagnosticsScreen.h" />
+    <ClInclude Include="..\..\src\app\Dialogs.h" />
+    <ClInclude Include="..\..\src\app\HeadlessHost.h" />
+    <ClInclude Include="..\..\src\app\HomeScreen.h" />
+    <ClInclude Include="..\..\src\app\Screen.h" />
+    <ClInclude Include="..\..\src\app\Screenshot.h" />
+    <ClInclude Include="..\..\src\app\Script.h" />
+    <ClInclude Include="..\..\src\app\Settings.h" />
+    <ClInclude Include="..\..\src\ui\board\BoardView.h" />
+    <ClInclude Include="..\..\src\ui\canvas\Canvas.h" />
+    <ClInclude Include="..\..\src\ui\canvas\Color.h" />
+    <ClInclude Include="..\..\src\ui\canvas\Font.h" />
+    <ClInclude Include="..\..\src\ui\canvas\Geometry.h" />
+    <ClInclude Include="..\..\src\ui\canvas\PngWriter.h" />
+    <ClInclude Include="..\..\src\ui\canvas\Rasterizer.h" />
+    <ClInclude Include="..\..\src\ui\canvas\TrueTypeFont.h" />
+    <ClInclude Include="..\..\src\ui\input\Input.h" />
+    <ClInclude Include="..\..\src\ui\render\Refresh.h" />
+    <ClInclude Include="..\..\src\ui\theme\BoardTheme.h" />
+    <ClInclude Include="..\..\src\ui\theme\PieceSet.h" />
+    <ClInclude Include="..\..\src\ui\widgets\Widgets.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

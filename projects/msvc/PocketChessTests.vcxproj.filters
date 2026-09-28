@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="tests">
+      <UniqueIdentifier>{1CDAD176-1D97-5D69-B1AE-FCC48385F358}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\app">
+      <UniqueIdentifier>{7321C34F-D56F-5706-93D6-44DF9118C218}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\core">
+      <UniqueIdentifier>{DBBA00D2-3809-5DDB-874F-B420AAEF7743}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\support">
+      <UniqueIdentifier>{811AD32F-D20C-5721-A1CB-C2891F97FBF1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests\ui">
+      <UniqueIdentifier>{7CB3B3EA-D444-52F2-9072-FE60C663D03C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\tests\TestMain.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\app\AppTests.cpp">
+      <Filter>tests\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\core\ChessTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\core\EngineTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\core\PerftTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\support\Golden.cpp">
+      <Filter>tests\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\support\Test.cpp">
+      <Filter>tests\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\support\TestTools.cpp">
+      <Filter>tests\support</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\ui\UiTests.cpp">
+      <Filter>tests\ui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\tests\support\Golden.h">
+      <Filter>tests\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\tests\support\Test.h">
+      <Filter>tests\support</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\tests\support\TestTools.h">
+      <Filter>tests\support</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

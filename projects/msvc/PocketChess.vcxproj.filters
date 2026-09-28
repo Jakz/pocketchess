@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="data">
+      <UniqueIdentifier>{349E40EB-FA7B-58F0-96A7-694451CD76E4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="data\simulator">
+      <UniqueIdentifier>{5AD2919C-3934-5983-B90B-8125A9CC1722}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="projects">
+      <UniqueIdentifier>{9B1B4611-504F-51D5-B542-AA7A54CED323}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{B58EFC9A-530E-5715-B92B-1A4261F65D4D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\platform">
+      <UniqueIdentifier>{F4C03097-2133-54FF-8771-98FB5F1BE5CD}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\platform\sdl">
+      <UniqueIdentifier>{B3898A06-9B48-5EC8-95BD-93EC283A40F0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\platform\sdl\Main.cpp">
+      <Filter>src\platform\sdl</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\projects\bundle-manifest.txt">
+      <Filter>projects</Filter>
+    </None>
+    <None Include="..\..\data\simulator\kaleido3.yaml">
+      <Filter>data\simulator</Filter>
+    </None>
+  </ItemGroup>
+</Project>

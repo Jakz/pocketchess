@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{0F3641E4-06EC-51F6-8955-202DE4C808B5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\platform">
+      <UniqueIdentifier>{81F14AB5-0A2D-5DD4-BA49-5BEA4F7BD018}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\platform\sdl">
+      <UniqueIdentifier>{ED3B1016-AFC9-5155-B3E7-48FF27F3A9CA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\platform\win32">
+      <UniqueIdentifier>{9D6A6801-39F1-543C-B316-DEC57D9E58E7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\platform\sdl\EinkSimulator.cpp">
+      <Filter>src\platform\sdl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\platform\sdl\SdlPlatform.cpp">
+      <Filter>src\platform\sdl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\platform\win32\Win32Process.cpp">
+      <Filter>src\platform\win32</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\platform\Host.h">
+      <Filter>src\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\platform\sdl\EinkSimulator.h">
+      <Filter>src\platform\sdl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\platform\sdl\SdlPlatform.h">
+      <Filter>src\platform\sdl</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

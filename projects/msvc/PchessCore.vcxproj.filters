@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{A3A81CBB-5763-5838-854D-AAF42D0FE553}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{88BB117C-277D-5685-B5E8-0DD040F310F4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\chess">
+      <UniqueIdentifier>{0DCBB95A-97CC-5AFC-9F0D-AFAF381918C7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\engine">
+      <UniqueIdentifier>{788EE710-4808-556C-922F-1DDE45AB5BBE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core\util">
+      <UniqueIdentifier>{FFD33966-DF91-5E82-A5EA-1E4F81F85E47}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\core\chess\Bitboard.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\Fen.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\GameTree.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\MoveCodec.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\MoveGen.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\Pgn.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\Position.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\Rules.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\San.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\Types.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\Zobrist.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\engine\UciParser.cpp">
+      <Filter>src\core\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\engine\UciProbe.cpp">
+      <Filter>src\core\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\Clock.cpp">
+      <Filter>src\core\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\Error.cpp">
+      <Filter>src\core\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\Log.cpp">
+      <Filter>src\core\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\Paths.cpp">
+      <Filter>src\core\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\Utf8.cpp">
+      <Filter>src\core\util</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\core\chess\Bitboard.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\Fen.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\GameTree.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\Move.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\MoveCodec.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\MoveGen.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\Pgn.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\Position.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\Rules.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\San.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\Types.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\Zobrist.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\Process.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\UciParser.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\UciProbe.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Clock.h">
+      <Filter>src\core\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Error.h">
+      <Filter>src\core\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Log.h">
+      <Filter>src\core\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Paths.h">
+      <Filter>src\core\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Random.h">
+      <Filter>src\core\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Utf8.h">
+      <Filter>src\core\util</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
