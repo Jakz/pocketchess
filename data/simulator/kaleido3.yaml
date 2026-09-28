@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Kaleido 3 approximation used by the desktop e-ink simulator (F2 -> "Kaleido 3 approx.").
+# Tune from photos of the real panel (R10). Values are read at startup.
+saturation: 0.55     # fraction of chroma kept (the color filter layer is muted)
+darken: 0.90         # white point (the color layer absorbs light)
+gamma: 1.10          # luminance response
+chroma_block: 2      # 300 ppi luminance vs 150 ppi color -> average chroma over 2x2 pixels
