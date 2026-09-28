@@ -1,0 +1,7 @@
+# Golden canvas hashes (FNV-1a 64 over RGB). Regenerate: PocketChessTests --update-golden
+analyze-758x1024 995dfe60c1d6d6fc 758 1024
+analyze-kiwipete-flipped 1942e0aec059b934 1072 1448
+analyze-mono-mate 62a1f38af4309650 1072 1448
+analyze-ruy-lopez 60c108edda300b02 1072 1448
+home 12f2ddd42d41e14f 1072 1448
+promotion 1549ef8a760ef41b 1072 1448
