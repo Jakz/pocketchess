@@ -46,6 +46,7 @@ set(PCHESS_UI_SOURCES
     ${REPO_ROOT}/src/app/Screenshot.cpp
     ${REPO_ROOT}/src/app/Script.cpp
     ${REPO_ROOT}/src/app/Settings.cpp
+    ${REPO_ROOT}/src/app/SettingsScreen.cpp
     ${REPO_ROOT}/src/ui/board/BoardView.cpp
     ${REPO_ROOT}/src/ui/canvas/Canvas.cpp
     ${REPO_ROOT}/src/ui/canvas/Color.cpp
@@ -68,6 +69,7 @@ set(PCHESS_PLATFORM_PB_SOURCES
 set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/AnalysisPanelTests.cpp
     ${REPO_ROOT}/tests/app/AppTests.cpp
+    ${REPO_ROOT}/tests/app/SettingsTests.cpp
     ${REPO_ROOT}/tests/core/ChessTests.cpp
     ${REPO_ROOT}/tests/core/EngineBenchmarkTests.cpp
     ${REPO_ROOT}/tests/core/EngineDescriptorTests.cpp

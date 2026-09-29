@@ -63,6 +63,9 @@
     <ClCompile Include="..\..\src\app\Settings.cpp">
       <Filter>src\app</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\app\SettingsScreen.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\ui\board\BoardView.cpp">
       <Filter>src\ui\board</Filter>
     </ClCompile>
@@ -135,6 +138,9 @@
       <Filter>src\app</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\Settings.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\SettingsScreen.h">
       <Filter>src\app</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ui\board\BoardView.h">

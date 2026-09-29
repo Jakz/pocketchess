@@ -5,6 +5,7 @@
 #include "app/DiagnosticsScreen.h"
 #include "app/Dialogs.h"
 #include "app/HomeScreen.h"
+#include "app/SettingsScreen.h"
 #include "core/storage/ChessDb.h"
 #include "core/util/Log.h"
 
@@ -114,6 +115,7 @@ std::unique_ptr<Screen> Application::makeScreen(const std::string& name) {
     if (name == "home") return std::make_unique<HomeScreen>(*this);
     if (name == "analyze") return std::make_unique<AnalyzeScreen>(*this, config_.fen);
     if (name == "diagnostics") return std::make_unique<DiagnosticsScreen>(*this);
+    if (name == "settings") return std::make_unique<SettingsScreen>(*this);
     Log::warn("app", "unknown or not yet available screen '" + name + "', staying on Home");
     return nullptr;
 }

@@ -5,13 +5,14 @@
 #include "app/Application.h"
 #include "app/Chrome.h"
 #include "app/DiagnosticsScreen.h"
+#include "app/SettingsScreen.h"
 
 namespace pchess::app {
 
 using namespace ui;
 
 namespace {
-enum Id { Play, Tactics, Games, Analyze, Review, Diagnostics, Exit };
+enum Id { Play, Tactics, Games, Analyze, Review, SettingsItem, Diagnostics, Exit };
 }
 
 HomeScreen::HomeScreen(Application& app) : Screen(app) {
@@ -33,6 +34,7 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
         {Games, "Games", "historical games · M5", false},
         {Analyze, "Analyze", "", true},
         {Review, "Review", "failed puzzles · M4", false},
+        {SettingsItem, "Settings", "", true},
         {Diagnostics, "Diagnostics", "", true},
     };
     int y = top;
@@ -93,6 +95,7 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
 void HomeScreen::open(int id) {
     switch (id) {
     case Analyze: app_.push(std::make_unique<AnalyzeScreen>(app_, "")); break;
+    case SettingsItem: app_.push(std::make_unique<SettingsScreen>(app_)); break;
     case Diagnostics: app_.push(std::make_unique<DiagnosticsScreen>(app_)); break;
     default: break;
     }

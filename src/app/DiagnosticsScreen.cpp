@@ -8,7 +8,6 @@
 #include "ui/canvas/PngWriter.h"
 
 #include <cstdio>
-#include <cstdlib>
 
 namespace pchess::app {
 
@@ -64,8 +63,8 @@ DiagnosticsScreen::DiagnosticsScreen(Application& app) : Screen(app) {
                         (e.available ? "available (" + e.descriptor.name + ")" : "disabled - " + e.problem));
     if (app_.engineRegistry().entries().empty())
         info_.push_back("Engines: none in " + app_.paths().engines().string());
-    profileLine_ = info_.size();
-    info_.push_back(profileText());
+    info_.push_back(std::string("Power profile: ") + app_.engines().profile().name + " (Settings), engine platform " +
+                    app_.engineRegistry().platform());
     for (const auto& line : info_) Log::info("diag", line);
 }
 
@@ -259,27 +258,6 @@ void DiagnosticsScreen::runEngine() {
     probe_->start(exe, 1000, 1, 16, args);
 }
 
-std::string DiagnosticsScreen::profileText() {
-    return std::string("Power profile: ") + app_.engines().profile().name + " (tap to change), engine platform " +
-           app_.engineRegistry().platform();
-}
-
-// Until the Settings screen (M3): cycles Performance -> Balanced -> Eco for the M2 device checks.
-void DiagnosticsScreen::cycleProfile() {
-    using engine::PowerProfileId;
-    Settings& s = app_.settings();
-    s.powerProfile = s.powerProfile == PowerProfileId::Performance ? PowerProfileId::Balanced
-                     : s.powerProfile == PowerProfileId::Balanced  ? PowerProfileId::Eco
-                                                                   : PowerProfileId::Performance;
-    app_.applySettings();  // takes effect on the next job
-    info_[profileLine_] = profileText();
-    const engine::PowerProfile& p = app_.engines().profile();
-    log(std::string("power profile -> ") + p.name + ": play " +
-        (p.lightEngine ? "lightest engine" : "strongest engine") + ", idle timeout " +
-        std::to_string(p.idleTimeout.count() / 1000) + " s");
-    app_.invalidate(infoRect_, RefreshHint::Content);
-}
-
 void DiagnosticsScreen::runBenchmark() {
     if (bench_ && bench_->running()) {
         stopBenchmark("cancelled");
@@ -371,14 +349,6 @@ void DiagnosticsScreen::onGesture(const Gesture& g) {
     if (statusBackRect(app_).contains(g.start)) {
         app_.pop();
         return;
-    }
-    if (infoRect_.contains(g.start)) {
-        const int lh = app_.fonts().get(app_.style().smallPx).lineHeight();
-        const int line = (g.start.y - infoRect_.y) / lh;
-        if (std::abs(line - static_cast<int>(profileLine_)) <= 1) {  // lines are short targets: ±1 line
-            cycleProfile();
-            return;
-        }
     }
     switch (hitTest(buttons_, g.start)) {
     case BtnOne: runOneSquare(); break;

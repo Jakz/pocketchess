@@ -4,6 +4,7 @@
 #include "app/Application.h"
 #include "app/Chrome.h"
 #include "app/DiagnosticsScreen.h"
+#include "app/SettingsScreen.h"
 #include "app/Dialogs.h"
 #include "core/chess/Fen.h"
 #include "core/chess/MoveGen.h"
@@ -367,7 +368,7 @@ void AnalyzeScreen::onGesture(const Gesture& g) {
         return;
     }
     if (app_.layout().board.contains(g.start)) {
-        onSquare(board_.squareAt(g.start));
+        if (app_.settings().tapToMove) onSquare(board_.squareAt(g.start));
         return;
     }
     switch (hitTest(buttons_, g.start)) {
@@ -551,8 +552,9 @@ void AnalyzeScreen::showEngineMissing(const std::string& detail) {
     app_.push(std::make_unique<MessageDialog>(
         app_, "Engine missing",
         detail + "\n\nAnalysis needs an engine in engines/<id>/ (see Diagnostics). Everything else works without one.",
-        std::vector<std::string>{"Diagnostics", "Continue"}, [this](int i) {
-            if (i == 0) app_.push(std::make_unique<DiagnosticsScreen>(app_));
+        std::vector<std::string>{"Settings", "Diagnostics", "Continue"}, [this](int i) {
+            if (i == 0) app_.push(std::make_unique<SettingsScreen>(app_));
+            if (i == 1) app_.push(std::make_unique<DiagnosticsScreen>(app_));
         }));
 }
 
