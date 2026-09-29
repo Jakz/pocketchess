@@ -13,6 +13,9 @@
     <Filter Include="src\core\engine">
       <UniqueIdentifier>{788EE710-4808-556C-922F-1DDE45AB5BBE}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\core\storage">
+      <UniqueIdentifier>{4F6B2D8E-1C3A-5B7D-9E0F-2A4C6E8B0D13}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\core\util">
       <UniqueIdentifier>{FFD33966-DF91-5E82-A5EA-1E4F81F85E47}</UniqueIdentifier>
     </Filter>
@@ -53,6 +56,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp">
       <Filter>src\core\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\storage\ChessDb.cpp">
+      <Filter>src\core\storage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\storage\Database.cpp">
+      <Filter>src\core\storage</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\engine\EngineBenchmark.cpp">
       <Filter>src\core\engine</Filter>
@@ -139,6 +148,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h">
       <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\storage\ChessDb.h">
+      <Filter>src\core\storage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\storage\Database.h">
+      <Filter>src\core\storage</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\EngineBenchmark.h">
       <Filter>src\core\engine</Filter>
