@@ -7,10 +7,10 @@ binary: { arm: stockfish, windows-x64: stockfish.exe }
 files: [nn-1a298aa575a0.nnue]      # the net ships beside the binary (R2); must match the pin (CMake checks)
 license: GPL-3.0-or-later
 roles: [play, analysis, hint, validate]
-resources:                         # filled in from device measurements (M0.6/M2); shown in Settings
-  disk_mb: null
-  rss_mb: null                     # after readyok, excluding Hash
-  startup_ms: null
+resources:                         # PB634K3 FW 6.10 (ADR 0010); shown in Settings
+  disk_mb: 100                     # binary + net
+  rss_mb: 140                      # after readyok, excluding Hash (peak 221 MiB while searching)
+  startup_ms: 2500
   energy_class: high               # low | medium | high (relative CPU-seconds per job)
 defaults: { Threads: 1, Hash: 16 }
 strength:                          # label -> options + limits; validated against the UCI options (P10)

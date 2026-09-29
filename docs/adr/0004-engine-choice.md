@@ -1,6 +1,6 @@
 # ADR 0004 — Engine choice and the M0.6 checkpoint
 
-- Status: Proposed (2026-09-28) — completes after the device measurements. Implements D4, D8.
+- Status: Accepted (2026-09-29): the checkpoint passed on the device; the lineup is in ADR 0010. Implements D4, D8.
 
 ## Decision (so far)
 

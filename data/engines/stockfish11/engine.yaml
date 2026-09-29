@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Engine descriptor (architecture doc §8.2). Staged to engines/stockfish11/engine.yaml.
-# Eco candidate (D8): classical evaluation, ~0.7 MB, nothing to load. Bundled only if the M2
-# benchmark shows it saves CPU-seconds/RAM at the needed strengths.
+# Eco engine (D8, ADR 0010): classical evaluation, ~0.7 MB, nothing to load; 6x less RAM and
+# ~2 s faster to start than Stockfish 19, far weaker at equal time.
 id: stockfish11
 name: "Stockfish 11 (Eco)"
 protocol: uci
@@ -9,10 +9,10 @@ binary: { arm: stockfish11, windows-x64: stockfish11.exe }
 files: []
 license: GPL-3.0-or-later
 roles: [play, analysis, hint, validate]
-resources:                         # filled in from device measurements (M2 benchmark)
+resources:                         # PB634K3 FW 6.10 (ADR 0010); shown in Settings
   disk_mb: 1
-  rss_mb: null
-  startup_ms: null
+  rss_mb: 21                       # after readyok, excluding Hash
+  startup_ms: 700
   energy_class: low                # the Eco profile picks the lightest engine for play/hint/validate
 defaults: { Threads: 1, Hash: 16 }
 strength:                          # UCI_Elo spans 1350-2850 in Stockfish 11

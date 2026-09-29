@@ -76,7 +76,8 @@ TEST_CASE("engine descriptor: the shipped stockfish descriptor parses") {
     REQUIRE_EQ(d->files.size(), size_t(1));  // the external net
     CHECK(d->files[0].rfind("nn-", 0) == 0);
     CHECK(d->resources.energy == EnergyClass::High);
-    CHECK_FALSE(d->resources.rssMb.has_value());
+    CHECK_EQ(d->resources.rssMb.value_or(0), 140);  // device numbers (ADR 0010)
+    CHECK_EQ(d->resources.startupMs.value_or(0), 2500);
     CHECK_EQ(*findOption(d->defaults, "Hash"), std::string("16"));
     REQUIRE_EQ(d->strength.size(), size_t(5));
     const StrengthLevel* b = d->strengthFor("beginner");
