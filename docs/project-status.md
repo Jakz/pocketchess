@@ -1,6 +1,6 @@
 # Project status — resume point
 
-Last updated: 2026-09-29 (M2 engine subsystem, first part). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
+Last updated: 2026-09-29 (MSVC tests green, Stockfish 19 fetched and built on Linux). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
 
 ## Milestone overview
 
@@ -8,10 +8,10 @@ Last updated: 2026-09-29 (M2 engine subsystem, first part). Plan: `docs/ai/`. Co
 | --- | --- |
 | M0.1 Repository skeleton | ✅ done; history on `github.com/Jakz/pocketchess` since 2026-09-29 (M0.1b done; CI still optional) |
 | M0.2 Vendor libraries | 🟡 SDL3 copied from Enigmistica automatically by the first build of `SDL3.vcxproj` (not in Git); stb/doctest replaced (ADR 0005), yaml-cpp replaced (ADR 0007); sqlite deferred to M3 |
-| M0.3 MSVC solution | 🟡 Debug build of `PocketChess.exe` works on Windows (2026-09-29: Home, Analyze, Diagnostics, touch test ran); `PocketChessTests` not built/run with MSVC yet |
+| M0.3 MSVC solution | ✅ Desktop|x64 builds on Windows with `PocketChessTests`: 69 suites pass (2026-09-29); the app ran (Home, Analyze, Diagnostics) |
 | M0.4 PocketBook build | 🟡 written; validated with a stub toolchain on Linux; real Zig/InkView build pending |
 | M0.5 Device spike (Diagnostics) | 🟡 screen implemented; needs the device run |
-| M0.6 Stockfish + plug-in skeleton | 🟡 scaffolding (pin, CMake, fetch/build scripts, descriptor, probe); sources not fetched yet |
+| M0.6 Stockfish + plug-in skeleton | 🟡 sf_19 fetched and pinned; CMake build verified on Linux x86-64 (bench + `[integration]` tests); first Zig builds for windows-x64/arm pending |
 | M1 Chess core + board UI | 🟢 core complete; board UI, sandbox, promotion, golden images done; device self-test pending |
 | M2 Engine integration | 🟡 descriptors + registry, `UciEngine`, `EngineManager`, jobs, power profiles, accounting, Analyze engine panel done (tests with a fake engine); benchmark, Eco engine, real-Stockfish integration test and the device checklist pending |
 | M3–M6 | not started (Home shows them disabled with their milestone) |
@@ -83,14 +83,14 @@ Last updated: 2026-09-29 (M2 engine subsystem, first part). Plan: `docs/ai/`. Co
 
 | Item | Why unverified | First check |
 | --- | --- | --- |
-| MSVC projects, `/W4` cleanliness | the app builds; tests and the M2 code not yet compiled with MSVC | `projects/msvc/build.ps1 -Configuration Desktop -Target Test` |
-| Engine subsystem against real Stockfish | Stockfish sources not fetched (GitHub not reachable from the session) | `scripts/fetch-engines.ps1 -Pin`, build, Analyze → Engine |
+| MSVC `/W4` cleanliness | only C4244 from `make_shared<char>(0)` (fixed); re-check after the next build | `projects/msvc/build.ps1 -Configuration Desktop -Target Test` |
+| Engine subsystem against real Stockfish on Windows/device | verified with a Linux build only | `build-engine.ps1 -Target windows-x64`, `PocketChessTests --integration`, Analyze → Engine |
 | SDL3 backend (`src/platform/sdl`) | SDL3 not available; syntax-checked against a stub of the 3.2 API | F5 the desktop app |
 | `Win32Process.cpp` | no Windows headers | `PocketChessTests` process/probe tests |
 | InkView backend | syntax-checked against a stub `inkview.h` | build with the real SDK, run on the reader |
 | `build-zig.ps1` vs `ZigToolchain.cmake` | Enigmistica's script/toolchain could not be read | compare variable names with Enigmistica's `build-zig.ps1` |
 | PowerShell scripts | no PowerShell in the session | `check-sources.ps1` fixed on Windows; the others still untested |
-| Stockfish CMake flags / INCBIN | SF 19 sources not available | BUILDING.md checklist |
+| Stockfish Zig builds (winpthreads, INCBIN with Zig) | checked with clang on Linux, not with Zig | `build-engine.ps1` output |
 
 ## Not working yet
 
@@ -105,15 +105,15 @@ Last updated: 2026-09-29 (M2 engine subsystem, first part). Plan: `docs/ai/`. Co
 
 ## Resume point (next steps, in order)
 
-1. Windows: `projects/msvc/build.ps1 -Configuration Desktop -Target Test` (build + `PocketChessTests`); fix any
-   MSVC errors/warnings. Goldens must match (if not, compare `tests/golden/actual/*.png`).
-2. `scripts/fetch-engines.ps1 -Pin`, build Stockfish for `windows-x64` (and `arm`), then F5 →
-   Analyze → Engine (Quick/Deep) and Diagnostics → Engine; record readyok/RSS/knps.
-3. `projects/pocketbook/build-zig.ps1 -Configuration Release`; deploy; run
-   `pocketchess-selftest.app`, then Diagnostics and Analyze with the engine; fill the table below.
-4. ADR 0004 checkpoint (readyok < 3 s, RSS < 250 MB) → decide whether the Eco engine moves up.
-5. Rest of M2: engine benchmark, Stockfish 11 descriptor/CMake, `[integration]` test, M2 device
-   checklist. Then close M0 + M2 with `scripts/verify-all.ps1`.
+1. Windows: `projects/pocketbook/build-engine.ps1 -Target windows-x64` (Zig; smoke test = `bench`),
+   then `PocketChessTests --integration` and F5 → Analyze → Engine (Quick/Deep), Diagnostics → Engine.
+2. `build-engine.ps1 -Target arm`, `projects/pocketbook/build-zig.ps1 -Configuration Release`; deploy;
+   run `pocketchess-selftest.app`, Diagnostics (incl. Engine) and Analyze; fill the table below.
+3. ADR 0004 checkpoint (readyok < 3 s, RSS < 250 MB). Note: Stockfish 19 embeds one 98.5 MB net and
+   used ~260 MB RSS on x86-64 after a short search (Hash 16), so the RSS limit may fail on the
+   device → the Stockfish 11 Eco candidate would move up.
+4. Rest of M2: engine benchmark (`logs/engine-bench.yaml`), Stockfish 11 descriptor/CMake, M2
+   device checklist. Then close M0 + M2 with `scripts/verify-all.ps1`.
 
 ## Verified on hardware
 
