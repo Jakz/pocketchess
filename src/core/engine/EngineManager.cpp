@@ -26,7 +26,7 @@ EngineManager::EngineManager(util::Scheduler& scheduler, EngineRegistry& registr
       registry_(registry),
       factory_(std::move(factory)),
       idle_(&scheduler),
-      token_(std::make_shared<char>(0)) {
+      token_(std::make_shared<char>('\0')) {
     if (!factory_)
         factory_ = [](const EngineDescriptor& d, util::Scheduler& s) -> std::unique_ptr<IEngine> {
             return std::make_unique<UciEngine>(d, s);

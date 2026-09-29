@@ -33,7 +33,7 @@ UciEngine::UciEngine(EngineDescriptor descriptor, util::Scheduler& scheduler, st
       exe_(std::move(exe)),
       factory_(std::move(factory)),
       timeouts_(timeouts),
-      token_(std::make_shared<char>(0)),
+      token_(std::make_shared<char>('\0')),
       timer_(&scheduler) {
     if (exe_.empty()) exe_ = descriptor_.binaryPath(currentPlatformKey());
     if (!factory_) factory_ = &Process::spawn;

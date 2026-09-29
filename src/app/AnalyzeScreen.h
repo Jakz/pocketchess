@@ -100,7 +100,7 @@ private:
     EngineText shown_, pending_;
     std::chrono::steady_clock::time_point lastEngineDraw_{};
     platform::TimerId throttleTimer_ = 0;
-    std::shared_ptr<char> alive_ = std::make_shared<char>(0);
+    std::shared_ptr<char> alive_ = std::make_shared<char>('\0');
 };
 
 } // namespace pchess::app
