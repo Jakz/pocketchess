@@ -129,14 +129,14 @@ Last updated: 2026-09-29 (M2: Stockfish 11 Eco engine, engine benchmark, device 
 
 ## Resume point (next steps, in order)
 
-1. Windows: F5 → Analyze → Engine (Quick/Deep) with real Stockfish (quick visual check).
-2. Device: `projects/pocketbook/build-zig.ps1 -Configuration Release` (already builds and stages
-   both engines), `deploy.ps1`; run `pocketchess-selftest.app`, then Diagnostics (spike items,
-   Engine, Bench → `logs/engine-bench.yaml`) and Analyze; fill the table below.
-3. ADR 0004 checkpoint (readyok < 3 s, RSS < 250 MB): Stockfish 19 peaks at 321 MiB on the desktop,
-   so expect it to fail → Stockfish 11 takes play/hint/validate (and maybe Quick analysis).
-4. ADR: per-profile defaults and bundling of Stockfish 11 from the device benchmark; fill the
-   descriptors' `resources:`. M2 device checklist, then close M0 + M2 with `scripts/verify-all.ps1`.
+1. Device (deployed 2026-09-29 with Stockfish 19, 17.1 and 11): Diagnostics → Bench again to
+   compare 17.1 with 19 on the Cortex-A7; still missing from the first run: Keys, sleep/wake,
+   Analyze → Engine (Quick/Deep, leave the screen), app launch time.
+2. ADR (engine choice on the device): which NNUE Stockfish ships (only one fits the 150 MB budget),
+   whether Stockfish 11 is bundled, per-profile defaults; fill the descriptors' `resources:`.
+3. Windows: F5 → Analyze → Engine (Quick/Deep) with real Stockfish (quick visual check).
+4. M2 device checklist (analysis ≤ 1 update/s, stop on leave/sleep/exit, idle shutdown, profile
+   switch, 30-minute Eco vs Balanced battery), then close M0 + M2 with `scripts/verify-all.ps1`.
 
 ## Verified on hardware
 
