@@ -15,6 +15,9 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/chess/San.cpp
     ${REPO_ROOT}/src/core/chess/Types.cpp
     ${REPO_ROOT}/src/core/chess/Zobrist.cpp
+    ${REPO_ROOT}/src/core/engine/EngineDescriptor.cpp
+    ${REPO_ROOT}/src/core/engine/EngineRegistry.cpp
+    ${REPO_ROOT}/src/core/engine/EngineTypes.cpp
     ${REPO_ROOT}/src/core/engine/UciParser.cpp
     ${REPO_ROOT}/src/core/engine/UciProbe.cpp
     ${REPO_ROOT}/src/core/util/Clock.cpp
@@ -58,6 +61,7 @@ set(PCHESS_PLATFORM_PB_SOURCES
 set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/AppTests.cpp
     ${REPO_ROOT}/tests/core/ChessTests.cpp
+    ${REPO_ROOT}/tests/core/EngineDescriptorTests.cpp
     ${REPO_ROOT}/tests/core/EngineTests.cpp
     ${REPO_ROOT}/tests/core/PerftTests.cpp
     ${REPO_ROOT}/tests/core/YamlTests.cpp

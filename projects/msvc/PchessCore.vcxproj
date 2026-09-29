@@ -52,6 +52,9 @@
     <ClCompile Include="..\..\src\core\chess\San.cpp" />
     <ClCompile Include="..\..\src\core\chess\Types.cpp" />
     <ClCompile Include="..\..\src\core\chess\Zobrist.cpp" />
+    <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp" />
+    <ClCompile Include="..\..\src\core\engine\EngineRegistry.cpp" />
+    <ClCompile Include="..\..\src\core\engine\EngineTypes.cpp" />
     <ClCompile Include="..\..\src\core\engine\UciParser.cpp" />
     <ClCompile Include="..\..\src\core\engine\UciProbe.cpp" />
     <ClCompile Include="..\..\src\core\util\Clock.cpp" />
@@ -74,6 +77,9 @@
     <ClInclude Include="..\..\src\core\chess\San.h" />
     <ClInclude Include="..\..\src\core\chess\Types.h" />
     <ClInclude Include="..\..\src\core\chess\Zobrist.h" />
+    <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h" />
+    <ClInclude Include="..\..\src\core\engine\EngineRegistry.h" />
+    <ClInclude Include="..\..\src\core\engine\EngineTypes.h" />
     <ClInclude Include="..\..\src\core\engine\Process.h" />
     <ClInclude Include="..\..\src\core\engine\UciParser.h" />
     <ClInclude Include="..\..\src\core\engine\UciProbe.h" />

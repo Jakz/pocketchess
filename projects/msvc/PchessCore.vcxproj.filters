@@ -51,6 +51,15 @@
     <ClCompile Include="..\..\src\core\chess\Zobrist.cpp">
       <Filter>src\core\chess</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp">
+      <Filter>src\core\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\engine\EngineRegistry.cpp">
+      <Filter>src\core\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\engine\EngineTypes.cpp">
+      <Filter>src\core\engine</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\engine\UciParser.cpp">
       <Filter>src\core\engine</Filter>
     </ClCompile>
@@ -112,6 +121,15 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\chess\Zobrist.h">
       <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\EngineRegistry.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\EngineTypes.h">
+      <Filter>src\core\engine</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\Process.h">
       <Filter>src\core\engine</Filter>

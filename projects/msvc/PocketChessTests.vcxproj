@@ -51,6 +51,7 @@
     <Exec Command="&quot;$(TargetPath)&quot;" WorkingDirectory="$(RepoRoot)" />
   </Target>
   <ItemGroup>
+    <ClCompile Include="..\..\tests\core\EngineDescriptorTests.cpp" />
     <ClCompile Include="..\..\tests\core\YamlTests.cpp" />
     <ClCompile Include="..\..\tests\TestMain.cpp" />
     <ClCompile Include="..\..\tests\app\AppTests.cpp" />
