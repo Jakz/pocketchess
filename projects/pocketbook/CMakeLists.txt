@@ -58,9 +58,15 @@ foreach(dir "${POCKETBOOK_SDK_ROOT}/../include" "${POCKETBOOK_SDK_ROOT}/../inclu
     endif()
 endforeach()
 
+# SQLite amalgamation (P4): options in libs/sqlite/pchess_sqlite_config.h, shared with Sqlite.vcxproj.
+add_library(pchess-sqlite STATIC "${REPO_ROOT}/libs/sqlite/sqlite3.c")
+target_include_directories(pchess-sqlite PUBLIC "${REPO_ROOT}/libs/sqlite")
+target_compile_definitions(pchess-sqlite PRIVATE SQLITE_CUSTOM_INCLUDE=pchess_sqlite_config.h)
+target_compile_options(pchess-sqlite PRIVATE -w -O2)  # third-party: no warnings, always optimized
+
 add_library(pchess-core STATIC ${PCHESS_CORE_SOURCES})
 target_include_directories(pchess-core PUBLIC "${REPO_ROOT}/src")
-target_link_libraries(pchess-core PUBLIC Threads::Threads)
+target_link_libraries(pchess-core PUBLIC Threads::Threads pchess-sqlite)
 
 add_library(pchess-ui STATIC ${PCHESS_UI_SOURCES})
 target_link_libraries(pchess-ui PUBLIC pchess-core)
