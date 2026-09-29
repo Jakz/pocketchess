@@ -3,7 +3,9 @@
 
 #include "app/Application.h"
 #include "app/Chrome.h"
+#include "core/util/Clock.h"
 #include "core/util/Log.h"
+#include "ui/canvas/PngWriter.h"
 
 #include <cstdio>
 
@@ -33,7 +35,7 @@ DiagnosticsScreen::DiagnosticsScreen(Application& app) : Screen(app) {
     const Rect grid{body.x, testRect_.bottom() + pad, body.w, 2 * btnH + pad};
     logRect_ = {body.x, grid.bottom() + pad, body.w, body.bottom() - grid.bottom() - pad};
 
-    const char* labels[] = {"1 square", "12 squares", "Full", "Touch", "Keys", "Engine", "Timing log", "‹ Back"};
+    const char* labels[] = {"1 square", "12 squares", "Full", "Touch", "Keys", "Engine", "Timing log", "Bench"};
     const auto rows = splitColumn(grid, 2, pad);
     for (int r = 0; r < 2; ++r) {
         const auto cells = splitRow(rows[static_cast<size_t>(r)], 4, pad);
@@ -68,6 +70,8 @@ DiagnosticsScreen::DiagnosticsScreen(Application& app) : Screen(app) {
 
 DiagnosticsScreen::~DiagnosticsScreen() {
     if (probeTimer_) app_.host().cancelTimer(probeTimer_);
+    if (benchActivity_) app_.host().setBackgroundActivity(false);
+    bench_.reset();
     app_.onPresent = nullptr;
 }
 
@@ -84,12 +88,14 @@ void DiagnosticsScreen::onEnter() {
 void DiagnosticsScreen::onLeave() {
     app_.onPresent = nullptr;
     if (probe_ && probe_->running()) probe_->abort("left Diagnostics");
+    stopBenchmark("left Diagnostics");
 }
 
 void DiagnosticsScreen::onLifecycle(platform::Lifecycle l) {
     log(std::string("lifecycle: ") + platform::toString(l));
     if (l == platform::Lifecycle::Background || l == platform::Lifecycle::Sleep || l == platform::Lifecycle::Exit) {
         if (probe_ && probe_->running()) probe_->abort(std::string("lifecycle ") + platform::toString(l));
+        stopBenchmark(std::string("lifecycle ") + platform::toString(l));
     }
 }
 
@@ -136,6 +142,7 @@ void DiagnosticsScreen::draw(Canvas& c, const Rect& clip) {
         Button bb = b;
         if (b.id == BtnKeys && keyCapture_) bb.primary = true;
         if (b.id == BtnTiming && Log::timingEnabled()) bb.primary = true;
+        if (b.id == BtnBench && bench_ && bench_->running()) bb.primary = true;
         if (b.rect.intersects(clip)) drawButton(c, bb, t, app_.fonts(), s);
     }
     if (clip.intersects(logRect_)) {
@@ -196,6 +203,10 @@ void DiagnosticsScreen::runEngine() {
         log("engine probe already running");
         return;
     }
+    if (bench_ && bench_->running()) {
+        log("engine benchmark running; tap Bench to cancel it first");
+        return;
+    }
     // The analysis engine from the registry (engines/<id>/engine.yaml), else the stockfish default path.
     std::filesystem::path exe;
     std::vector<std::string> args;
@@ -245,6 +256,69 @@ void DiagnosticsScreen::runEngine() {
     });
     host.setBackgroundActivity(true);
     probe_->start(exe, 1000, 1, 16, args);
+}
+
+void DiagnosticsScreen::runBenchmark() {
+    if (bench_ && bench_->running()) {
+        stopBenchmark("cancelled");
+        return;
+    }
+    if (probe_ && probe_->running()) {
+        log("engine probe running; try again when it is done");
+        return;
+    }
+    std::vector<engine::EngineDescriptor> engines;
+    for (const auto& e : app_.engineRegistry().entries())
+        if (e.available) engines.push_back(e.descriptor);
+    if (engines.empty()) {
+        log("bench: no engine installed in " + app_.paths().engines().string());
+        return;
+    }
+    app_.engines().shutdownEngine();  // one engine process at a time
+    const engine::PowerProfileId profile = app_.engines().settings().profile;
+    bench_ = std::make_unique<engine::EngineBenchmark>(app_.scheduler(), std::move(engines), profile);
+    benchRow_.clear();
+    log("bench: " + std::to_string(bench_->totalSearches()) + " searches, profile " +
+        engine::powerProfile(profile).name + " (tap Bench again to cancel)");
+    app_.host().setBackgroundActivity(true);
+    benchActivity_ = true;
+    bench_->start(
+        util::SystemClock::instance().unixSeconds(), app_.engineRegistry().platform(),
+        [this](const std::string& what, int done, int total) {
+            // "id level position": one log line per engine x level.
+            const std::string row = what.substr(0, what.rfind(' '));
+            if (row == benchRow_) return;
+            benchRow_ = row;
+            log("bench " + std::to_string(done) + "/" + std::to_string(total) + ": " + row);
+            app_.flush();
+        },
+        [this](const engine::BenchReport& r) {
+            app_.host().setBackgroundActivity(false);
+            benchActivity_ = false;
+            for (const engine::BenchEngine& e : r.engines) {
+                log(e.name + ": ready " + std::to_string(e.startupMs) + " ms, peak " +
+                    std::to_string(e.peakRssKb / 1024) + " MiB" + (e.error.empty() ? "" : ", " + e.error));
+                for (const engine::BenchRow& row : e.rows)
+                    if (row.searches > 0)
+                        log("  " + row.strength + ": CPU " + fmt(row.cpuSeconds / std::max(1, row.searches), 2) +
+                            " s/move, " + fmt(row.knps(), 0) + " knps, depth " + fmt(row.avgDepth(), 1));
+            }
+            const std::filesystem::path file = app_.paths().logs() / "engine-bench.yaml";
+            const std::string text = engine::toYaml(r);
+            if (auto w = ui::writeFile(file, std::vector<uint8_t>(text.begin(), text.end())); !w.ok())
+                log("bench: cannot write " + file.string() + ": " + w.error().message());
+            else
+                log(std::string("bench ") + (r.cancelled ? "cancelled, partial report in " : "done: ") + file.string());
+            app_.invalidate(buttons_[BtnBench].rect, RefreshHint::Content);
+            app_.flush();
+        });
+    app_.invalidate(buttons_[BtnBench].rect, RefreshHint::Content);
+}
+
+void DiagnosticsScreen::stopBenchmark(const std::string& why) {
+    if (!bench_ || !bench_->running()) return;
+    log("bench: stopping (" + why + ")");
+    bench_->cancel();  // the report still arrives (cancelled) and is written
 }
 
 void DiagnosticsScreen::onGesture(const Gesture& g) {
@@ -298,7 +372,7 @@ void DiagnosticsScreen::onGesture(const Gesture& g) {
         log(std::string("timing log ") + (Log::timingEnabled() ? "ON" : "OFF"));
         app_.invalidate(buttons_[BtnTiming].rect, RefreshHint::Content);
         break;
-    case BtnBack: app_.pop(); break;
+    case BtnBench: runBenchmark(); break;
     default:
         log("tap " + std::to_string(g.start.x) + "," + std::to_string(g.start.y));
         break;

@@ -102,6 +102,7 @@ public:
     // Engines (M2): registry of engines/*/engine.yaml and the job manager.
     engine::EngineRegistry& engineRegistry() { return engineRegistry_; }
     engine::EngineManager& engines() { return *engines_; }
+    util::Scheduler& scheduler() { return scheduler_; }
     void rescanEngines();
 
     ui::Canvas& canvas() { return canvas_; }
