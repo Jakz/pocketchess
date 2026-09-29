@@ -58,7 +58,16 @@ foreach ($raw in Get-Content -LiteralPath $manifest) {
 
 # 2. Engines listed in projects/engines.txt: descriptor + binary for this target.
 $enginesTxt = Join-Path $RepoRoot 'projects/engines.txt'
-foreach ($id in Get-Content -LiteralPath $enginesTxt | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }) {
+$engineIds = @(Get-Content -LiteralPath $enginesTxt | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+# Engines dropped from engines.txt leave the staged tree too (deploy.ps1 mirrors it to the reader).
+$stagedEngines = Join-Path $Dest 'engines'
+if (Test-Path $stagedEngines) {
+    foreach ($d in Get-ChildItem -LiteralPath $stagedEngines -Directory | Where-Object { $engineIds -notcontains $_.Name }) {
+        Remove-Item -Recurse -Force -LiteralPath $d.FullName
+        Write-Host "stage-bundle: removed engine '$($d.Name)' (not in projects/engines.txt)"
+    }
+}
+foreach ($id in $engineIds) {
     $yaml = Join-Path $RepoRoot "data/engines/$id/engine.yaml"
     if (Test-Path $yaml) { Copy-IfNewer $yaml (Join-Path $Dest "engines/$id/engine.yaml") }
     $binDir = Join-Path $RepoRoot "out/engines/$id/$engineTarget"
