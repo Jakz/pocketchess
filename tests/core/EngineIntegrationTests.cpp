@@ -62,12 +62,19 @@ std::vector<RealEngine> realEngines() {
     return out;
 }
 
-// Real process: pump the manual scheduler (posts from the reader thread) in real time.
+// Real process: pump the manual scheduler (posts from the reader thread) and move its clock with
+// real time, so startup times are measured and the engine's timeouts can fire.
 template <class Pred>
 bool pumpUntil(test::ManualScheduler& s, Pred done, std::chrono::milliseconds timeout) {
-    const auto end = std::chrono::steady_clock::now() + timeout;
+    const auto begin = std::chrono::steady_clock::now();
+    auto last = begin;
     while (!done()) {
-        if (std::chrono::steady_clock::now() > end) return false;
+        const auto t = std::chrono::steady_clock::now();
+        if (t - begin > timeout) return false;
+        if (const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t - last); ms.count() > 0) {
+            last += ms;
+            s.advance(ms);
+        }
         if (s.runPending() == 0) std::this_thread::sleep_for(2ms);
     }
     return true;
