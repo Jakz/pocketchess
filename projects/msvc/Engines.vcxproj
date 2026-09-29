@@ -45,6 +45,11 @@
     <None Include="..\..\projects\pocketbook\engines\stockfish\BUILDING.md" />
     <None Include="..\..\projects\pocketbook\engines\stockfish\engine.lock" />
     <None Include="..\..\data\engines\stockfish\engine.yaml" />
+    <None Include="..\..\projects\pocketbook\engines\stockfish11\CMakeLists.txt" />
+    <None Include="..\..\projects\pocketbook\engines\stockfish11\BUILDING.md" />
+    <None Include="..\..\projects\pocketbook\engines\stockfish11\engine.lock" />
+    <None Include="..\..\data\engines\stockfish11\engine.yaml" />
+    <None Include="..\..\projects\pocketbook\engines\zig-arm-engine.cmake" />
     <None Include="..\..\scripts\fetch-engines.ps1" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

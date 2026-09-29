@@ -4,3 +4,4 @@
 #   projects/pocketbook/engines/<id>/            CMakeLists.txt, BUILDING.md, engine.lock
 #   data/engines/<id>/engine.yaml                descriptor staged beside the binary
 stockfish
+stockfish11

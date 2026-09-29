@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Pin for the Stockfish 11 Eco candidate (M2, ADR 0004). Read by scripts/fetch-engines.ps1.
+# Classical evaluation (the last release before NNUE): no network files.
+id = stockfish11
+version = 11
+tag = sf_11
+source_url = https://github.com/official-stockfish/Stockfish/archive/refs/tags/sf_11.zip
+source_sha256 = d608596aa5f9bb0692245af101d2be5a2ec25a632b88c402af73e079617054b5
+license = GPL-3.0-or-later
