@@ -1,6 +1,6 @@
 # Project status — resume point
 
-Last updated: 2026-09-29 (MSVC tests green, Stockfish 19 fetched and built on Linux). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
+Last updated: 2026-09-29 (Stockfish 19 built with Zig for windows-x64, `[integration]` tests green on Windows). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
 
 ## Milestone overview
 
@@ -11,7 +11,7 @@ Last updated: 2026-09-29 (MSVC tests green, Stockfish 19 fetched and built on Li
 | M0.3 MSVC solution | ✅ Desktop|x64 builds on Windows with `PocketChessTests`: 69 suites pass (2026-09-29); the app ran (Home, Analyze, Diagnostics) |
 | M0.4 PocketBook build | 🟡 written; validated with a stub toolchain on Linux; real Zig/InkView build pending |
 | M0.5 Device spike (Diagnostics) | 🟡 screen implemented; needs the device run |
-| M0.6 Stockfish + plug-in skeleton | 🟡 sf_19 fetched and pinned; CMake build verified on Linux x86-64 (bench + `[integration]` tests); first Zig builds for windows-x64/arm pending |
+| M0.6 Stockfish + plug-in skeleton | 🟡 sf_19 fetched and pinned; CMake build verified on Linux x86-64 and with Zig for windows-x64 on Windows (bench + `[integration]` tests); Zig build for arm pending |
 | M1 Chess core + board UI | 🟢 core complete; board UI, sandbox, promotion, golden images done; device self-test pending |
 | M2 Engine integration | 🟡 descriptors + registry, `UciEngine`, `EngineManager`, jobs, power profiles, accounting, Analyze engine panel done (tests with a fake engine); benchmark, Eco engine, real-Stockfish integration test and the device checklist pending |
 | M3–M6 | not started (Home shows them disabled with their milestone) |
@@ -84,13 +84,13 @@ Last updated: 2026-09-29 (MSVC tests green, Stockfish 19 fetched and built on Li
 | Item | Why unverified | First check |
 | --- | --- | --- |
 | MSVC `/W4` cleanliness | only C4244 from `make_shared<char>(0)` (fixed); re-check after the next build | `projects/msvc/build.ps1 -Configuration Desktop -Target Test` |
-| Engine subsystem against real Stockfish on Windows/device | verified with a Linux build only | `build-engine.ps1 -Target windows-x64`, `PocketChessTests --integration`, Analyze → Engine |
+| Engine subsystem against real Stockfish in the app / on the device | `[integration]` tests pass on Windows (2026-09-29); the desktop app and the device not tried yet | F5 → Analyze → Engine, Diagnostics → Engine |
 | SDL3 backend (`src/platform/sdl`) | SDL3 not available; syntax-checked against a stub of the 3.2 API | F5 the desktop app |
 | `Win32Process.cpp` | no Windows headers | `PocketChessTests` process/probe tests |
 | InkView backend | syntax-checked against a stub `inkview.h` | build with the real SDK, run on the reader |
 | `build-zig.ps1` vs `ZigToolchain.cmake` | Enigmistica's script/toolchain could not be read | compare variable names with Enigmistica's `build-zig.ps1` |
 | PowerShell scripts | no PowerShell in the session | `check-sources.ps1` fixed on Windows; the others still untested |
-| Stockfish Zig builds (winpthreads, INCBIN with Zig) | checked with clang on Linux, not with Zig | `build-engine.ps1` output |
+| Stockfish Zig build for arm (INCBIN, NEON flags) | windows-x64 Zig build works (fixed `__DATE__`); arm not run | `build-engine.ps1 -Target arm` output |
 
 ## Not working yet
 
@@ -105,8 +105,10 @@ Last updated: 2026-09-29 (MSVC tests green, Stockfish 19 fetched and built on Li
 
 ## Resume point (next steps, in order)
 
-1. Windows: `projects/pocketbook/build-engine.ps1 -Target windows-x64` (Zig; smoke test = `bench`),
-   then `PocketChessTests --integration` and F5 → Analyze → Engine (Quick/Deep), Diagnostics → Engine.
+1. Windows: done up to the tests (`build-engine.ps1 -Target windows-x64`, `stage-bundle.ps1 -Target
+   windows -Dest out\msvc\Desktop\pocketchess`, `PocketChessTests --integration --filter integration`:
+   2 passed, depth 19 / 380k nodes, RSS 211 MiB). Still to do: F5 → Analyze → Engine (Quick/Deep),
+   Diagnostics → Engine.
 2. `build-engine.ps1 -Target arm`, `projects/pocketbook/build-zig.ps1 -Configuration Release`; deploy;
    run `pocketchess-selftest.app`, Diagnostics (incl. Engine) and Analyze; fill the table below.
 3. ADR 0004 checkpoint (readyok < 3 s, RSS < 250 MB). Note: Stockfish 19 embeds one 98.5 MB net and
