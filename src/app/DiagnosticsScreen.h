@@ -39,6 +39,8 @@ private:
     void runFull();
     void runEngine();
     void runBenchmark();  // starts, or cancels a running one
+    std::string profileText();
+    void cycleProfile();
     void stopBenchmark(const std::string& why);
     void drawTouchTargets(ui::Canvas& c);
     std::vector<ui::Point> touchTargets() const;
@@ -47,6 +49,7 @@ private:
     std::vector<ui::Button> buttons_;
     ui::Rect infoRect_, testRect_, logRect_;
     std::vector<std::string> info_;
+    size_t profileLine_ = 0;  // index in info_ of the power-profile line (tap cycles the profile)
     std::deque<std::string> log_;
     std::vector<bool> cells_;
     bool touchMode_ = false;
