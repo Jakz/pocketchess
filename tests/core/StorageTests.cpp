@@ -154,6 +154,28 @@ TEST_CASE("storage: user databases on disk use WAL, persist, and survive reopeni
     std::filesystem::remove_all(dir, ec);
 }
 
+TEST_CASE("storage: played games are stored and listed newest first") {
+    auto db = Database::open({}, Database::Mode::Memory);
+    REQUIRE(db.ok());
+    REQUIRE(migrate(*db, chessDbMigrations()).ok());
+    auto a = addPlayedGame(*db, {0, 100, "[Result \"1-0\"]\n\n1. e4 1-0\n", "1-0", "play", "casual", "stockfish"});
+    auto b = addPlayedGame(*db, {0, 200, "1. d4 *", "*", "play", "", ""});
+    REQUIRE(a.ok());
+    REQUIRE(b.ok());
+    CHECK(*b > *a);
+    auto list = recentPlayedGames(*db, 10);
+    REQUIRE(list.ok());
+    REQUIRE_EQ(list->size(), size_t(2));
+    CHECK_EQ((*list)[0].id, *b);
+    CHECK_EQ((*list)[0].result, std::string("*"));
+    CHECK((*list)[0].strength.empty());  // NULL reads back as empty
+    CHECK_EQ((*list)[1].engine, std::string("stockfish"));
+    CHECK_EQ((*list)[1].date, int64_t(100));
+    auto one = recentPlayedGames(*db, 1);
+    REQUIRE(one.ok());
+    CHECK_EQ(one->size(), size_t(1));
+}
+
 TEST_CASE("storage: content databases open read-only; missing and non-database files are errors") {
     const auto dir = freshDir(u8"pchess-storage-ro ü");  // non-ASCII + space: URI encoding
     const auto file = dir / "pack #1.db";

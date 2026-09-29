@@ -70,4 +70,32 @@ Result<void> saveSettings(Database& db, const std::map<std::string, std::string>
     });
 }
 
+Result<int64_t> addPlayedGame(Database& db, const PlayedGame& g) {
+    auto s = db.prepare("INSERT INTO played_games(date, pgn, result, mode, strength, engine) "
+                        "VALUES(?1, ?2, ?3, ?4, ?5, ?6)");
+    if (!s) return s.error();
+    s->bind(1, g.date).bind(2, g.pgn).bind(3, g.result).bind(4, g.mode);
+    if (g.strength.empty()) s->bindNull(5);
+    else s->bind(5, g.strength);
+    if (g.engine.empty()) s->bindNull(6);
+    else s->bind(6, g.engine);
+    if (auto r = s->run(); !r) return r.error();
+    return db.lastInsertId();
+}
+
+Result<std::vector<PlayedGame>> recentPlayedGames(Database& db, int limit) {
+    auto s = db.prepare("SELECT id, date, pgn, result, mode, strength, engine FROM played_games "
+                        "ORDER BY date DESC, id DESC LIMIT ?1");
+    if (!s) return s.error();
+    s->bind(1, limit);
+    std::vector<PlayedGame> out;
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        out.push_back({s->int64(0), s->int64(1), s->text(2), s->text(3), s->text(4), s->text(5), s->text(6)});
+    }
+    return out;
+}
+
 } // namespace pchess::storage
