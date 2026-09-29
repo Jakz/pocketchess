@@ -3,6 +3,7 @@
 
 #include "core/chess/Fen.h"
 #include "core/engine/UciEngine.h"
+#include "core/util/Clock.h"
 #include "core/util/Log.h"
 
 #include <algorithm>
@@ -41,26 +42,11 @@ std::string quoted(const std::string& s) {
     return out + "\"";
 }
 
-// UTC "YYYY-MM-DDTHH:MM:SSZ" (civil-from-days, proleptic Gregorian).
+// UTC "YYYY-MM-DDTHH:MM:SSZ".
 std::string isoUtc(int64_t t) {
-    int64_t days = t / 86400, secs = t % 86400;
-    if (secs < 0) {
-        secs += 86400;
-        --days;
-    }
-    days += 719468;
-    const int64_t era = (days >= 0 ? days : days - 146096) / 146097;
-    const int64_t doe = days - era * 146097;
-    const int64_t yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    const int64_t doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    const int64_t mp = (5 * doy + 2) / 153;
-    const int64_t d = doy - (153 * mp + 2) / 5 + 1;
-    const int64_t m = mp < 10 ? mp + 3 : mp - 9;
-    const int64_t y = yoe + era * 400 + (m <= 2 ? 1 : 0);
+    const util::CivilTime c = util::civilFromUnix(t);
     char b[32];
-    std::snprintf(b, sizeof b, "%04d-%02d-%02dT%02d:%02d:%02dZ", static_cast<int>(y), static_cast<int>(m),
-                  static_cast<int>(d), static_cast<int>(secs / 3600), static_cast<int>(secs / 60 % 60),
-                  static_cast<int>(secs % 60));
+    std::snprintf(b, sizeof b, "%04d-%02d-%02dT%02d:%02d:%02dZ", c.year, c.month, c.day, c.hour, c.minute, c.second);
     return b;
 }
 

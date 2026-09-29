@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include "core/util/Clock.h"
 #include "core/util/Yaml.h"
 #include "support/Test.h"
 
@@ -160,4 +161,15 @@ TEST_CASE("yaml: malformed or unsupported input is an error with a line number")
     expectError("a: 1\n  b: 2\n", "line 2: unexpected indentation");
     expectError("just text\nmore: 1\n", "line 2");
     expectError("a: 1\n---\nb: 2\n", "multiple documents");
+}
+
+TEST_CASE("clock: civil time from unix seconds (UTC)") {
+    auto eq = [](const util::CivilTime& c, int y, int mo, int d, int h, int mi, int s) {
+        return c.year == y && c.month == mo && c.day == d && c.hour == h && c.minute == mi && c.second == s;
+    };
+    CHECK(eq(util::civilFromUnix(0), 1970, 1, 1, 0, 0, 0));
+    CHECK(eq(util::civilFromUnix(951782400), 2000, 2, 29, 0, 0, 0));        // leap day
+    CHECK(eq(util::civilFromUnix(1790000000), 2026, 9, 21, 14, 13, 20));
+    CHECK(eq(util::civilFromUnix(4102444799), 2099, 12, 31, 23, 59, 59));
+    CHECK(eq(util::civilFromUnix(-1), 1969, 12, 31, 23, 59, 59));
 }

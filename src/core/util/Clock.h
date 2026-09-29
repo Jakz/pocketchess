@@ -16,6 +16,12 @@ public:
     virtual std::chrono::steady_clock::time_point now() const = 0;
 };
 
+// Calendar fields (UTC, proleptic Gregorian) of unix seconds: PGN dates, file names, reports.
+struct CivilTime {
+    int year = 1970, month = 1, day = 1, hour = 0, minute = 0, second = 0;
+};
+CivilTime civilFromUnix(int64_t unixSeconds);
+
 class SystemClock final : public Clock {
 public:
     int64_t unixSeconds() const override;
