@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // pocketchess-selftest.app: the desktop test suites on the real CPU (32-bit ARM, unsigned char,
-// the device libc/libm), plus golden-image checksums (testing doc §1, P9). Results are shown on
+// the device libc/libm), plus golden-image checksums (testing doc §1, P9) and the [integration]
+// tests against the bundled engines (ADR 0009: static hard-float binaries). Results are shown on
 // screen and written to <root>/logs/selftest.log. Any key closes the app.
 #include "core/util/Log.h"
 #include "core/util/Paths.h"
@@ -68,8 +69,10 @@ void runAll() {
     rep.onMessage = [&](const std::string& m) {
         if (log) std::fprintf(log, "     %s\n", m.c_str());
     };
-    show("PocketChess self-test", {"Running...", "Perft, FEN/SAN/PGN, UCI, canvas, golden images."});
-    RunOptions opt;  // [slow] and [integration] stay off on the device
+    show("PocketChess self-test",
+         {"Running...", "Perft, FEN/SAN/PGN, UCI, canvas, golden images, installed engines."});
+    RunOptions opt;  // [slow] stays off; [integration] runs the bundled engines on the device CPU
+    opt.includeIntegration = true;
     const Summary s = runTests(opt, rep);
     char summary[128];
     std::snprintf(summary, sizeof summary, "%d passed, %d failed, %d skipped, %d assertions", s.passed, s.failed,
