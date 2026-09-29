@@ -9,7 +9,11 @@ void drawButton(Canvas& c, const Button& b, const BoardTheme& t, FontLibrary& fo
     const Rgb fg = !b.enabled ? blend(t.background, t.ink, 110) : (b.primary ? t.background : t.ink);
     c.fill(b.rect, bg);
     c.frame(b.rect, b.enabled ? s.stroke : std::max(1, s.stroke - 1), b.enabled ? t.frame : fg);
-    Font& f = fonts.get(s.fontPx, b.primary ? FontStyle::Bold : FontStyle::Regular);
+    const FontStyle style = b.primary ? FontStyle::Bold : FontStyle::Regular;
+    // A label wider than the button (list entries, long names) uses the small size instead.
+    const int room = b.rect.w - 2 * s.fontPx / 2;
+    Font& f = fonts.get(s.fontPx, style).measure(b.label) <= room ? fonts.get(s.fontPx, style)
+                                                                  : fonts.get(s.smallPx, style);
     if (b.hint.empty()) {
         f.drawCentered(c, b.rect, b.label, fg);
     } else {
