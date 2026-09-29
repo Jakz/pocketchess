@@ -19,6 +19,9 @@ add_executable(stockfish ${SF_SOURCES})
 set_target_properties(stockfish PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
 target_include_directories(stockfish PRIVATE "${SF}")
 target_compile_definitions(stockfish PRIVATE NDEBUG)
+# misc.cpp falls back to __DATE__ without GIT_DATE (Makefile: from git log); Zig's clang rejects
+# __DATE__ (-Werror=date-time). Releases never print it; a fixed value keeps builds reproducible.
+target_compile_definitions(stockfish PRIVATE GIT_DATE=00000000)
 target_compile_options(stockfish PRIVATE -O3 -fno-exceptions -funroll-loops)
 
 if(PCHESS_ENGINE_TARGET STREQUAL "arm")
