@@ -44,6 +44,7 @@
     <ClCompile Include="..\..\src\app\HeadlessHost.cpp" />
     <ClCompile Include="..\..\src\app\HomeScreen.cpp" />
     <ClCompile Include="..\..\src\app\MoveList.cpp" />
+    <ClCompile Include="..\..\src\app\PlayScreen.cpp" />
     <ClCompile Include="..\..\src\app\Screenshot.cpp" />
     <ClCompile Include="..\..\src\app\Script.cpp" />
     <ClCompile Include="..\..\src\app\Settings.cpp" />
@@ -71,6 +72,7 @@
     <ClInclude Include="..\..\src\app\HeadlessHost.h" />
     <ClInclude Include="..\..\src\app\HomeScreen.h" />
     <ClInclude Include="..\..\src\app\MoveList.h" />
+    <ClInclude Include="..\..\src\app\PlayScreen.h" />
     <ClInclude Include="..\..\src\app\Screen.h" />
     <ClInclude Include="..\..\src\app\Screenshot.h" />
     <ClInclude Include="..\..\src\app\Script.h" />

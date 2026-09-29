@@ -27,6 +27,8 @@ public:
     enum class EngineMode { Off, Quick, Deep };
 
     AnalyzeScreen(Application& app, const std::string& fen);
+    // A finished or ongoing game (Play → "Analyze game"): positioned at its last move.
+    AnalyzeScreen(Application& app, chess::GameTree game);
     ~AnalyzeScreen() override;
     const char* name() const override { return "analyze"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;

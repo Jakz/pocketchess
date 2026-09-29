@@ -5,8 +5,10 @@
 #include "app/DiagnosticsScreen.h"
 #include "app/Dialogs.h"
 #include "app/HomeScreen.h"
+#include "app/PlayScreen.h"
 #include "app/SettingsScreen.h"
 #include "core/storage/ChessDb.h"
+#include "core/util/Clock.h"
 #include "core/util/Log.h"
 
 #include <chrono>
@@ -99,6 +101,7 @@ void Application::start() {
             settings_.boardTheme = t.name;
         }
     }
+    random_.reseed(static_cast<uint64_t>(util::SystemClock::instance().unixSeconds()));
     rescanEngines();
     applySettings();
 
@@ -116,6 +119,8 @@ std::unique_ptr<Screen> Application::makeScreen(const std::string& name) {
     if (name == "analyze") return std::make_unique<AnalyzeScreen>(*this, config_.fen);
     if (name == "diagnostics") return std::make_unique<DiagnosticsScreen>(*this);
     if (name == "settings") return std::make_unique<SettingsScreen>(*this);
+    if (name == "play")
+        return std::make_unique<PlayScreen>(*this, PlaySetup{chess::White, settings_.playStrength, config_.fen});
     Log::warn("app", "unknown or not yet available screen '" + name + "', staying on Home");
     return nullptr;
 }

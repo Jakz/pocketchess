@@ -58,6 +58,7 @@
     <ClCompile Include="..\..\tests\core\EngineManagerTests.cpp" />
     <ClCompile Include="..\..\tests\core\StorageTests.cpp" />
     <ClCompile Include="..\..\tests\app\SettingsTests.cpp" />
+    <ClCompile Include="..\..\tests\app\PlayTests.cpp" />
     <ClCompile Include="..\..\tests\core\UciEngineTests.cpp" />
     <ClCompile Include="..\..\tests\core\YamlTests.cpp" />
     <ClCompile Include="..\..\tests\support\FakeEngine.cpp" />

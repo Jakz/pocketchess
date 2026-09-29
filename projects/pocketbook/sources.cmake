@@ -44,6 +44,7 @@ set(PCHESS_UI_SOURCES
     ${REPO_ROOT}/src/app/HeadlessHost.cpp
     ${REPO_ROOT}/src/app/HomeScreen.cpp
     ${REPO_ROOT}/src/app/MoveList.cpp
+    ${REPO_ROOT}/src/app/PlayScreen.cpp
     ${REPO_ROOT}/src/app/Screenshot.cpp
     ${REPO_ROOT}/src/app/Script.cpp
     ${REPO_ROOT}/src/app/Settings.cpp
@@ -70,6 +71,7 @@ set(PCHESS_PLATFORM_PB_SOURCES
 set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/AnalysisPanelTests.cpp
     ${REPO_ROOT}/tests/app/AppTests.cpp
+    ${REPO_ROOT}/tests/app/PlayTests.cpp
     ${REPO_ROOT}/tests/app/SettingsTests.cpp
     ${REPO_ROOT}/tests/core/ChessTests.cpp
     ${REPO_ROOT}/tests/core/EngineBenchmarkTests.cpp

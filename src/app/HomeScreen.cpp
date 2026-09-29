@@ -5,6 +5,9 @@
 #include "app/Application.h"
 #include "app/Chrome.h"
 #include "app/DiagnosticsScreen.h"
+#include "app/Dialogs.h"
+#include "app/PlayScreen.h"
+#include "core/engine/EngineDescriptor.h"
 #include "app/SettingsScreen.h"
 
 namespace pchess::app {
@@ -29,7 +32,7 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
         bool enabled;
     };
     const Item items[] = {
-        {Play, "Play", "vs engine · M3", false},
+        {Play, "Play", "vs engine", true},
         {Tactics, "Tactics", "puzzles · M4", false},
         {Games, "Games", "historical games · M5", false},
         {Analyze, "Analyze", "", true},
@@ -88,17 +91,50 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
     const int pad = s.fontPx;
     small.draw(c, pad, baseline, left, t.ink);
     small.draw(c, l.screen.w - pad - small.measure(right), baseline, right, t.ink);
-    const std::string version = "0.0.1 · M0/M1 preview";
+    const std::string version = "0.0.1 · M3 preview";
     small.draw(c, (l.screen.w - small.measure(version)) / 2, baseline, version, blend(t.background, t.ink, 140));
 }
 
 void HomeScreen::open(int id) {
     switch (id) {
+    case Play: startPlay(); break;
     case Analyze: app_.push(std::make_unique<AnalyzeScreen>(app_, "")); break;
     case SettingsItem: app_.push(std::make_unique<SettingsScreen>(app_)); break;
     case Diagnostics: app_.push(std::make_unique<DiagnosticsScreen>(app_)); break;
     default: break;
     }
+}
+
+void HomeScreen::startPlay() {
+    app_.push(std::make_unique<MessageDialog>(
+        app_, "Play as", "", std::vector<std::string>{"White", "Black", "Random"},
+        [this](int side) {
+            if (side < 0) return;
+            chess::Color human = side == 0 ? chess::White : chess::Black;
+            if (side == 2) human = app_.random().below(2) == 0 ? chess::White : chess::Black;
+            const std::vector<std::string>& labels = engine::strengthLabels();
+            std::vector<std::string> texts;
+            for (const std::string& l : labels) {
+                std::string t = l;
+                t[0] = static_cast<char>(t[0] - 'a' + 'A');
+                texts.push_back((l == app_.settings().playStrength ? "✓ " : "") + t);
+            }
+            app_.push(std::make_unique<MessageDialog>(
+                app_, "Strength", "", texts,
+                [this, human](int i) {
+                    if (i < 0) return;
+                    PlaySetup setup;
+                    setup.human = human;
+                    setup.strength = engine::strengthLabels()[static_cast<size_t>(i)];
+                    if (app_.settings().playStrength != setup.strength) {
+                        app_.settings().playStrength = setup.strength;
+                        app_.saveSettings();
+                    }
+                    app_.push(std::make_unique<PlayScreen>(app_, setup));
+                },
+                true));
+        },
+        true));
 }
 
 void HomeScreen::moveFocus(int delta) {

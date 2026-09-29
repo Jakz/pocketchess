@@ -18,6 +18,8 @@ public:
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;
     void onEnter() override;
+    // Play setup (side, then strength) -> PlayScreen. The strength becomes the new default.
+    void startPlay();
 
 private:
     void open(int id);

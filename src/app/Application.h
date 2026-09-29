@@ -7,6 +7,7 @@
 #include "core/engine/EngineRegistry.h"
 #include "core/storage/Database.h"
 #include "core/util/Paths.h"
+#include "core/util/Random.h"
 #include "core/util/Scheduler.h"
 #include "platform/Host.h"
 #include "ui/canvas/Canvas.h"
@@ -104,6 +105,9 @@ public:
     void applySettings();  // theme/mono/refresh interval/engine settings changed
     void saveSettings();   // writes Settings to chess.db (no-op when not persisted)
     bool settingsPersisted() const { return userDb_.isOpen(); }
+    // user/chess.db, or nullptr when settings are not persisted (tests) or the file failed to open.
+    storage::Database* userDb() { return userDb_.isOpen() ? &userDb_ : nullptr; }
+    util::Random& random() { return random_; }  // seeded from the clock at start (tests may reseed)
 
     // Engines (M2): registry of engines/*/engine.yaml and the job manager.
     engine::EngineRegistry& engineRegistry() { return engineRegistry_; }
@@ -142,6 +146,7 @@ private:
     engine::EngineRegistry engineRegistry_;
     std::unique_ptr<engine::EngineManager> engines_;
     storage::Database userDb_;  // user/chess.db (closed when persistence is off or failed)
+    util::Random random_;
 
     ui::Canvas canvas_;
     ui::FontLibrary fonts_;

@@ -43,6 +43,14 @@ AnalyzeScreen::AnalyzeScreen(Application& app, const std::string& fen) : Screen(
     reset(start);
 }
 
+AnalyzeScreen::AnalyzeScreen(Application& app, GameTree game) : Screen(app) {
+    board_.setRect(app_.layout().board);
+    layoutPanel();
+    tree_ = std::move(game);
+    setNode(tree_.mainLineEnd());
+    app_.invalidate(app_.layout().panel, RefreshHint::Content);
+}
+
 AnalyzeScreen::~AnalyzeScreen() {
     alive_.reset();
     if (throttleTimer_) app_.host().cancelTimer(throttleTimer_);
