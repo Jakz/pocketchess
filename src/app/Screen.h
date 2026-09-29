@@ -5,6 +5,9 @@
 #include "ui/canvas/Canvas.h"
 #include "ui/input/Input.h"
 
+#include <map>
+#include <string>
+
 namespace pchess::app {
 
 class Application;
@@ -32,6 +35,13 @@ public:
     virtual void onLifecycle(platform::Lifecycle) {}
     // True while the screen edits text: desktop hosts then send Backspace as text ("\b").
     virtual bool wantsText() const { return false; }
+    // SessionState (design notes §30, ADR 0011): a resumable screen fills `out` (its own keys plus
+    // an optional "summary" for the Resume dialog) and returns true. The app saves the topmost
+    // screen that does; `name()` becomes the "screen" key.
+    virtual bool saveSession(std::map<std::string, std::string>& out) const {
+        (void)out;
+        return false;
+    }
 
 protected:
     Application& app_;

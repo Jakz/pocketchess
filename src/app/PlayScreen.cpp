@@ -17,6 +17,7 @@
 #include "core/util/Log.h"
 #include "ui/canvas/PngWriter.h"
 
+#include <charconv>
 #include <cstdio>
 
 namespace pchess::app {
@@ -225,6 +226,7 @@ void PlayScreen::commitMove(Move m) {
 void PlayScreen::afterMove() {
     const Outcome o = gameOutcome(pos_, tree_.keyHistoryTo(node_));
     if (o.over()) return finish(o.result, terminationText(o.termination));
+    app_.sessionChanged();
     if (!humanToMove()) requestEngineMove();
 }
 
@@ -298,6 +300,7 @@ void PlayScreen::undo() {
     tree_.deleteNode(n);
     util::Log::info("play", "undo");
     setNode(parent);
+    app_.sessionChanged();
     if (!humanToMove()) requestEngineMove();
 }
 
@@ -323,6 +326,7 @@ void PlayScreen::finish(const std::string& result, const std::string& reason) {
     refreshBoard(RefreshHint::Content);
     refreshPanel();
     saveGame();
+    app_.sessionChanged();  // a finished game has nothing to resume
     showResult();
 }
 
@@ -442,6 +446,64 @@ void PlayScreen::leave() {
                                               }));
 }
 
+// --- Session (ADR 0011) --------------------------------------------------------------------------
+
+bool PlayScreen::saveSession(std::map<std::string, std::string>& out) const {
+    if (finished_) return false;  // finished games live in played_games
+    std::string moves;
+    for (Move m : tree_.mainLine()) moves += (moves.empty() ? "" : " ") + toUci(m);
+    const int plies = static_cast<int>(tree_.mainLine().size());
+    out["play.human"] = setup_.human == White ? "white" : "black";
+    out["play.strength"] = setup_.strength;
+    out["play.fen"] = toFen(tree_.startPosition());
+    out["play.moves"] = moves;
+    out["play.started"] = std::to_string(startedAt_);
+    out["play.flipped"] = flipped_ ? "true" : "false";
+    out["summary"] = "Game in progress: you play " + std::string(setup_.human == White ? "White" : "Black") + " vs " +
+                     (engineName_.empty() ? std::string("the engine") : engineName_) + " (" +
+                     capitalized(setup_.strength) + "), " + std::to_string(plies) + (plies == 1 ? " move" : " moves") +
+                     " played.";
+    return true;
+}
+
+std::unique_ptr<PlayScreen> PlayScreen::restore(Application& app, const std::map<std::string, std::string>& s) {
+    auto get = [&](const char* k) {
+        auto it = s.find(k);
+        return it == s.end() ? std::string() : it->second;
+    };
+    PlaySetup setup;
+    const std::string human = get("play.human");
+    if (human != "white" && human != "black") return nullptr;
+    setup.human = human == "white" ? White : Black;
+    setup.strength = get("play.strength");
+    setup.fen = get("play.fen");
+    if (setup.strength.empty() || !parseFen(setup.fen)) return nullptr;
+    auto p = std::make_unique<PlayScreen>(app, setup);
+    GameNode* n = p->tree_.root();
+    Position pos = p->tree_.startPosition();
+    const std::string moves = get("play.moves");
+    size_t i = 0;
+    while (i < moves.size()) {
+        size_t j = moves.find(' ', i);
+        if (j == std::string::npos) j = moves.size();
+        auto m = parseUci(pos, std::string_view(moves).substr(i, j - i));
+        if (!m) {
+            util::Log::warn("play", "session: " + m.error().message());
+            return nullptr;
+        }
+        pos.makeMove(m.value());
+        n = p->tree_.addMove(n, m.value());
+        i = j + 1;
+    }
+    const std::string started = get("play.started");
+    std::from_chars(started.data(), started.data() + started.size(), p->startedAt_);  // keeps "now" if invalid
+    p->flipped_ = get("play.flipped") == "true";
+    p->setNode(n);
+    if (gameOutcome(p->pos_, p->tree_.keyHistoryTo(n)).over()) return nullptr;  // never saved as unfinished
+    util::Log::info("play", "resumed after " + std::to_string(p->tree_.mainLine().size()) + " plies");
+    return p;
+}
+
 // --- Input and lifecycle -------------------------------------------------------------------------
 
 void PlayScreen::onGesture(const Gesture& g) {
@@ -469,6 +531,7 @@ void PlayScreen::onGesture(const Gesture& g) {
     case BtnFlip:
         flipped_ = !flipped_;
         refreshBoard(RefreshHint::Content);
+        app_.sessionChanged();
         break;
     case BtnDraw: claimDraw(); break;
     case BtnResign: {

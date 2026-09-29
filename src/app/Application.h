@@ -105,6 +105,9 @@ public:
     void applySettings();  // theme/mono/refresh interval/engine settings changed
     void saveSettings();   // writes Settings to chess.db (no-op when not persisted)
     bool settingsPersisted() const { return userDb_.isOpen(); }
+    // SessionState: screens call this after every meaningful change (move, undo); push/pop and
+    // background/exit call it too. Saves the topmost resumable screen, or clears the session.
+    void sessionChanged();
     // user/chess.db, or nullptr when settings are not persisted (tests) or the file failed to open.
     storage::Database* userDb() { return userDb_.isOpen() ? &userDb_ : nullptr; }
     util::Random& random() { return random_; }  // seeded from the clock at start (tests may reseed)
@@ -133,6 +136,8 @@ public:
 
 private:
     std::unique_ptr<Screen> makeScreen(const std::string& name);
+    void offerResume(std::map<std::string, std::string> session);
+    std::unique_ptr<Screen> restoreScreen(const std::map<std::string, std::string>& session);
     void computeLayout();
     void drawRegion(const ui::Rect& r);
 
@@ -147,6 +152,8 @@ private:
     std::unique_ptr<engine::EngineManager> engines_;
     storage::Database userDb_;  // user/chess.db (closed when persistence is off or failed)
     util::Random random_;
+    bool sessionReady_ = false;  // false until the Resume question is answered (keeps the old session)
+    bool sessionEmpty_ = true;   // what the table holds now (skips redundant clears)
 
     ui::Canvas canvas_;
     ui::FontLibrary fonts_;

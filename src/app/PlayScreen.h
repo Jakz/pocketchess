@@ -36,6 +36,9 @@ public:
     void onEnter() override;
     void onLeave() override;
     void onLifecycle(platform::Lifecycle l) override;
+    bool saveSession(std::map<std::string, std::string>& out) const override;
+    // From a saved session (ADR 0011); nullptr if it is invalid.
+    static std::unique_ptr<PlayScreen> restore(Application& app, const std::map<std::string, std::string>& session);
 
     // For tests and scripted sessions.
     const chess::Position& position() const { return pos_; }

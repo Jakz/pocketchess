@@ -72,6 +72,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/AnalysisPanelTests.cpp
     ${REPO_ROOT}/tests/app/AppTests.cpp
     ${REPO_ROOT}/tests/app/PlayTests.cpp
+    ${REPO_ROOT}/tests/app/SessionTests.cpp
     ${REPO_ROOT}/tests/app/SettingsTests.cpp
     ${REPO_ROOT}/tests/core/ChessTests.cpp
     ${REPO_ROOT}/tests/core/EngineBenchmarkTests.cpp

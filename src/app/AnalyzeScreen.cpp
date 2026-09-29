@@ -4,11 +4,12 @@
 #include "app/Application.h"
 #include "app/Chrome.h"
 #include "app/DiagnosticsScreen.h"
-#include "app/SettingsScreen.h"
 #include "app/Dialogs.h"
 #include "app/MoveList.h"
+#include "app/SettingsScreen.h"
 #include "core/chess/Fen.h"
 #include "core/chess/MoveGen.h"
+#include "core/chess/Pgn.h"
 #include "core/chess/Rules.h"
 #include "core/chess/San.h"
 #include "core/util/Log.h"
@@ -106,6 +107,7 @@ void AnalyzeScreen::setNode(GameNode* node) {
     refreshBoard(RefreshHint::Content);
     refreshPanel();
     if (engineMode_ != EngineMode::Off) startAnalysis();
+    app_.sessionChanged();
 }
 
 void AnalyzeScreen::refreshBoard(RefreshHint hint) {
@@ -246,6 +248,7 @@ void AnalyzeScreen::goForward() {
 void AnalyzeScreen::flip() {
     flipped_ = !flipped_;
     refreshBoard(RefreshHint::Content);
+    app_.sessionChanged();
 }
 
 bool AnalyzeScreen::loadFen(const std::string& fen) {
@@ -508,6 +511,57 @@ void AnalyzeScreen::onLifecycle(platform::Lifecycle l) {
     if (l == platform::Lifecycle::Background || l == platform::Lifecycle::Sleep || l == platform::Lifecycle::Exit) {
         if (engineMode_ != EngineMode::Off) setEngineMode(EngineMode::Off);
     }
+}
+
+// --- Session (ADR 0011) --------------------------------------------------------------------------
+
+bool AnalyzeScreen::saveSession(std::map<std::string, std::string>& out) const {
+    // The whole tree as PGN (variations and comments survive), plus the path to the current node.
+    std::string pgn;
+    const std::string fen = toFen(tree_.startPosition());
+    if (fen != toFen(Position::startPosition())) pgn += "[SetUp \"1\"]\n[FEN \"" + fen + "\"]\n\n";
+    pgn += writeMovetext(tree_) + " *\n";
+    std::vector<const GameNode*> path;
+    for (const GameNode* n = node_; n && !n->isRoot(); n = n->parent) path.push_back(n);
+    std::string moves;
+    for (auto it = path.rbegin(); it != path.rend(); ++it) moves += (moves.empty() ? "" : " ") + toUci((*it)->move);
+    out["analyze.pgn"] = pgn;
+    out["analyze.path"] = moves;
+    out["analyze.flipped"] = flipped_ ? "true" : "false";
+    const size_t plies = tree_.mainLine().size();
+    out["summary"] = "Analysis board: " + std::to_string(plies) + (plies == 1 ? " move" : " moves") + ".";
+    return true;
+}
+
+std::unique_ptr<AnalyzeScreen> AnalyzeScreen::restore(Application& app, const std::map<std::string, std::string>& s) {
+    auto get = [&](const char* k) {
+        auto it = s.find(k);
+        return it == s.end() ? std::string() : it->second;
+    };
+    auto game = parsePgnGame(get("analyze.pgn"));
+    if (!game) {
+        util::Log::warn("analyze", "session: " + game.error().message());
+        return nullptr;
+    }
+    auto a = std::make_unique<AnalyzeScreen>(app, std::move(game->tree));
+    // Follow the saved path; stop where it no longer matches (the tree is the source of truth).
+    GameNode* n = a->tree_.root();
+    const std::string path = get("analyze.path");
+    size_t i = 0;
+    while (i < path.size()) {
+        size_t j = path.find(' ', i);
+        if (j == std::string::npos) j = path.size();
+        const std::string uci = path.substr(i, j - i);
+        GameNode* next = nullptr;
+        for (const auto& child : n->children)
+            if (toUci(child->move) == uci) next = child.get();
+        if (!next) break;
+        n = next;
+        i = j + 1;
+    }
+    a->flipped_ = get("analyze.flipped") == "true";
+    a->setNode(n);
+    return a;
 }
 
 } // namespace pchess::app

@@ -109,9 +109,66 @@ void Application::start() {
     if (config_.startScreen != "home") {
         if (auto s = makeScreen(config_.startScreen)) push(std::move(s));
     }
+    // SessionState (design notes §30): offer to resume; a start screen from the command line wins.
+    std::map<std::string, std::string> session;
+    if (userDb_.isOpen()) {
+        if (auto s = storage::loadSession(userDb_); s) session = std::move(*s);
+        else Log::error("app", "session: " + s.error().message());
+    }
+    sessionEmpty_ = session.empty();
+    if (!session.empty() && config_.startScreen == "home") {
+        offerResume(std::move(session));
+    } else {
+        sessionReady_ = true;
+        sessionChanged();
+    }
     started_ = true;
     invalidateAll(RefreshHint::Screen);
     flush();
+}
+
+void Application::offerResume(std::map<std::string, std::string> session) {
+    auto it = session.find("summary");
+    const std::string text = it != session.end() && !it->second.empty() ? it->second : "Continue where you left off?";
+    Log::info("app", "session found: " + (session.count("screen") ? session["screen"] : std::string("?")));
+    push(std::make_unique<MessageDialog>(*this, "Resume?", text, std::vector<std::string>{"Home", "Resume"},
+                                         [this, session](int i) {
+                                             if (i == 1) {
+                                                 if (auto s = restoreScreen(session)) push(std::move(s));
+                                                 else Log::warn("app", "session could not be restored; discarded");
+                                             }
+                                             sessionReady_ = true;
+                                             sessionChanged();  // Home: clears the old session
+                                         }));
+}
+
+std::unique_ptr<Screen> Application::restoreScreen(const std::map<std::string, std::string>& session) {
+    auto it = session.find("screen");
+    if (it == session.end()) return nullptr;
+    if (it->second == "play") return PlayScreen::restore(*this, session);
+    if (it->second == "analyze") return AnalyzeScreen::restore(*this, session);
+    return nullptr;
+}
+
+void Application::sessionChanged() {
+    if (!sessionReady_ || !userDb_.isOpen()) return;
+    std::map<std::string, std::string> out;
+    for (auto it = stack_.rbegin(); it != stack_.rend(); ++it) {
+        std::map<std::string, std::string> m;
+        if ((*it)->saveSession(m)) {
+            m["screen"] = (*it)->name();
+            out = std::move(m);
+            break;
+        }
+    }
+    if (out.empty()) {
+        if (sessionEmpty_) return;
+        if (auto r = storage::clearSession(userDb_); !r) Log::error("app", "session: " + r.error().message());
+        else sessionEmpty_ = true;
+        return;
+    }
+    if (auto r = storage::saveSession(userDb_, out); !r) Log::error("app", "session: " + r.error().message());
+    else sessionEmpty_ = false;
 }
 
 std::unique_ptr<Screen> Application::makeScreen(const std::string& name) {
@@ -174,6 +231,7 @@ void Application::push(std::unique_ptr<Screen> s) {
     const Rect b = raw->bounds();
     invalidate(b, raw->opaque() || b.area() * 2 > canvas_.bounds().area() ? RefreshHint::Screen : RefreshHint::Content);
     raw->onEnter();
+    sessionChanged();
 }
 
 void Application::pop() {
@@ -185,6 +243,7 @@ void Application::pop() {
     invalidate(b, s->opaque() || b.area() * 2 > canvas_.bounds().area() ? RefreshHint::Screen : RefreshHint::Content);
     graveyard_.push_back(std::move(s));
     if (Screen* t = top()) t->onEnter();
+    sessionChanged();
 }
 
 void Application::replaceTop(std::unique_ptr<Screen> s) {
@@ -236,6 +295,8 @@ void Application::handleInput(const InputEvent& e) {
 
 void Application::handleLifecycle(platform::Lifecycle l) {
     Log::info("app", std::string("lifecycle ") + platform::toString(l));
+    if (l == platform::Lifecycle::Background || l == platform::Lifecycle::Sleep || l == platform::Lifecycle::Exit)
+        sessionChanged();  // before anything is torn down
     for (auto& s : stack_) s->onLifecycle(l);
     // Battery rules (P11): the engine stops at once on background, sleep and exit.
     using EL = engine::EngineManager::Lifecycle;
