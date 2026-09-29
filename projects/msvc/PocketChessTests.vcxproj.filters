@@ -21,8 +21,14 @@
     <ClCompile Include="..\..\tests\core\EngineDescriptorTests.cpp">
       <Filter>tests\core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\tests\core\UciEngineTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\tests\core\YamlTests.cpp">
       <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\support\FakeEngine.cpp">
+      <Filter>tests\support</Filter>
     </ClCompile>
     <ClCompile Include="..\..\tests\TestMain.cpp">
       <Filter>tests</Filter>
@@ -53,6 +59,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\tests\support\FakeEngine.h">
+      <Filter>tests\support</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\tests\support\Golden.h">
       <Filter>tests\support</Filter>
     </ClInclude>

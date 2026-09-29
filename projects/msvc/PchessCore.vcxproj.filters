@@ -60,6 +60,9 @@
     <ClCompile Include="..\..\src\core\engine\EngineTypes.cpp">
       <Filter>src\core\engine</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\engine\UciEngine.cpp">
+      <Filter>src\core\engine</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\engine\UciParser.cpp">
       <Filter>src\core\engine</Filter>
     </ClCompile>
@@ -122,6 +125,9 @@
     <ClInclude Include="..\..\src\core\chess\Zobrist.h">
       <Filter>src\core\chess</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\Engine.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h">
       <Filter>src\core\engine</Filter>
     </ClInclude>
@@ -132,6 +138,9 @@
       <Filter>src\core\engine</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\Process.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\UciEngine.h">
       <Filter>src\core\engine</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\UciParser.h">
@@ -153,6 +162,9 @@
       <Filter>src\core\util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\util\Random.h">
+      <Filter>src\core\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Scheduler.h">
       <Filter>src\core\util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\util\Utf8.h">

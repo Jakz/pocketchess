@@ -55,6 +55,7 @@
     <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineRegistry.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineTypes.cpp" />
+    <ClCompile Include="..\..\src\core\engine\UciEngine.cpp" />
     <ClCompile Include="..\..\src\core\engine\UciParser.cpp" />
     <ClCompile Include="..\..\src\core\engine\UciProbe.cpp" />
     <ClCompile Include="..\..\src\core\util\Clock.cpp" />
@@ -77,10 +78,12 @@
     <ClInclude Include="..\..\src\core\chess\San.h" />
     <ClInclude Include="..\..\src\core\chess\Types.h" />
     <ClInclude Include="..\..\src\core\chess\Zobrist.h" />
+    <ClInclude Include="..\..\src\core\engine\Engine.h" />
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h" />
     <ClInclude Include="..\..\src\core\engine\EngineRegistry.h" />
     <ClInclude Include="..\..\src\core\engine\EngineTypes.h" />
     <ClInclude Include="..\..\src\core\engine\Process.h" />
+    <ClInclude Include="..\..\src\core\engine\UciEngine.h" />
     <ClInclude Include="..\..\src\core\engine\UciParser.h" />
     <ClInclude Include="..\..\src\core\engine\UciProbe.h" />
     <ClInclude Include="..\..\src\core\util\Clock.h" />
@@ -88,6 +91,7 @@
     <ClInclude Include="..\..\src\core\util\Log.h" />
     <ClInclude Include="..\..\src\core\util\Paths.h" />
     <ClInclude Include="..\..\src\core\util\Random.h" />
+    <ClInclude Include="..\..\src\core\util\Scheduler.h" />
     <ClInclude Include="..\..\src\core\util\Utf8.h" />
     <ClInclude Include="..\..\src\core\util\Yaml.h" />
   </ItemGroup>

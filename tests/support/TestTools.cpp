@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "support/TestTools.h"
 
+#include "support/FakeEngine.h"
+
 #include "core/chess/Fen.h"
 #include "core/chess/MoveGen.h"
 
@@ -13,24 +15,14 @@ namespace pchess::test {
 
 int fakeEngine() {
     std::ios::sync_with_stdio(false);
+    FakeUci uci;
     std::string line;
     while (std::getline(std::cin, line)) {
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-        if (line == "uci") {
-            std::cout << "id name FakeFish 1.0\n"
-                      << "id author PocketChess tests\n"
-                      << "option name Hash type spin default 16 min 1 max 1024\n"
-                      << "option name Skill Level type spin default 20 min 0 max 20\n"
-                      << "uciok" << std::endl;
-        } else if (line == "isready") {
-            std::cout << "readyok" << std::endl;
-        } else if (line.rfind("go", 0) == 0) {
-            std::cout << "info depth 1 score cp 10 nodes 20 pv e2e4\n"
-                      << "info depth 3 seldepth 4 score cp 20 nodes 4242 nps 84000 time 50 pv e2e4 e7e5\n"
-                      << "bestmove e2e4 ponder e7e5" << std::endl;
-        } else if (line == "quit") {
-            return 0;
-        }
+        int code = -1;
+        const auto out = uci.handle(line, code);
+        for (const auto& l : out) std::cout << l << '\n';
+        std::cout.flush();
+        if (code >= 0) return code;
     }
     return 0;
 }

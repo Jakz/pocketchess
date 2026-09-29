@@ -157,7 +157,8 @@ TEST_CASE("probe: full uci -> isready -> go -> bestmove cycle against the fake e
     CHECK(result->ok);
     CHECK_EQ(result->engineName, std::string("FakeFish 1.0"));
     CHECK_EQ(result->optionCount, 2);
-    CHECK_EQ(result->bestMove, std::string("e2e4"));
+    // The fake plays the first legal move in UCI order: 1.e4 e5 2.Nf3 Nc6 3.Bb5, Black to move.
+    CHECK_EQ(result->bestMove, std::string("a7a5"));
     CHECK_EQ(result->depth, 3);
     CHECK_EQ(result->nodes, uint64_t(4242));
 
