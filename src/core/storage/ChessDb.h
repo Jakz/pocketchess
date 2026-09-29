@@ -38,8 +38,15 @@ struct PlayedGame {
     std::string mode = "play";
     std::string strength;
     std::string engine;
+    std::string human;  // "white" / "black" (the user's side); empty for games from before v3
 };
 Result<int64_t> addPlayedGame(Database& db, const PlayedGame& game);  // returns the new id
 Result<std::vector<PlayedGame>> recentPlayedGames(Database& db, int limit);
+
+// Totals from the user's side (games with a known side and a result), for Home.
+struct PlayStats {
+    int games = 0, won = 0, drawn = 0, lost = 0;
+};
+Result<PlayStats> playStats(Database& db);
 
 } // namespace pchess::storage

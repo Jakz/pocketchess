@@ -182,7 +182,7 @@ TEST_CASE("storage: a version 1 chess.db is upgraded and keeps its data") {
     }
     auto db = openChessDb(file);
     REQUIRE(db.ok());
-    CHECK_EQ(db->userVersion(), 2);
+    CHECK_EQ(db->userVersion(), chessDbMigrations().back().version);
     auto s = loadSettings(*db);
     REQUIRE(s.ok());
     CHECK_EQ(s->at("display.mono"), std::string("true"));
@@ -248,4 +248,33 @@ TEST_CASE("storage: content databases open read-only; missing and non-database f
     CHECK(badRw.error().code == ErrorCode::CorruptData);
     std::error_code ec;
     std::filesystem::remove_all(dir, ec);
+}
+
+TEST_CASE("storage: play statistics count results from the user's side") {
+    auto db = Database::open({}, Database::Mode::Memory);
+    REQUIRE(db.ok());
+    REQUIRE(migrate(*db, chessDbMigrations()).ok());
+    auto add = [&](const char* result, const char* human) {
+        PlayedGame g;
+        g.date = 1;
+        g.pgn = "*";
+        g.result = result;
+        g.human = human;
+        REQUIRE(addPlayedGame(*db, g).ok());
+    };
+    add("1-0", "white");      // won
+    add("1-0", "black");      // lost
+    add("0-1", "black");      // won
+    add("1/2-1/2", "white");  // drawn
+    add("*", "white");        // unfinished: not counted
+    add("1-0", "");           // side unknown: not counted
+    auto st = playStats(*db);
+    REQUIRE(st.ok());
+    CHECK_EQ(st->games, 4);
+    CHECK_EQ(st->won, 2);
+    CHECK_EQ(st->drawn, 1);
+    CHECK_EQ(st->lost, 1);
+    auto recent = recentPlayedGames(*db, 1);
+    REQUIRE(recent.ok());
+    CHECK((*recent)[0].human.empty());
 }

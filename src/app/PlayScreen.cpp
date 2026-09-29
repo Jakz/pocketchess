@@ -362,6 +362,7 @@ void PlayScreen::saveGame() {
     g.pgn = pgn();
     g.result = result_;
     g.strength = setup_.strength;
+    g.human = setup_.human == White ? "white" : "black";
     if (const engine::EngineDescriptor* d = app_.engines().engineFor(engine::Role::Play)) g.engine = d->id;
     if (auto id = storage::addPlayedGame(*db, g); id) {
         savedId_ = *id;

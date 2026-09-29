@@ -38,6 +38,10 @@ CREATE TABLE session(
     value TEXT NOT NULL
 ) WITHOUT ROWID;
 )sql"},
+    {3, R"sql(
+-- The user's side in each played game (Home statistics).
+ALTER TABLE played_games ADD COLUMN human TEXT;   -- white / black
+)sql"},
 };
 
 } // namespace
@@ -98,20 +102,23 @@ Result<void> saveSession(Database& db, const std::map<std::string, std::string>&
 Result<void> clearSession(Database& db) { return db.exec("DELETE FROM session"); }
 
 Result<int64_t> addPlayedGame(Database& db, const PlayedGame& g) {
-    auto s = db.prepare("INSERT INTO played_games(date, pgn, result, mode, strength, engine) "
-                        "VALUES(?1, ?2, ?3, ?4, ?5, ?6)");
+    auto s = db.prepare("INSERT INTO played_games(date, pgn, result, mode, strength, engine, human) "
+                        "VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7)");
     if (!s) return s.error();
     s->bind(1, g.date).bind(2, g.pgn).bind(3, g.result).bind(4, g.mode);
-    if (g.strength.empty()) s->bindNull(5);
-    else s->bind(5, g.strength);
-    if (g.engine.empty()) s->bindNull(6);
-    else s->bind(6, g.engine);
+    auto textOrNull = [&](int i, const std::string& v) {
+        if (v.empty()) s->bindNull(i);
+        else s->bind(i, v);
+    };
+    textOrNull(5, g.strength);
+    textOrNull(6, g.engine);
+    textOrNull(7, g.human);
     if (auto r = s->run(); !r) return r.error();
     return db.lastInsertId();
 }
 
 Result<std::vector<PlayedGame>> recentPlayedGames(Database& db, int limit) {
-    auto s = db.prepare("SELECT id, date, pgn, result, mode, strength, engine FROM played_games "
+    auto s = db.prepare("SELECT id, date, pgn, result, mode, strength, engine, human FROM played_games "
                         "ORDER BY date DESC, id DESC LIMIT ?1");
     if (!s) return s.error();
     s->bind(1, limit);
@@ -120,9 +127,29 @@ Result<std::vector<PlayedGame>> recentPlayedGames(Database& db, int limit) {
         auto row = s->step();
         if (!row) return row.error();
         if (!*row) break;
-        out.push_back({s->int64(0), s->int64(1), s->text(2), s->text(3), s->text(4), s->text(5), s->text(6)});
+        out.push_back(
+            {s->int64(0), s->int64(1), s->text(2), s->text(3), s->text(4), s->text(5), s->text(6), s->text(7)});
     }
     return out;
+}
+
+Result<PlayStats> playStats(Database& db) {
+    auto s = db.prepare(R"sql(
+SELECT count(*),
+       coalesce(sum((human = 'white' AND result = '1-0') OR (human = 'black' AND result = '0-1')), 0),
+       coalesce(sum(result = '1/2-1/2'), 0),
+       coalesce(sum((human = 'white' AND result = '0-1') OR (human = 'black' AND result = '1-0')), 0)
+FROM played_games WHERE human IS NOT NULL AND result <> '*'
+)sql");
+    if (!s) return s.error();
+    auto row = s->step();
+    if (!row) return row.error();
+    PlayStats st;
+    st.games = s->integer(0);
+    st.won = s->integer(1);
+    st.drawn = s->integer(2);
+    st.lost = s->integer(3);
+    return st;
 }
 
 } // namespace pchess::storage
