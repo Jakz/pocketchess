@@ -3,7 +3,10 @@
 
 #include "app/Screen.h"
 #include "app/Settings.h"
+#include "core/engine/EngineManager.h"
+#include "core/engine/EngineRegistry.h"
 #include "core/util/Paths.h"
+#include "core/util/Scheduler.h"
 #include "platform/Host.h"
 #include "ui/canvas/Canvas.h"
 #include "ui/canvas/Font.h"
@@ -30,6 +33,26 @@ struct AppConfig {
     std::string theme;                // override board theme by name
     std::filesystem::path fontDir;    // default: <root>/assets/fonts
     bool logToFile = true;
+    // Tests and scripted sessions: engines added to the scanned engines/ folder, and how engine
+    // objects are made (default: UciEngine over a real child process).
+    std::vector<engine::EngineDescriptor> extraEngines;
+    engine::EngineManager::EngineFactory engineFactory;
+};
+
+// util::Scheduler over the platform host (engine subsystem -> UI thread).
+class HostScheduler final : public util::Scheduler {
+public:
+    explicit HostScheduler(platform::Host& host) : host_(host) {}
+    void post(std::function<void()> fn) override { host_.post(std::move(fn)); }
+    TimerId startTimer(std::chrono::milliseconds delay, std::function<void()> fn) override {
+        return host_.startTimer(delay, std::move(fn));
+    }
+    void cancelTimer(TimerId id) override { host_.cancelTimer(id); }
+    std::chrono::steady_clock::time_point now() const override { return host_.now(); }
+    void setBackgroundActivity(bool active) override { host_.setBackgroundActivity(active); }
+
+private:
+    platform::Host& host_;
 };
 
 // Screen areas for a portrait device (architecture doc §3): status bar, square board, panel.
@@ -74,7 +97,12 @@ public:
     const util::Paths& paths() const { return paths_; }
     const AppConfig& config() const { return config_; }
     Settings& settings() { return settings_; }
-    void applySettings();  // theme/mono/refresh interval changed
+    void applySettings();  // theme/mono/refresh interval/engine settings changed
+
+    // Engines (M2): registry of engines/*/engine.yaml and the job manager.
+    engine::EngineRegistry& engineRegistry() { return engineRegistry_; }
+    engine::EngineManager& engines() { return *engines_; }
+    void rescanEngines();
 
     ui::Canvas& canvas() { return canvas_; }
     ui::FontLibrary& fonts() { return fonts_; }
@@ -103,6 +131,9 @@ private:
     platform::DeviceProfile profile_;
     util::Paths paths_;
     Settings settings_;
+    HostScheduler scheduler_;
+    engine::EngineRegistry engineRegistry_;
+    std::unique_ptr<engine::EngineManager> engines_;
 
     ui::Canvas canvas_;
     ui::FontLibrary fonts_;

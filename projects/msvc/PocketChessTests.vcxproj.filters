@@ -18,6 +18,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\tests\app\AnalysisPanelTests.cpp">
+      <Filter>tests\app</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\tests\core\EngineDescriptorTests.cpp">
       <Filter>tests\core</Filter>
     </ClCompile>

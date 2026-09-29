@@ -17,6 +17,7 @@ public:
     void post(std::function<void()> fn) override;
     platform::TimerId startTimer(std::chrono::milliseconds delay, std::function<void()> fn) override;
     void cancelTimer(platform::TimerId id) override;
+    std::chrono::steady_clock::time_point now() const override { return std::chrono::steady_clock::time_point(now_); }
     void quit() override { quit_ = true; }
     platform::TextInput* textInput() override { return nullptr; }
     platform::Power& power() override { return *this; }
@@ -30,6 +31,8 @@ public:
     void advance(std::chrono::milliseconds ms = std::chrono::milliseconds(0));
     void runPosted();
     bool quitRequested() const { return quit_; }
+    int backgroundActivity() const { return background_; }
+    void setBackgroundActivity(bool active) override { background_ += active ? 1 : -1; }
 
 private:
     std::mutex mutex_;
@@ -43,6 +46,7 @@ private:
     std::chrono::milliseconds now_{0};
     bool quit_ = false;
     int battery_ = 76;
+    int background_ = 0;
 };
 
 class HeadlessPresenter final : public platform::Presenter {

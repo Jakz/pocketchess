@@ -27,7 +27,7 @@ DiagnosticsScreen::DiagnosticsScreen(Application& app) : Screen(app) {
     const Rect body{pad, l.status.bottom() + pad, l.screen.w - 2 * pad, l.screen.h - l.status.bottom() - 2 * pad};
 
     const int small = app_.fonts().get(s.smallPx).lineHeight();
-    infoRect_ = {body.x, body.y, body.w, small * 12};
+    infoRect_ = {body.x, body.y, body.w, small * 15};
     testRect_ = {body.x, infoRect_.bottom() + pad, body.w, l.square > 0 ? l.square : 100};
     const int btnH = kMinTouchPx;
     const Rect grid{body.x, testRect_.bottom() + pad, body.w, 2 * btnH + pad};
@@ -56,6 +56,13 @@ DiagnosticsScreen::DiagnosticsScreen(Application& app) : Screen(app) {
     info_.push_back("Root: " + app_.paths().root().string());
     info_.push_back("Piece cache: " + std::to_string(app_.pieces().bytes() / 1024) + " KiB, board square " +
                     std::to_string(l.square) + " px");
+    for (const auto& e : app_.engineRegistry().entries())
+        info_.push_back("Engine " + e.descriptor.id + ": " +
+                        (e.available ? "available (" + e.descriptor.name + ")" : "disabled - " + e.problem));
+    if (app_.engineRegistry().entries().empty())
+        info_.push_back("Engines: none in " + app_.paths().engines().string());
+    info_.push_back(std::string("Power profile: ") + app_.engines().profile().name + ", engine platform " +
+                    app_.engineRegistry().platform());
     for (const auto& line : info_) Log::info("diag", line);
 }
 
@@ -112,6 +119,12 @@ void DiagnosticsScreen::draw(Canvas& c, const Rect& clip) {
         lines.push_back("Presents: fast " + std::to_string(k.fast) + " / partial " + std::to_string(k.partial) +
                         " / full " + std::to_string(k.full) + "   full every " +
                         std::to_string(app_.refreshPolicy().fullEvery()));
+        const engine::EngineTotals& et = app_.engines().totals();
+        lines.push_back("Engine jobs: " + std::to_string(et.jobs) + " (" + std::to_string(et.failures) + " failed), " +
+                        std::to_string(et.starts) + " starts, CPU " + fmt(et.cpuSeconds, 1) + " s, wall " +
+                        fmt(et.wallMs / 1000.0, 1) + " s, " + std::to_string(et.nodes / 1000) + "k nodes, peak " +
+                        std::to_string(et.peakRssKb / 1024) + " MiB" +
+                        (app_.engines().processRunning() ? ", running" : ""));
         drawLines(c, infoRect_, lines, small, t.ink);
     }
     for (int i = 0; i < 12; ++i) {
@@ -183,8 +196,21 @@ void DiagnosticsScreen::runEngine() {
         log("engine probe already running");
         return;
     }
-    const std::string exeName = app_.host().platformName() == "windows" ? "stockfish.exe" : "stockfish";
-    const auto exe = app_.paths().engines() / "stockfish" / exeName;
+    // The analysis engine from the registry (engines/<id>/engine.yaml), else the stockfish default path.
+    std::filesystem::path exe;
+    std::vector<std::string> args;
+    const engine::EngineDescriptor* d = app_.engines().engineFor(engine::Role::Analysis);
+    if (!d)
+        if (const auto* e = app_.engineRegistry().find("stockfish")) d = &e->descriptor;
+    if (d) {
+        exe = d->binaryPath(app_.engineRegistry().platform());
+        args = d->args;
+    }
+    if (exe.empty()) {
+        const std::string exeName = app_.host().platformName() == "windows" ? "stockfish.exe" : "stockfish";
+        exe = app_.paths().engines() / "stockfish" / exeName;
+    }
+    app_.engines().shutdownEngine();  // one engine process at a time
     log("engine probe: " + exe.string());
     auto& host = app_.host();
     probe_ = std::make_unique<engine::UciProbe>(
@@ -218,7 +244,7 @@ void DiagnosticsScreen::runEngine() {
         app_.flush();
     });
     host.setBackgroundActivity(true);
-    probe_->start(exe);
+    probe_->start(exe, 1000, 1, 16, args);
 }
 
 void DiagnosticsScreen::onGesture(const Gesture& g) {

@@ -3,6 +3,7 @@
 
 #include "app/Application.h"
 #include "app/Chrome.h"
+#include "app/DiagnosticsScreen.h"
 #include "app/Dialogs.h"
 #include "core/chess/Fen.h"
 #include "core/chess/MoveGen.h"
@@ -17,6 +18,17 @@ namespace pchess::app {
 using namespace ui;
 using namespace chess;
 
+namespace {
+const char* buttonsHint(AnalyzeScreen::EngineMode m) {
+    switch (m) {
+    case AnalyzeScreen::EngineMode::Off: return "Off";
+    case AnalyzeScreen::EngineMode::Quick: return "Quick";
+    case AnalyzeScreen::EngineMode::Deep: return "Deep";
+    }
+    return "?";
+}
+} // namespace
+
 AnalyzeScreen::AnalyzeScreen(Application& app, const std::string& fen) : Screen(app) {
     board_.setRect(app_.layout().board);
     layoutPanel();
@@ -29,6 +41,12 @@ AnalyzeScreen::AnalyzeScreen(Application& app, const std::string& fen) : Screen(
     reset(start);
 }
 
+AnalyzeScreen::~AnalyzeScreen() {
+    alive_.reset();
+    if (throttleTimer_) app_.host().cancelTimer(throttleTimer_);
+    if (job_) app_.engines().cancel(job_);
+}
+
 void AnalyzeScreen::layoutPanel() {
     const Layout& l = app_.layout();
     const UiStyle& s = app_.style();
@@ -38,18 +56,29 @@ void AnalyzeScreen::layoutPanel() {
     const int statusH = app_.fonts().get(s.fontPx, FontStyle::Bold).lineHeight() + pad;
     statusRect_ = {p.x + pad * 2, p.y + pad, p.w - pad * 4, statusH};
     buttonsRect_ = {p.x + pad, p.bottom() - pad - btnH, p.w - 2 * pad, btnH};
-    movesRect_ = {p.x + pad * 2, statusRect_.bottom(), p.w - pad * 4, buttonsRect_.y - pad - statusRect_.bottom()};
+    // Engine lines (evaluation + PV) between the status line and the move list, when on.
+    const int engineH = engineMode_ == EngineMode::Off
+                            ? 0
+                            : app_.fonts().get(s.fontPx, FontStyle::Bold).lineHeight() +
+                                  app_.fonts().get(s.smallPx).lineHeight() + pad / 2;
+    engineRect_ = {statusRect_.x, statusRect_.bottom(), statusRect_.w, engineH};
+    movesRect_ = {p.x + pad * 2, engineRect_.bottom(), p.w - pad * 4, buttonsRect_.y - pad - engineRect_.bottom()};
 
-    const char* labels[] = {"◀ Back", "Next ▶", "Flip", "FEN", "New"};
+    const char* labels[] = {"◀ Back", "Next ▶", "Flip", "Engine", "Menu"};
     const auto cells = splitRow(buttonsRect_, 5, pad);
-    buttons_.clear();
-    for (int i = 0; i < 5; ++i) {
-        Button b;
-        b.id = i;
-        b.label = labels[i];
-        b.rect = cells[static_cast<size_t>(i)];
-        buttons_.push_back(b);
+    const bool first = buttons_.empty();
+    if (first) {
+        for (int i = 0; i < 5; ++i) {
+            Button b;
+            b.id = i;
+            b.label = labels[i];
+            buttons_.push_back(b);
+        }
     }
+    for (int i = 0; i < 5; ++i) buttons_[static_cast<size_t>(i)].rect = cells[static_cast<size_t>(i)];
+    Button& eng = buttons_[BtnEngine];
+    eng.hint = buttonsHint(engineMode_);
+    eng.primary = engineMode_ != EngineMode::Off;
 }
 
 void AnalyzeScreen::reset(const Position& start) {
@@ -66,6 +95,7 @@ void AnalyzeScreen::setNode(GameNode* node) {
     selected_ = NoSquare;
     refreshBoard(RefreshHint::Content);
     refreshPanel();
+    if (engineMode_ != EngineMode::Off) startAnalysis();
 }
 
 void AnalyzeScreen::refreshBoard(RefreshHint hint) {
@@ -82,6 +112,7 @@ void AnalyzeScreen::refreshBoard(RefreshHint hint) {
 
 void AnalyzeScreen::refreshPanel() {
     app_.invalidate(statusRect_, RefreshHint::Content);
+    app_.invalidate(engineRect_, RefreshHint::Content);
     app_.invalidate(movesRect_, RefreshHint::Content);
     updateButtons();
 }
@@ -129,6 +160,7 @@ void AnalyzeScreen::draw(Canvas& c, const Rect& clip) {
         Font& f = app_.fonts().get(s.fontPx, FontStyle::Bold);
         f.draw(c, statusRect_.x, statusRect_.y + f.ascent() + s.fontPx / 6, statusText(), t.ink);
     }
+    if (!engineRect_.empty() && clip.intersects(engineRect_)) drawEngine(c);
     if (clip.intersects(movesRect_)) drawMoves(c);
     for (const Button& b : buttons_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
@@ -298,14 +330,18 @@ void AnalyzeScreen::editFen() {
 }
 
 void AnalyzeScreen::openMenu() {
+    const char* next = engineMode_ == EngineMode::Off     ? "Engine: Quick"
+                       : engineMode_ == EngineMode::Quick ? "Engine: Deep"
+                                                          : "Engine: Off";
     app_.push(std::make_unique<MessageDialog>(
-        app_, "Analyze", "", std::vector<std::string>{"Flip board", "Edit FEN", "New game", "Home", "Close"},
+        app_, "Analyze", "", std::vector<std::string>{"Flip board", "Edit FEN", "New game", next, "Home", "Close"},
         [this](int i) {
             switch (i) {
             case 0: flip(); break;
             case 1: editFen(); break;
             case 2: reset(Position::startPosition()); break;
-            case 3: app_.pop(); break;
+            case 3: cycleEngineMode(); break;
+            case 4: app_.pop(); break;
             default: break;
             }
         },
@@ -338,8 +374,8 @@ void AnalyzeScreen::onGesture(const Gesture& g) {
     case BtnBack: goBack(); break;
     case BtnForward: goForward(); break;
     case BtnFlip: flip(); break;
-    case BtnFen: editFen(); break;
-    case BtnNew: reset(Position::startPosition()); break;
+    case BtnEngine: cycleEngineMode(); break;
+    case BtnMenu: openMenu(); break;
     default: break;
     }
 }
@@ -351,6 +387,187 @@ void AnalyzeScreen::onKey(const InputEvent& e) {
     case KeyCode::Menu: case KeyCode::Ok: openMenu(); break;
     case KeyCode::Back: case KeyCode::Home: app_.pop(); break;
     default: break;
+    }
+}
+
+// --- Engine panel ------------------------------------------------------------------------------
+
+void AnalyzeScreen::cycleEngineMode() {
+    switch (engineMode_) {
+    case EngineMode::Off: setEngineMode(EngineMode::Quick); break;
+    case EngineMode::Quick: setEngineMode(EngineMode::Deep); break;
+    case EngineMode::Deep: setEngineMode(EngineMode::Off); break;
+    }
+}
+
+void AnalyzeScreen::setEngineMode(EngineMode m) {
+    if (m != EngineMode::Off && !app_.engines().available(engine::Role::Analysis)) {
+        const auto& entries = app_.engineRegistry().entries();
+        std::string detail = "No analysis engine is installed in engines/.";
+        if (!entries.empty() && !entries.front().problem.empty())
+            detail = entries.front().descriptor.id + ": " + entries.front().problem;
+        showEngineMissing(detail);
+        m = EngineMode::Off;
+    }
+    const bool relayout = (m == EngineMode::Off) != (engineMode_ == EngineMode::Off);
+    engineMode_ = m;
+    util::Log::info("analyze", std::string("engine ") + buttonsHint(m));
+    stopAnalysis();
+    shown_ = pending_ = {};
+    layoutPanel();
+    if (relayout) app_.invalidate(app_.layout().panel, RefreshHint::Content);
+    else app_.invalidate(buttons_[BtnEngine].rect, RefreshHint::Content);
+    if (m != EngineMode::Off) startAnalysis();
+}
+
+void AnalyzeScreen::startAnalysis() {
+    stopAnalysis();
+    if (engineMode_ == EngineMode::Off || app_.top() != this) return;
+    if (legal_.empty()) {
+        updateEngineText({pos_.inCheck() ? "Checkmate" : "Stalemate", ""}, true);
+        return;
+    }
+    engine::EngineManager& em = app_.engines();
+    std::weak_ptr<char> alive = alive_;
+    const bool warm = em.processRunning();
+    job_ = em.analyze(
+        tree_.startPosition(), tree_.movesTo(node_),
+        engineMode_ == EngineMode::Quick ? engine::AnalysisMode::Quick : engine::AnalysisMode::Deep,
+        app_.settings().analysisMultiPv,
+        [this, alive](engine::JobId id, const engine::SearchInfo& info) {
+            if (!alive.expired()) onEngineInfo(id, info);
+        },
+        [this, alive](const engine::JobResult& r) {
+            if (!alive.expired()) onEngineDone(r);
+        });
+    updateEngineText({warm ? "Engine: thinking…" : "Engine: starting…", ""}, true);
+}
+
+void AnalyzeScreen::stopAnalysis() {
+    if (!job_) return;
+    const engine::JobId id = job_;
+    job_ = 0;  // results of the cancelled job are ignored
+    app_.engines().cancel(id);
+}
+
+void AnalyzeScreen::onEngineInfo(engine::JobId id, const engine::SearchInfo& info) {
+    if (id != job_ || info.multipv != 1) return;
+    updateEngineText(formatInfo(info, false), false);
+}
+
+void AnalyzeScreen::onEngineDone(const engine::JobResult& r) {
+    if (r.id != job_) return;
+    job_ = 0;
+    if (!r.ok && !r.cancelled) {
+        if (r.errorCode == ErrorCode::EngineMissing) {
+            setEngineMode(EngineMode::Off);
+            showEngineMissing(r.error);
+            return;
+        }
+        updateEngineText({"Engine error", r.error}, true);
+        return;
+    }
+    if (!r.lines.empty()) updateEngineText(formatInfo(r.lines.front(), true), false);
+}
+
+AnalyzeScreen::EngineText AnalyzeScreen::formatInfo(const engine::SearchInfo& info, bool final) const {
+    EngineText t;
+    const bool white = pos_.sideToMove() == White;
+    std::string eval = "?";
+    if (info.score) {
+        engine::Score sc = *info.score;
+        eval = engine::formatScore(sc, white, app_.settings().evalFromWhite);
+        if (sc.lowerbound || sc.upperbound) eval += sc.lowerbound ? "↑" : "↓";
+    }
+    std::string best;
+    if (!info.pv.empty()) best = toSan(pos_, info.pv.front());
+    t.head = eval;
+    if (!best.empty()) t.head += "   " + best;
+    t.head += "   depth " + std::to_string(info.depth);
+    if (final && engineMode_ == EngineMode::Deep) t.head += "  · done";
+    // PV with move numbers: "12. Nf3 Nf6 13. c4" / "12… Nf6 13. c4".
+    Position p = pos_;
+    bool firstMove = true;
+    for (const Move m : info.pv) {
+        if (p.sideToMove() == White) t.pv += std::to_string(p.fullmoveNumber()) + ". ";
+        else if (firstMove) t.pv += std::to_string(p.fullmoveNumber()) + "… ";
+        t.pv += toSan(p, m) + " ";
+        p.makeMove(m);
+        firstMove = false;
+        if (t.pv.size() > 160) break;
+    }
+    while (!t.pv.empty() && t.pv.back() == ' ') t.pv.pop_back();
+    return t;
+}
+
+// Throttled redraw (architecture doc §8.5): at most one partial refresh per second, and only
+// when the text changed. `now` forces an immediate redraw (user actions).
+void AnalyzeScreen::updateEngineText(EngineText t, bool now) {
+    pending_ = std::move(t);
+    if (pending_ == shown_) return;
+    const auto current = app_.host().now();
+    const auto elapsed = current - lastEngineDraw_;
+    if (now || elapsed >= std::chrono::seconds(1)) {
+        if (throttleTimer_) {
+            app_.host().cancelTimer(throttleTimer_);
+            throttleTimer_ = 0;
+        }
+        shown_ = pending_;
+        lastEngineDraw_ = current;
+        app_.invalidate(engineRect_, RefreshHint::Content);
+        return;
+    }
+    if (throttleTimer_) return;
+    std::weak_ptr<char> alive = alive_;
+    const auto wait = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(1) - elapsed);
+    throttleTimer_ = app_.host().startTimer(wait, [this, alive] {
+        if (alive.expired()) return;
+        throttleTimer_ = 0;
+        updateEngineText(pending_, true);
+    });
+}
+
+void AnalyzeScreen::drawEngine(Canvas& c) {
+    const BoardTheme& t = app_.theme();
+    const UiStyle& s = app_.style();
+    Font& fb = app_.fonts().get(s.fontPx, FontStyle::Bold);
+    Font& small = app_.fonts().get(s.smallPx);
+    c.pushClip(engineRect_);
+    fb.draw(c, engineRect_.x, engineRect_.y + fb.ascent(), shown_.head, t.ink);
+    if (!shown_.pv.empty()) {
+        std::string pv = shown_.pv;
+        while (!pv.empty() && small.measure(pv) > engineRect_.w) {
+            const size_t sp = pv.rfind(' ');
+            pv = sp == std::string::npos ? std::string() : pv.substr(0, sp);
+        }
+        small.draw(c, engineRect_.x, engineRect_.y + fb.lineHeight() + small.ascent(), pv,
+                   blend(t.background, t.ink, 170));
+    }
+    c.popClip();
+}
+
+void AnalyzeScreen::showEngineMissing(const std::string& detail) {
+    util::Log::warn("analyze", "engine missing: " + detail);
+    app_.push(std::make_unique<MessageDialog>(
+        app_, "Engine missing",
+        detail + "\n\nAnalysis needs an engine in engines/<id>/ (see Diagnostics). Everything else works without one.",
+        std::vector<std::string>{"Diagnostics", "Continue"}, [this](int i) {
+            if (i == 0) app_.push(std::make_unique<DiagnosticsScreen>(app_));
+        }));
+}
+
+void AnalyzeScreen::onEnter() {
+    if (engineMode_ != EngineMode::Off && !job_) startAnalysis();
+}
+
+void AnalyzeScreen::onLeave() {
+    // Covered by a dialog or another screen: the engine stops (battery); onEnter resumes.
+    stopAnalysis();
+}
+
+void AnalyzeScreen::onLifecycle(platform::Lifecycle l) {
+    if (l == platform::Lifecycle::Background || l == platform::Lifecycle::Sleep || l == platform::Lifecycle::Exit) {
+        if (engineMode_ != EngineMode::Off) setEngineMode(EngineMode::Off);
     }
 }
 

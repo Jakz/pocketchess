@@ -17,12 +17,16 @@ platform::TimerId HeadlessHost::startTimer(std::chrono::milliseconds delay, std:
 void HeadlessHost::cancelTimer(platform::TimerId id) { timers_.erase(id); }
 
 void HeadlessHost::runPosted() {
-    std::vector<std::function<void()>> batch;
-    {
-        std::lock_guard lock(mutex_);
-        batch.swap(posted_);
+    // Until idle: posted functions may post more (engine replies, job results).
+    for (int round = 0; round < 1000; ++round) {
+        std::vector<std::function<void()>> batch;
+        {
+            std::lock_guard lock(mutex_);
+            batch.swap(posted_);
+        }
+        if (batch.empty()) return;
+        for (auto& fn : batch) fn();
     }
-    for (auto& fn : batch) fn();
 }
 
 void HeadlessHost::advance(std::chrono::milliseconds ms) {

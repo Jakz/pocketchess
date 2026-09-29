@@ -18,7 +18,8 @@ ui::Rect Screen::bounds() const { return app_.canvas().bounds(); }
 
 Application::Application(platform::Host& host, platform::Presenter& presenter, AppConfig config)
     : host_(host), presenter_(presenter), config_(std::move(config)), profile_(presenter.profile()),
-      paths_(config_.root), canvas_(profile_.width, profile_.height) {
+      paths_(config_.root), scheduler_(host), canvas_(profile_.width, profile_.height) {
+    engines_ = std::make_unique<engine::EngineManager>(scheduler_, engineRegistry_, config_.engineFactory);
     dirty_.setBounds(canvas_.bounds());
     // Scale the UI with the panel resolution (tuned for 300 ppi).
     const double k = profile_.ppiMono / 300.0;
@@ -34,6 +35,13 @@ Application::~Application() {
     for (auto it = stack_.rbegin(); it != stack_.rend(); ++it) (*it)->onLeave();
     stack_.clear();
     graveyard_.clear();
+    engines_.reset();  // after the screens: they cancel their jobs on leave
+}
+
+void Application::rescanEngines() {
+    engines_->shutdownEngine();
+    engineRegistry_.scan(paths_.engines());
+    for (const auto& d : config_.extraEngines) engineRegistry_.add(d);
 }
 
 void Application::computeLayout() {
@@ -75,6 +83,7 @@ void Application::start() {
             settings_.boardTheme = t.name;
         }
     }
+    rescanEngines();
     applySettings();
 
     push(makeScreen("home"));
@@ -99,6 +108,12 @@ void Application::applySettings() {
     if (settings_.mono && !theme_.mono) theme_ = BoardTheme::classicMono();
     theme_.coordinates = settings_.coordinates;
     policy_.setFullEvery(settings_.fullRefreshEvery);
+
+    engine::EngineSettings es = engines_->settings();
+    es.profile = settings_.powerProfile;
+    es.engineForRole[static_cast<size_t>(engine::Role::Analysis)] = settings_.analysisEngine;
+    es.engineForRole[static_cast<size_t>(engine::Role::Play)] = settings_.playEngine;
+    engines_->setSettings(es);
     if (started_) invalidateAll(RefreshHint::Screen);
 }
 
@@ -182,6 +197,16 @@ void Application::handleInput(const InputEvent& e) {
 void Application::handleLifecycle(platform::Lifecycle l) {
     Log::info("app", std::string("lifecycle ") + platform::toString(l));
     for (auto& s : stack_) s->onLifecycle(l);
+    // Battery rules (P11): the engine stops at once on background, sleep and exit.
+    using EL = engine::EngineManager::Lifecycle;
+    switch (l) {
+    case platform::Lifecycle::Background: engines_->onLifecycle(EL::Background); break;
+    case platform::Lifecycle::Sleep: engines_->onLifecycle(EL::Sleep); break;
+    case platform::Lifecycle::Exit: engines_->onLifecycle(EL::Exit); break;
+    case platform::Lifecycle::Wake: engines_->onLifecycle(EL::Wake); break;
+    case platform::Lifecycle::Foreground: engines_->onLifecycle(EL::Foreground); break;
+    case platform::Lifecycle::Show: break;
+    }
     switch (l) {
     case platform::Lifecycle::Show:
     case platform::Lifecycle::Foreground:

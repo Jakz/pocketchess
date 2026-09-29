@@ -88,6 +88,8 @@ public:
     virtual void post(std::function<void()> fn) = 0;  // thread-safe, wakes the UI thread
     virtual TimerId startTimer(std::chrono::milliseconds delay, std::function<void()> fn) = 0;  // one-shot
     virtual void cancelTimer(TimerId id) = 0;
+    // Monotonic time on the timer clock (headless hosts use fake time).
+    virtual std::chrono::steady_clock::time_point now() const { return std::chrono::steady_clock::now(); }
     virtual void quit() = 0;
     // Native text input, or nullptr when the app should use its own on-canvas dialog.
     virtual TextInput* textInput() = 0;
