@@ -154,6 +154,44 @@ TEST_CASE("storage: user databases on disk use WAL, persist, and survive reopeni
     std::filesystem::remove_all(dir, ec);
 }
 
+TEST_CASE("storage: session state is replaced as a whole and cleared") {
+    auto db = Database::open({}, Database::Mode::Memory);
+    REQUIRE(db.ok());
+    REQUIRE(migrate(*db, chessDbMigrations()).ok());
+    REQUIRE(saveSession(*db, {{"screen", "play"}, {"play.moves", "e2e4"}}).ok());
+    REQUIRE(saveSession(*db, {{"screen", "analyze"}}).ok());  // old keys go
+    auto s = loadSession(*db);
+    REQUIRE(s.ok());
+    CHECK_EQ(s->size(), size_t(1));
+    CHECK_EQ(s->at("screen"), std::string("analyze"));
+    REQUIRE(clearSession(*db).ok());
+    s = loadSession(*db);
+    REQUIRE(s.ok());
+    CHECK(s->empty());
+}
+
+TEST_CASE("storage: a version 1 chess.db is upgraded and keeps its data") {
+    const auto dir = freshDir("pchess-storage-upgrade");
+    const auto file = dir / "chess.db";
+    {
+        auto db = Database::open(file, Database::Mode::ReadWrite);
+        REQUIRE(db.ok());
+        REQUIRE(migrate(*db, chessDbMigrations().first(1)).ok());
+        REQUIRE(saveSettings(*db, {{"display.mono", "true"}}).ok());
+        CHECK_EQ(db->userVersion(), 1);
+    }
+    auto db = openChessDb(file);
+    REQUIRE(db.ok());
+    CHECK_EQ(db->userVersion(), 2);
+    auto s = loadSettings(*db);
+    REQUIRE(s.ok());
+    CHECK_EQ(s->at("display.mono"), std::string("true"));
+    CHECK(saveSession(*db, {{"screen", "play"}}).ok());
+    db->close();
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+}
+
 TEST_CASE("storage: played games are stored and listed newest first") {
     auto db = Database::open({}, Database::Mode::Memory);
     REQUIRE(db.ok());

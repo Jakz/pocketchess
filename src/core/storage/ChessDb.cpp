@@ -31,6 +31,13 @@ CREATE TABLE favorites(
     PRIMARY KEY(pack, game_id)
 ) WITHOUT ROWID;
 )sql"},
+    {2, R"sql(
+-- SessionState (design notes §30, ADR 0011): the resumable screen, replaced on every change.
+CREATE TABLE session(
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+) WITHOUT ROWID;
+)sql"},
 };
 
 } // namespace
@@ -44,8 +51,11 @@ Result<Database> openChessDb(const std::filesystem::path& file) {
     return db;
 }
 
-Result<std::map<std::string, std::string>> loadSettings(Database& db) {
-    auto s = db.prepare("SELECT key, value FROM settings");
+namespace {
+
+// key/value tables (settings, session): the table name is one of ours, never user input.
+Result<std::map<std::string, std::string>> loadKeyValues(Database& db, const char* table) {
+    auto s = db.prepare(std::string("SELECT key, value FROM ") + table);
     if (!s) return s.error();
     std::map<std::string, std::string> out;
     for (;;) {
@@ -57,18 +67,35 @@ Result<std::map<std::string, std::string>> loadSettings(Database& db) {
     return out;
 }
 
+Result<void> upsertKeyValues(Database& db, const char* table, const std::map<std::string, std::string>& values) {
+    auto s = db.prepare(std::string("INSERT INTO ") + table +
+                        "(key, value) VALUES(?1, ?2) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+    if (!s) return s.error();
+    for (const auto& [k, v] : values) {
+        s->bind(1, k).bind(2, v);
+        if (auto r = s->run(); !r) return r;
+    }
+    return {};
+}
+
+} // namespace
+
+Result<std::map<std::string, std::string>> loadSettings(Database& db) { return loadKeyValues(db, "settings"); }
+
 Result<void> saveSettings(Database& db, const std::map<std::string, std::string>& values) {
+    return db.transaction([&] { return upsertKeyValues(db, "settings", values); });
+}
+
+Result<std::map<std::string, std::string>> loadSession(Database& db) { return loadKeyValues(db, "session"); }
+
+Result<void> saveSession(Database& db, const std::map<std::string, std::string>& values) {
     return db.transaction([&]() -> Result<void> {
-        auto s = db.prepare("INSERT INTO settings(key, value) VALUES(?1, ?2) "
-                            "ON CONFLICT(key) DO UPDATE SET value = excluded.value");
-        if (!s) return s.error();
-        for (const auto& [k, v] : values) {
-            s->bind(1, k).bind(2, v);
-            if (auto r = s->run(); !r) return r;
-        }
-        return {};
+        if (auto r = db.exec("DELETE FROM session"); !r) return r;
+        return upsertKeyValues(db, "session", values);
     });
 }
+
+Result<void> clearSession(Database& db) { return db.exec("DELETE FROM session"); }
 
 Result<int64_t> addPlayedGame(Database& db, const PlayedGame& g) {
     auto s = db.prepare("INSERT INTO played_games(date, pgn, result, mode, strength, engine) "

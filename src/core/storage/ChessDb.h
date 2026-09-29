@@ -23,6 +23,12 @@ Result<std::map<std::string, std::string>> loadSettings(Database& db);
 // Upserts every pair in one transaction.
 Result<void> saveSettings(Database& db, const std::map<std::string, std::string>& values);
 
+// session: SessionState of the resumable screen (design notes §30, ADR 0011). saveSession
+// replaces the whole table in one transaction; an empty table means "nothing to resume".
+Result<std::map<std::string, std::string>> loadSession(Database& db);
+Result<void> saveSession(Database& db, const std::map<std::string, std::string>& values);
+Result<void> clearSession(Database& db);
+
 // played_games: finished games (Play mode), newest first when listed.
 struct PlayedGame {
     int64_t id = 0;
