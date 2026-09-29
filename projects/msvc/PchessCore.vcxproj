@@ -65,6 +65,7 @@
     <ClCompile Include="..\..\src\core\engine\UciProbe.cpp" />
     <ClCompile Include="..\..\src\core\util\Clock.cpp" />
     <ClCompile Include="..\..\src\core\util\Error.cpp" />
+    <ClCompile Include="..\..\src\core\util\Files.cpp" />
     <ClCompile Include="..\..\src\core\util\Log.cpp" />
     <ClCompile Include="..\..\src\core\util\Paths.cpp" />
     <ClCompile Include="..\..\src\core\util\Utf8.cpp" />
@@ -98,6 +99,7 @@
     <ClInclude Include="..\..\src\core\engine\UciProbe.h" />
     <ClInclude Include="..\..\src\core\util\Clock.h" />
     <ClInclude Include="..\..\src\core\util\Error.h" />
+    <ClInclude Include="..\..\src\core\util\Files.h" />
     <ClInclude Include="..\..\src\core\util\Log.h" />
     <ClInclude Include="..\..\src\core\util\Paths.h" />
     <ClInclude Include="..\..\src\core\util\Random.h" />

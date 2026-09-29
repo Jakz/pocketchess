@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "core/util/Clock.h"
+#include "core/util/Files.h"
 #include "core/util/Yaml.h"
 #include "support/Test.h"
+
+#include <filesystem>
+#include <fstream>
 
 using namespace pchess;
 using namespace pchess::util;
@@ -172,4 +176,25 @@ TEST_CASE("clock: civil time from unix seconds (UTC)") {
     CHECK(eq(util::civilFromUnix(1790000000), 2026, 9, 21, 14, 13, 20));
     CHECK(eq(util::civilFromUnix(4102444799), 2099, 12, 31, 23, 59, 59));
     CHECK(eq(util::civilFromUnix(-1), 1969, 12, 31, 23, 59, 59));
+}
+
+TEST_CASE("files: readTextFile reads bytes as they are, reports missing and oversized files") {
+    const auto dir = std::filesystem::temp_directory_path() / "pchess-files-test";
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+    std::filesystem::create_directories(dir, ec);
+    const std::string bytes = std::string("line 1\r\nline 2\n\0tail", 20);
+    {
+        std::ofstream(dir / "a.pgn", std::ios::binary) << bytes;
+    }
+    auto r = readTextFile(dir / "a.pgn");
+    REQUIRE(r.ok());
+    CHECK(*r == bytes);  // CRLF and NUL kept
+    auto big = readTextFile(dir / "a.pgn", 10);
+    REQUIRE_FALSE(big.ok());
+    CHECK(big.error().code == ErrorCode::Unsupported);
+    auto missing = readTextFile(dir / "none.pgn");
+    REQUIRE_FALSE(missing.ok());
+    CHECK(missing.error().code == ErrorCode::NotFound);
+    std::filesystem::remove_all(dir, ec);
 }

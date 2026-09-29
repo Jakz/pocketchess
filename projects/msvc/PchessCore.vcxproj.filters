@@ -93,6 +93,9 @@
     <ClCompile Include="..\..\src\core\util\Error.cpp">
       <Filter>src\core\util</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\util\Files.cpp">
+      <Filter>src\core\util</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\util\Log.cpp">
       <Filter>src\core\util</Filter>
     </ClCompile>
@@ -186,6 +189,9 @@
       <Filter>src\core\util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\util\Error.h">
+      <Filter>src\core\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Files.h">
       <Filter>src\core\util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\util\Log.h">

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "core/util/Yaml.h"
 
+#include "core/util/Files.h"
+
 #include <algorithm>
 #include <cctype>
 #include <charconv>
-#include <fstream>
 #include <locale>
 #include <sstream>
 
@@ -594,11 +595,9 @@ Result<YamlNode> parseYaml(std::string_view text) {
 }
 
 Result<YamlNode> loadYamlFile(const std::filesystem::path& file) {
-    std::ifstream in(file, std::ios::binary);
-    if (!in) return makeError(ErrorCode::NotFound, file.string());
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    auto r = parseYaml(ss.str());
+    auto text = readTextFile(file, 1u << 20);  // descriptors are small
+    if (!text) return text.error();
+    auto r = parseYaml(*text);
     if (!r) return makeError(r.error().code, file.filename().string() + ": " + r.error().context);
     return r;
 }

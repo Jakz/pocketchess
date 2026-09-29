@@ -28,6 +28,7 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/storage/Database.cpp
     ${REPO_ROOT}/src/core/util/Clock.cpp
     ${REPO_ROOT}/src/core/util/Error.cpp
+    ${REPO_ROOT}/src/core/util/Files.cpp
     ${REPO_ROOT}/src/core/util/Log.cpp
     ${REPO_ROOT}/src/core/util/Paths.cpp
     ${REPO_ROOT}/src/core/util/Utf8.cpp
