@@ -13,7 +13,7 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 | M0.5 Device spike (Diagnostics) | 🟡 screen implemented; needs the device run |
 | M0.6 Stockfish + plug-in skeleton | ✅ sf_19 pinned, net beside the binary; Zig builds for windows-x64 and arm (static musl hard-float, ADR 0009); runs on the reader (self-test `[integration]`, probe, Bench), ADR 0004 checkpoint passed |
 | M1 Chess core + board UI | 🟢 core complete; board UI, sandbox, promotion, golden images done; device self-test pending |
-| M2 Engine integration | 🟡 engine subsystem, Analyze engine panel, engine benchmark, device lineup (ADR 0010: Stockfish 19 main, Stockfish 11 for Eco) done and run on the reader; remaining: idle-shutdown and profile-switch checks, analysis refresh rate, 30-minute battery comparison, Settings button in "Engine missing" |
+| M2 Engine integration | 🟢 functionally done: engine subsystem, Analyze engine panel, benchmark, device lineup (ADR 0010: Stockfish 19 main, Stockfish 11 for Eco), all run on the reader. Device fine-tuning checks deferred until the app is feature-complete (decision 2026-09-29, see below) |
 | M3–M6 | not started (Home shows them disabled with their milestone) |
 
 ## 2026-09-29 — first MSVC build fixes
@@ -117,7 +117,7 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 
 ## Not working yet
 
-- M2 remainder: the device checks in the resume point (refresh rate, idle shutdown, profile
+- M2 remainder: the deferred device checks listed under the resume point (refresh rate, idle shutdown, profile
   switch, battery). The "Engine missing" dialog has no Settings button yet (no Settings screen).
 - No Settings screen yet: power profile / engine per role / MultiPV live in `app::Settings` defaults.
 - No SQLite, settings persistence, session resume (M3), puzzles (M4), games (M5), themes from
@@ -128,16 +128,17 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 
 ## Resume point (next steps, in order)
 
-1. Device, remaining M2 checks (the build has Stockfish 19 + 11 and the Diagnostics profile toggle):
-   - Diagnostics → Timing log ON, then Analyze → Engine Deep for ~15 s: `present` lines in the log
-     must come at most once per second while the engine runs.
-   - Balanced idle shutdown: Quick analysis, Engine Off, wait > 60 s on Analyze → "idle timeout".
-   - Diagnostics: tap the power-profile line → Eco; Analyze Quick must use stockfish11 and quit
-     after each job; Deep must use stockfish (profile switch without restart).
-   - App launch time (stopwatch, tap to first screen); 30-minute Eco vs Balanced battery %.
+1. M3 (`docs/ai/04-milestones.md`): SQLite for `chess.db` (M0.2 deferred it here), Settings v1
+   (replaces the Diagnostics profile toggle; gives "Engine missing" its Settings button), Play mode
+   with `BestMove` jobs, Analysis screen, Home with the session summary, SessionState + Resume,
+   strength calibration harness.
 2. Windows: F5 → Analyze → Engine (Quick/Deep) with real Stockfish (quick visual check).
-3. Close M0 + M2: `scripts/verify-all.ps1`, then M3 (Settings screen replaces the Diagnostics
-   profile toggle; "Engine missing" gets its Settings button).
+
+Deferred until the app is feature-complete (decided 2026-09-29): the device fine-tuning checks —
+analysis refresh ≤ 1/s (Timing log + Deep), Balanced idle shutdown (> 60 s idle on Analyze),
+profile switch (Diagnostics toggle → Eco: Quick on stockfish11, Deep on stockfish), app launch
+time, 30-minute Eco vs Balanced battery, touch offset (x ~15 px left), `llvm-readelf` check of the
+app's NEEDED/GLIBC. Then `scripts/verify-all.ps1` closes M0 + M2.
 
 ## Verified on hardware
 
