@@ -66,6 +66,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/AppTests.cpp
     ${REPO_ROOT}/tests/core/ChessTests.cpp
     ${REPO_ROOT}/tests/core/EngineDescriptorTests.cpp
+    ${REPO_ROOT}/tests/core/EngineIntegrationTests.cpp
     ${REPO_ROOT}/tests/core/EngineManagerTests.cpp
     ${REPO_ROOT}/tests/core/EngineTests.cpp
     ${REPO_ROOT}/tests/core/PerftTests.cpp

@@ -53,6 +53,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\tests\app\AnalysisPanelTests.cpp" />
     <ClCompile Include="..\..\tests\core\EngineDescriptorTests.cpp" />
+    <ClCompile Include="..\..\tests\core\EngineIntegrationTests.cpp" />
     <ClCompile Include="..\..\tests\core\EngineManagerTests.cpp" />
     <ClCompile Include="..\..\tests\core\UciEngineTests.cpp" />
     <ClCompile Include="..\..\tests\core\YamlTests.cpp" />
