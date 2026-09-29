@@ -20,3 +20,4 @@ CMakeLists.txt text eol=lf
 *.zst binary
 libs/sqlite/sqlite3.c -diff linguist-vendored
 libs/sqlite/sqlite3.h -diff linguist-vendored
+libs/zstd/zstddeclib.c -diff linguist-vendored
