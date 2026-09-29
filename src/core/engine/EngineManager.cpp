@@ -48,18 +48,20 @@ void EngineManager::setSettings(const EngineSettings& s) {
     if (engineChange && engine_ && !busy()) {
         bool stillUsed = false;
         for (Role r : {Role::Play, Role::Analysis, Role::Hint, Role::Validate})
-            if (const EngineDescriptor* d = engineFor(r); d && d->id == engine_->descriptor().id) stillUsed = true;
+            for (AnalysisMode m : {AnalysisMode::Quick, AnalysisMode::Deep})
+                if (const EngineDescriptor* d = engineFor(r, m); d && d->id == engine_->descriptor().id) stillUsed = true;
         if (!stillUsed) shutdownEngine();
     }
     if (!busy()) armIdle();
 }
 
-const EngineDescriptor* EngineManager::engineFor(Role role) const {
+const EngineDescriptor* EngineManager::engineFor(Role role, AnalysisMode mode) const {
     const std::string& chosen = settings_.engineForRole[static_cast<size_t>(role)];
     if (!chosen.empty()) {
         if (const EngineDescriptor* d = registry_.available(chosen); d && d->supports(role)) return d;
     }
-    const bool light = powerProfile(settings_.profile).lightEngineForPlay && role != Role::Analysis;
+    const bool light =
+        powerProfile(settings_.profile).lightEngine && (role != Role::Analysis || mode == AnalysisMode::Quick);
     if (light) return registry_.lightestFor(role);
     const EngineDescriptor* best = nullptr;
     for (const EngineDescriptor* d : registry_.availableFor(role))
@@ -81,6 +83,7 @@ JobId EngineManager::analyze(const chess::Position& start, std::vector<chess::Mo
                              int multipv, InfoCallback onInfo, DoneCallback onDone) {
     Request r{JobKind::Analysis, Role::Analysis,   start, std::move(moves), {}, {}, false,
               std::move(onInfo), std::move(onDone)};
+    r.mode = mode;
     setOption(r.options, "MultiPV", std::to_string(std::clamp(multipv, 1, 8)));
     if (mode == AnalysisMode::Quick)
         r.limits = profile().quickAnalysis;
@@ -128,7 +131,7 @@ JobId EngineManager::submit(Request r) {
         current_ = 0;
     }
 
-    const EngineDescriptor* d = engineFor(r.role);
+    const EngineDescriptor* d = engineFor(r.role, r.mode);
     if (!d) {
         if (engine_ && engine_->state() == EngineState::Searching) engine_->stop();
         JobResult res;

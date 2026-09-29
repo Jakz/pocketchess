@@ -85,8 +85,9 @@ public:
     EngineRegistry& registry() { return registry_; }
 
     // The engine a job of this role would use: the user's choice, else the profile's default
-    // (Stockfish-class = the highest energy class; Eco: the lightest for play/hint/validate).
-    const EngineDescriptor* engineFor(Role role) const;
+    // (Stockfish-class = the highest energy class; Eco: the lightest one, except for Deep analysis,
+    // which the user starts explicitly: architecture doc §8.3).
+    const EngineDescriptor* engineFor(Role role, AnalysisMode mode = AnalysisMode::Deep) const;
     bool available(Role role) const { return engineFor(role) != nullptr; }
 
     // --- Jobs (callbacks on the UI thread; `onDone` fires exactly once per job) ---------------
@@ -136,6 +137,7 @@ private:
         bool negateScore = false;
         InfoCallback onInfo;
         DoneCallback onDone;
+        AnalysisMode mode = AnalysisMode::Deep;  // Analysis jobs: picks the engine in light profiles
     };
 
     JobId submit(Request r);

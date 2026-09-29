@@ -6,8 +6,11 @@
 
 - **Stockfish 19** (net beside the binary, ADR 0009) is the engine for every role in the
   Performance and Balanced profiles.
-- **Stockfish 11** is bundled as the light engine: the Eco profile uses it for play, hints and
-  validation (`lightEngineForPlay`, lowest `energy_class`); analysis keeps Stockfish 19.
+- **Stockfish 11** is bundled as the light engine: the Eco profile uses it for play, hints,
+  validation and Quick analysis (`PowerProfile::lightEngine`, lowest `energy_class`); only Deep
+  analysis, which the user starts explicitly, loads Stockfish 19 (architecture doc §8.3). Eco quits
+  the engine after every job, so Stockfish 19 there would pay its ~2.5 s / ~2.7 CPU-s start for
+  every analysed position.
 - **Stockfish 17.1** was evaluated and is not bundled (pin and descriptor removed; see below).
 - `projects/engines.txt`: `stockfish`, `stockfish11`. Bundle ~101 MB, inside the 150 MB budget.
 

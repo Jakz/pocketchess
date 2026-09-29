@@ -27,7 +27,7 @@ struct PowerProfile {
     SearchLimits validate;                         // "check with engine" for alternative puzzle solutions
     std::chrono::milliseconds idleTimeout{60000};  // 0 = quit right after the job
     int nice = 10;                                 // engine process priority on the device
-    bool lightEngineForPlay = false;               // prefer the lowest energy class for play/hint/validate
+    bool lightEngine = false;  // lowest energy class for play/hint/validate and Quick analysis (not Deep)
 };
 
 const PowerProfile& powerProfile(PowerProfileId id);

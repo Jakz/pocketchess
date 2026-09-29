@@ -58,7 +58,7 @@ std::array<PowerProfile, 3> makeTable() {
     eco.validate = limits(500, std::nullopt, 100000);
     eco.idleTimeout = milliseconds(0);
     eco.nice = 19;
-    eco.lightEngineForPlay = true;
+    eco.lightEngine = true;
     return {perf, bal, eco};
 }
 

@@ -57,7 +57,7 @@ TEST_CASE("power profiles: table values and names") {
     CHECK_EQ(powerProfile(PowerProfileId::Performance).threads, 2);
     CHECK(powerProfile(PowerProfileId::Eco).idleTimeout == 0ms);
     CHECK_EQ(powerProfile(PowerProfileId::Eco).hint.nodes.value_or(0), uint64_t(50000));
-    CHECK(powerProfile(PowerProfileId::Eco).lightEngineForPlay);
+    CHECK(powerProfile(PowerProfileId::Eco).lightEngine);
     CHECK(powerProfileFromString("eco") == PowerProfileId::Eco);
     CHECK_FALSE(powerProfileFromString("turbo").has_value());
 }
@@ -176,7 +176,17 @@ TEST_CASE("engine manager: Eco profile uses the light engine, one process at a t
     rig.setProfile(PowerProfileId::Eco);
     CHECK_EQ(rig.mgr->engineFor(Role::Play)->id, std::string("light"));
     CHECK_EQ(rig.mgr->engineFor(Role::Hint)->id, std::string("light"));
-    CHECK_EQ(rig.mgr->engineFor(Role::Analysis)->id, std::string("big"));
+    CHECK_EQ(rig.mgr->engineFor(Role::Analysis)->id, std::string("big"));  // Deep: started explicitly
+    CHECK_EQ(rig.mgr->engineFor(Role::Analysis, AnalysisMode::Quick)->id, std::string("light"));
+
+    // Quick analysis runs on the light engine (no big engine restart per position, ADR 0010).
+    rig.mgr->analyze(chess::Position::startPosition(), {}, AnalysisMode::Quick, 1, rig.info(), rig.done());
+    rig.sched.runPending();
+    REQUIRE_EQ(rig.results.size(), size_t(1));
+    CHECK_EQ(rig.results[0].engineId, std::string("light"));
+    CHECK_FALSE(rig.mgr->processRunning());  // idle timeout 0
+    rig.results.clear();
+    rig.fake.spawned = 0;
 
     rig.mgr->hint(chess::Position::startPosition(), {}, rig.done());
     rig.sched.runPending();
