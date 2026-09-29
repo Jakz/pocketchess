@@ -15,6 +15,7 @@ int renderScreenshot(const AppConfig& config, const platform::DeviceProfile& pro
     HeadlessPresenter presenter(profile);
     AppConfig cfg = config;
     cfg.logToFile = false;
+    cfg.persistSettings = false;  // screenshots never depend on a previous run
     Application app(host, presenter, cfg);
     app.start();
     if (!script.empty()) {

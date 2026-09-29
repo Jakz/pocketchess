@@ -26,6 +26,7 @@ struct Harness {
         cfg.root = std::filesystem::temp_directory_path() / "pocketchess-tests";
         cfg.fontDir = test::fontDir();
         cfg.logToFile = false;
+        cfg.persistSettings = false;  // one shared temp root: no settings may leak between tests
         app = std::make_unique<Application>(host, presenter, cfg);
         app->start();
     }

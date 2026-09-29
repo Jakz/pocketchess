@@ -5,6 +5,7 @@
 #include "app/DiagnosticsScreen.h"
 #include "app/Dialogs.h"
 #include "app/HomeScreen.h"
+#include "core/storage/ChessDb.h"
 #include "core/util/Log.h"
 
 #include <chrono>
@@ -73,6 +74,20 @@ void Application::start() {
         pieces_.setPieceSet(set);
     }
 
+    if (config_.persistSettings) {
+        // Content errors never stop the app (design notes §32): settings then stay in memory.
+        if (auto db = storage::openChessDb(paths_.user() / "chess.db"); !db) {
+            Log::error("app", "chess.db: " + db.error().message() + " - settings will not be saved");
+        } else {
+            userDb_ = std::move(*db);
+            if (auto s = storage::loadSettings(userDb_); s)
+                settings_.fromMap(*s);
+            else
+                Log::error("app", "settings: " + s.error().message());
+            Log::info("app", "chess.db open (journal " + userDb_.journalMode() + ")");
+        }
+    }
+    // Command-line overrides apply to this session only.
     if (config_.mono) settings_.mono = *config_.mono;
     if (!config_.theme.empty()) {
         const BoardTheme t = BoardTheme::byName(config_.theme);
@@ -113,8 +128,26 @@ void Application::applySettings() {
     es.profile = settings_.powerProfile;
     es.engineForRole[static_cast<size_t>(engine::Role::Analysis)] = settings_.analysisEngine;
     es.engineForRole[static_cast<size_t>(engine::Role::Play)] = settings_.playEngine;
+    es.threads = settings_.threads > 0 ? std::optional<int>(settings_.threads) : std::nullopt;
+    es.hashMb = settings_.hashMb > 0 ? std::optional<int>(settings_.hashMb) : std::nullopt;
+    es.analysisLimit.reset();
+    if (settings_.deepLimitSeconds > 0) {
+        engine::SearchLimits l;
+        l.movetimeMs = settings_.deepLimitSeconds * 1000;
+        es.analysisLimit = l;
+    } else if (settings_.deepLimitSeconds < 0) {
+        engine::SearchLimits l;
+        l.infinite = true;  // until the user stops it
+        es.analysisLimit = l;
+    }
     engines_->setSettings(es);
     if (started_) invalidateAll(RefreshHint::Screen);
+}
+
+void Application::saveSettings() {
+    if (!userDb_.isOpen()) return;
+    if (auto r = storage::saveSettings(userDb_, settings_.toMap()); !r)
+        Log::error("app", "saving settings: " + r.error().message());
 }
 
 void Application::invalidate(const Rect& r, RefreshHint hint) {

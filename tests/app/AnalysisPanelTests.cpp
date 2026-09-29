@@ -31,6 +31,7 @@ struct EngineHarness {
         cfg.root = std::filesystem::temp_directory_path() / "pocketchess-tests";
         cfg.fontDir = test::fontDir();
         cfg.logToFile = false;
+        cfg.persistSettings = false;  // one shared temp root: no settings may leak between tests
         cfg.startScreen = "analyze";
         cfg.fen = fen;
         if (withEngine) cfg.extraEngines.push_back(test::fakeDescriptor("fakefish"));

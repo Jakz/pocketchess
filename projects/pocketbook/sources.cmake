@@ -45,6 +45,7 @@ set(PCHESS_UI_SOURCES
     ${REPO_ROOT}/src/app/HomeScreen.cpp
     ${REPO_ROOT}/src/app/Screenshot.cpp
     ${REPO_ROOT}/src/app/Script.cpp
+    ${REPO_ROOT}/src/app/Settings.cpp
     ${REPO_ROOT}/src/ui/board/BoardView.cpp
     ${REPO_ROOT}/src/ui/canvas/Canvas.cpp
     ${REPO_ROOT}/src/ui/canvas/Color.cpp

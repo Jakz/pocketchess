@@ -45,6 +45,7 @@
     <ClCompile Include="..\..\src\app\HomeScreen.cpp" />
     <ClCompile Include="..\..\src\app\Screenshot.cpp" />
     <ClCompile Include="..\..\src\app\Script.cpp" />
+    <ClCompile Include="..\..\src\app\Settings.cpp" />
     <ClCompile Include="..\..\src\ui\board\BoardView.cpp" />
     <ClCompile Include="..\..\src\ui\canvas\Canvas.cpp" />
     <ClCompile Include="..\..\src\ui\canvas\Color.cpp" />

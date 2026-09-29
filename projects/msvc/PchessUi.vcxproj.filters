@@ -60,6 +60,9 @@
     <ClCompile Include="..\..\src\app\Script.cpp">
       <Filter>src\app</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\app\Settings.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\ui\board\BoardView.cpp">
       <Filter>src\ui\board</Filter>
     </ClCompile>

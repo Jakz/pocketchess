@@ -5,6 +5,7 @@
 #include "app/Settings.h"
 #include "core/engine/EngineManager.h"
 #include "core/engine/EngineRegistry.h"
+#include "core/storage/Database.h"
 #include "core/util/Paths.h"
 #include "core/util/Scheduler.h"
 #include "platform/Host.h"
@@ -37,6 +38,9 @@ struct AppConfig {
     // objects are made (default: UciEngine over a real child process).
     std::vector<engine::EngineDescriptor> extraEngines;
     engine::EngineManager::EngineFactory engineFactory;
+    // Load and save Settings in <root>/user/chess.db. Off for tests and headless screenshots, so
+    // their output never depends on a previous run.
+    bool persistSettings = true;
 };
 
 // util::Scheduler over the platform host (engine subsystem -> UI thread).
@@ -98,6 +102,8 @@ public:
     const AppConfig& config() const { return config_; }
     Settings& settings() { return settings_; }
     void applySettings();  // theme/mono/refresh interval/engine settings changed
+    void saveSettings();   // writes Settings to chess.db (no-op when not persisted)
+    bool settingsPersisted() const { return userDb_.isOpen(); }
 
     // Engines (M2): registry of engines/*/engine.yaml and the job manager.
     engine::EngineRegistry& engineRegistry() { return engineRegistry_; }
@@ -135,6 +141,7 @@ private:
     HostScheduler scheduler_;
     engine::EngineRegistry engineRegistry_;
     std::unique_ptr<engine::EngineManager> engines_;
+    storage::Database userDb_;  // user/chess.db (closed when persistence is off or failed)
 
     ui::Canvas canvas_;
     ui::FontLibrary fonts_;
