@@ -49,6 +49,12 @@ public:
     void goBack();
     void goForward();
     void flip();
+    // Move actions (Menu -> Move): comment on the current move, back to the main line, promote the
+    // current variation, delete the current move with everything after it.
+    void setComment(const std::string& text);
+    void goToMainLine();
+    void promoteVariation();
+    void deleteMove();
     bool loadFen(const std::string& fen);
     void setEngineMode(EngineMode m);
     void cycleEngineMode();
@@ -77,6 +83,8 @@ private:
     void refreshPanel();
     void updateButtons();
     void openMenu();
+    void openMoveMenu();
+    void openPositionMenu();
     void editFen();
     void reset(const chess::Position& start);
     std::string statusText() const;

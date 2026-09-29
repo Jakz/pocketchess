@@ -181,7 +181,21 @@ void AnalyzeScreen::draw(Canvas& c, const Rect& clip) {
 }
 
 void AnalyzeScreen::drawMoves(Canvas& c) {
-    drawMoveList(app_, c, movesRect_, tree_, node_, "Tap a piece, then a square.");
+    Rect list = movesRect_;
+    if (node_ && !node_->comment.empty()) {
+        // The current move's comment first (one line, cut at the panel width), then the moves.
+        const BoardTheme& t = app_.theme();
+        Font& small = app_.fonts().get(app_.style().smallPx);
+        std::string text = "“" + node_->comment + "”";
+        const auto lines = small.wrap(text, list.w);
+        if (!lines.empty()) text = lines.size() > 1 ? lines.front() + "…" : lines.front();
+        c.pushClip(list);
+        small.draw(c, list.x, list.y + small.ascent(), text, blend(t.background, t.ink, 170));
+        c.popClip();
+        list.y += small.lineHeight();
+        list.h -= small.lineHeight();
+    }
+    drawMoveList(app_, c, list, tree_, node_, "Tap a piece, then a square.");
 }
 
 void AnalyzeScreen::select(Square s) {
@@ -277,18 +291,92 @@ void AnalyzeScreen::openMenu() {
                        : engineMode_ == EngineMode::Quick ? "Engine: Deep"
                                                           : "Engine: Off";
     app_.push(std::make_unique<MessageDialog>(
-        app_, "Analyze", "", std::vector<std::string>{"Flip board", "Edit FEN", "New game", next, "Home", "Close"},
+        app_, "Analyze", "", std::vector<std::string>{"Move…", "Position…", next, "Home", "Close"},
+        [this](int i) {
+            switch (i) {
+            case 0: openMoveMenu(); break;
+            case 1: openPositionMenu(); break;
+            case 2: cycleEngineMode(); break;
+            case 3: app_.pop(); break;
+            default: break;
+            }
+        },
+        true));
+}
+
+void AnalyzeScreen::openMoveMenu() {
+    // Only the actions that apply to the current move.
+    enum Action { Comment, MainLine, Promote, Delete };
+    std::vector<std::string> labels;
+    std::vector<Action> actions;
+    auto add = [&](const char* label, Action a) {
+        labels.push_back(label);
+        actions.push_back(a);
+    };
+    const bool onMove = node_ && !node_->isRoot();
+    add(node_ && !node_->comment.empty() ? "Edit comment…" : "Comment…", Comment);
+    if (onMove && !node_->isMainLine()) {
+        add("Back to main line", MainLine);
+        add("Promote variation", Promote);
+    }
+    if (onMove) add("Delete move", Delete);
+    labels.push_back("Close");
+    app_.push(std::make_unique<MessageDialog>(
+        app_, "Move", "", labels,
+        [this, actions](int i) {
+            if (i < 0 || i >= static_cast<int>(actions.size())) return;
+            switch (actions[static_cast<size_t>(i)]) {
+            case Comment:
+                app_.requestText("Comment", node_->comment, [this](std::optional<std::string> text) {
+                    if (text) setComment(*text);
+                });
+                break;
+            case MainLine: goToMainLine(); break;
+            case Promote: promoteVariation(); break;
+            case Delete: deleteMove(); break;
+            }
+        },
+        true));
+}
+
+void AnalyzeScreen::openPositionMenu() {
+    app_.push(std::make_unique<MessageDialog>(
+        app_, "Position", "", std::vector<std::string>{"Flip board", "Edit FEN", "New game", "Close"},
         [this](int i) {
             switch (i) {
             case 0: flip(); break;
             case 1: editFen(); break;
             case 2: reset(Position::startPosition()); break;
-            case 3: cycleEngineMode(); break;
-            case 4: app_.pop(); break;
             default: break;
             }
         },
         true));
+}
+
+void AnalyzeScreen::setComment(const std::string& text) {
+    if (!node_) return;
+    node_->comment = text;
+    app_.invalidate(movesRect_, RefreshHint::Content);
+    app_.sessionChanged();
+}
+
+void AnalyzeScreen::goToMainLine() {
+    GameNode* n = node_;
+    while (n && !n->isMainLine()) n = n->parent;  // the fork point on the main line
+    if (n && n != node_) setNode(n);
+}
+
+void AnalyzeScreen::promoteVariation() {
+    if (!node_ || node_->isRoot() || node_->isMainLine()) return;
+    tree_.promoteVariation(node_);
+    setNode(node_);  // redraws the list and saves the session
+}
+
+void AnalyzeScreen::deleteMove() {
+    if (!node_ || node_->isRoot()) return;
+    GameNode* parent = node_->parent;
+    tree_.deleteNode(node_);
+    setNode(parent);
 }
 
 void AnalyzeScreen::onGesture(const Gesture& g) {

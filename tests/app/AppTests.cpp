@@ -4,6 +4,7 @@
 #include "app/HeadlessHost.h"
 #include "app/Script.h"
 #include "core/chess/Fen.h"
+#include "core/chess/San.h"
 #include "support/Golden.h"
 #include "support/Test.h"
 
@@ -130,14 +131,14 @@ TEST_CASE("app: promotion dialog picks the piece") {
 
 TEST_CASE("app: FEN entry through the on-canvas dialog, with error for bad input") {
     Harness h(analyzeConfig());
-    h.run("key:menu;key:next;key:ok");  // menu -> "Edit FEN"
+    h.run("key:menu;key:next;key:ok;key:next;key:ok");  // menu -> Position… -> "Edit FEN"
     REQUIRE_EQ(std::string(h.app->top()->name()), std::string("text-entry"));
     std::string clear;
     for (int i = 0; i < 80; ++i) clear += "text:\b;";
     h.run(clear + "text:4k3/8/8/8/8/8/8/4K2R w K - 0 1;key:ok");
     CHECK_EQ(chess::toFen(h.analyze()->position()), std::string("4k3/8/8/8/8/8/8/4K2R w K - 0 1"));
 
-    h.run("key:menu;key:next;key:ok");
+    h.run("key:menu;key:next;key:ok;key:next;key:ok");
     h.run(clear + "text:not a fen;key:ok");
     CHECK_EQ(std::string(h.app->top()->name()), std::string("message"));
     h.run("key:ok");
@@ -157,7 +158,7 @@ TEST_CASE("app: golden images of the board screens") {
     }
     {
         Harness h(analyzeConfig("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"));
-        h.run("key:menu;key:ok");  // Flip
+        h.run("key:menu;key:next;key:ok;key:ok");  // Position… -> Flip
         test::checkGolden("analyze-kiwipete-flipped", h.app->canvas());
     }
     {
@@ -165,4 +166,37 @@ TEST_CASE("app: golden images of the board screens") {
         h.run("tap:d2");
         test::checkGolden("analyze-758x1024", h.app->canvas());
     }
+}
+
+TEST_CASE("app: Analyze move actions: back to main line, promote and delete a variation, comments") {
+    Harness h(analyzeConfig());
+    AnalyzeScreen* a = h.analyze();
+    REQUIRE(a->playSan("e4"));
+    REQUIRE(a->playSan("e5"));
+    a->goBack();
+    REQUIRE(a->playSan("c5"));  // variation 1... c5
+    CHECK_EQ(a->tree().mainLine().size(), size_t(2));
+
+    a->goToMainLine();  // the fork point: after 1. e4
+    CHECK_EQ(a->position().sideToMove(), chess::Black);
+    CHECK(a->position().pieceAt(chess::parseSquare("c7")) == chess::BPawn);
+
+    REQUIRE(a->playSan("c5"));  // back into the variation
+    a->promoteVariation();
+    CHECK_EQ(chess::toSan(chess::Position::startPosition(), a->tree().mainLine()[0]), std::string("e4"));
+    chess::Position afterE4 = chess::Position::startPosition();
+    afterE4.makeMove(a->tree().mainLine()[0]);
+    CHECK_EQ(chess::toSan(afterE4, a->tree().mainLine()[1]), std::string("c5"));
+    CHECK(a->position().pieceAt(chess::parseSquare("c5")) == chess::BPawn);
+
+    a->deleteMove();  // removes 1... c5, e5 is the main line again
+    CHECK_EQ(a->tree().mainLine().size(), size_t(2));
+    CHECK_EQ(a->tree().root()->mainChild()->children.size(), size_t(1));
+
+    // Menu -> Move… -> Comment… (on-canvas text entry on desktop).
+    h.run("key:menu;key:ok;key:ok");
+    REQUIRE_EQ(std::string(h.app->top()->name()), std::string("text-entry"));
+    h.run("text:The main line;key:ok");
+    CHECK_EQ(a->tree().root()->mainChild()->comment, std::string("The main line"));
+    test::checkGolden("analyze-comment", h.app->canvas());
 }
