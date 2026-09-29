@@ -9,6 +9,7 @@
 #include "support/Test.h"
 
 #include <filesystem>
+#include <fstream>
 
 using namespace pchess;
 using namespace pchess::app;
@@ -199,4 +200,33 @@ TEST_CASE("app: Analyze move actions: back to main line, promote and delete a va
     h.run("text:The main line;key:ok");
     CHECK_EQ(a->tree().root()->mainChild()->comment, std::string("The main line"));
     test::checkGolden("analyze-comment", h.app->canvas());
+}
+
+TEST_CASE("app: Analyze loads a game from a PGN file in imports/") {
+    Harness h(analyzeConfig());
+    const auto imports = h.app->paths().imports();
+    std::error_code ec;
+    std::filesystem::create_directories(imports, ec);
+    for (const auto& de : std::filesystem::directory_iterator(imports, ec)) std::filesystem::remove(de.path(), ec);
+    {
+        std::ofstream(imports / "two.pgn", std::ios::binary)
+            << "[White \"Morphy\"]\n[Black \"Duke\"]\n[Result \"1-0\"]\n\n1. e4 e5 2. Nf3 d6 1-0\n\n"
+               "[White \"Anderssen\"]\n[Black \"Kieseritzky\"]\n[Result \"1-0\"]\n\n1. e4 e5 2. f4 {gambit} exf4 1-0\n\n"
+               "[White \"Broken\"]\n\n1. e4 e4 *\n";
+    }
+    h.analyze()->loadPgnFromImports();
+    REQUIRE_EQ(std::string(h.app->top()->name()), std::string("message"));  // files
+    h.run("key:ok");                                                        // two.pgn
+    REQUIRE_EQ(std::string(h.app->top()->name()), std::string("message"));  // games (the broken one skipped)
+    h.run("key:next;key:ok");                                               // Anderssen – Kieseritzky
+    REQUIRE_EQ(std::string(h.app->top()->name()), std::string("analyze"));
+    AnalyzeScreen* a = h.analyze();
+    CHECK_EQ(a->tree().mainLine().size(), size_t(4));
+    CHECK(a->position() == chess::Position::startPosition());  // at the start, ready to step through
+    CHECK_EQ(a->tree().root()->mainChild()->mainChild()->mainChild()->comment, std::string("gambit"));
+    std::filesystem::remove(imports / "two.pgn", ec);
+
+    // An empty imports/ explains where to put files.
+    a->loadPgnFromImports();
+    CHECK_EQ(std::string(h.app->top()->name()), std::string("message"));
 }

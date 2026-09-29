@@ -55,6 +55,8 @@ public:
     void goToMainLine();
     void promoteVariation();
     void deleteMove();
+    // Position -> Load PGN: a file from imports/, then a game from it (chooseFromList).
+    void loadPgnFromImports();
     bool loadFen(const std::string& fen);
     void setEngineMode(EngineMode m);
     void cycleEngineMode();

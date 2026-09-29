@@ -45,6 +45,11 @@ private:
     int focus_ = 0;
 };
 
+// Picks one item from a list of any length: pages of `pageSize` rows plus "More…" and "Close".
+// `done(index)` gets the item's index, or -1 when closed.
+void chooseFromList(Application& app, const std::string& title, std::vector<std::string> items,
+                    std::function<void(int)> done, int pageSize = 6);
+
 // Promotion choice over the board: Q R B N in a row.
 class PromotionDialog final : public Dialog {
 public:
