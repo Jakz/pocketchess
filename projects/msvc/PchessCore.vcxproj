@@ -53,6 +53,7 @@
     <ClCompile Include="..\..\src\core\chess\Types.cpp" />
     <ClCompile Include="..\..\src\core\chess\Zobrist.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp" />
+    <ClCompile Include="..\..\src\core\engine\EngineBenchmark.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineManager.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineRegistry.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineTypes.cpp" />
@@ -82,6 +83,7 @@
     <ClInclude Include="..\..\src\core\chess\Zobrist.h" />
     <ClInclude Include="..\..\src\core\engine\Engine.h" />
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h" />
+    <ClInclude Include="..\..\src\core\engine\EngineBenchmark.h" />
     <ClInclude Include="..\..\src\core\engine\EngineManager.h" />
     <ClInclude Include="..\..\src\core\engine\EngineRegistry.h" />
     <ClInclude Include="..\..\src\core\engine\EngineTypes.h" />

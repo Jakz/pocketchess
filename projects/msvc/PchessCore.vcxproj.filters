@@ -54,6 +54,9 @@
     <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp">
       <Filter>src\core\engine</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\engine\EngineBenchmark.cpp">
+      <Filter>src\core\engine</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\engine\EngineManager.cpp">
       <Filter>src\core\engine</Filter>
     </ClCompile>
@@ -135,6 +138,9 @@
       <Filter>src\core\engine</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\EngineBenchmark.h">
       <Filter>src\core\engine</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\EngineManager.h">

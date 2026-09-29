@@ -15,6 +15,7 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/chess/San.cpp
     ${REPO_ROOT}/src/core/chess/Types.cpp
     ${REPO_ROOT}/src/core/chess/Zobrist.cpp
+    ${REPO_ROOT}/src/core/engine/EngineBenchmark.cpp
     ${REPO_ROOT}/src/core/engine/EngineDescriptor.cpp
     ${REPO_ROOT}/src/core/engine/EngineManager.cpp
     ${REPO_ROOT}/src/core/engine/EngineRegistry.cpp
@@ -65,6 +66,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/AnalysisPanelTests.cpp
     ${REPO_ROOT}/tests/app/AppTests.cpp
     ${REPO_ROOT}/tests/core/ChessTests.cpp
+    ${REPO_ROOT}/tests/core/EngineBenchmarkTests.cpp
     ${REPO_ROOT}/tests/core/EngineDescriptorTests.cpp
     ${REPO_ROOT}/tests/core/EngineIntegrationTests.cpp
     ${REPO_ROOT}/tests/core/EngineManagerTests.cpp
