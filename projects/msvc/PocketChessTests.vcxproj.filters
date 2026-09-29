@@ -18,6 +18,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\tests\core\YamlTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\tests\TestMain.cpp">
       <Filter>tests</Filter>
     </ClCompile>

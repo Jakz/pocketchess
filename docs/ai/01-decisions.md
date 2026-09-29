@@ -53,3 +53,4 @@ engine activation policy (§8.2), Elo-like rating with K = 24 and binary scoring
 | Arch §2 | `Process` is declared in `src/core/engine/Process.h`; implementations stay in `src/platform/{win32,posix}`. | ADR 0006 |
 | Build §3.1 | `Sqlite`/`YamlCpp` projects are added when first used (M2/M3), not in M0. `PocketChessHeadless.vcxproj` added (screenshots without a window). | ADR 0001 |
 | Build §4.1 | Platform sources form an OBJECT library in CMake (link order of `Process::spawn`). | ADR 0001 |
+| P8 | Descriptors are read by an in-repo YAML subset reader (`core/util/Yaml`) instead of yaml-cpp; no `YamlCpp` project. | ADR 0007 |

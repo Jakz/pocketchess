@@ -72,6 +72,9 @@
     <ClCompile Include="..\..\src\core\util\Utf8.cpp">
       <Filter>src\core\util</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\util\Yaml.cpp">
+      <Filter>src\core\util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\chess\Bitboard.h">
@@ -135,6 +138,9 @@
       <Filter>src\core\util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\util\Utf8.h">
+      <Filter>src\core\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Yaml.h">
       <Filter>src\core\util</Filter>
     </ClInclude>
   </ItemGroup>

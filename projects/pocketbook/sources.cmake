@@ -22,6 +22,7 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/util/Log.cpp
     ${REPO_ROOT}/src/core/util/Paths.cpp
     ${REPO_ROOT}/src/core/util/Utf8.cpp
+    ${REPO_ROOT}/src/core/util/Yaml.cpp
 )
 
 set(PCHESS_UI_SOURCES
@@ -59,6 +60,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/core/ChessTests.cpp
     ${REPO_ROOT}/tests/core/EngineTests.cpp
     ${REPO_ROOT}/tests/core/PerftTests.cpp
+    ${REPO_ROOT}/tests/core/YamlTests.cpp
     ${REPO_ROOT}/tests/support/Golden.cpp
     ${REPO_ROOT}/tests/support/Test.cpp
     ${REPO_ROOT}/tests/support/TestTools.cpp
