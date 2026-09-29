@@ -14,7 +14,7 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 | M0.6 Stockfish + plug-in skeleton | ✅ sf_19 pinned, net beside the binary; Zig builds for windows-x64 and arm (static musl hard-float, ADR 0009); runs on the reader (self-test `[integration]`, probe, Bench), ADR 0004 checkpoint passed |
 | M1 Chess core + board UI | 🟢 core complete; board UI, sandbox, promotion, golden images done; device self-test pending |
 | M2 Engine integration | 🟢 functionally done: engine subsystem, Analyze engine panel, benchmark, device lineup (ADR 0010: Stockfish 19 main, Stockfish 11 for Eco), all run on the reader. Device fine-tuning checks deferred until the app is feature-complete (decision 2026-09-29, see below) |
-| M3 Play, Analysis, Home, session | 🟡 SQLite vendored (3.53.4), `core/storage` (RAII wrapper, migrations, `chess.db` v1), Settings v1 persisted in `chess.db`, Play mode (setup, engine replies, undo, draw claims, resign, saved games, PGN export, Analyze game); next: Analysis screen features, Home summary, SessionState + Resume, strength calibration |
+| M3 Play, Analysis, Home, session | 🟢 features done: SQLite + `core/storage` (`chess.db` v3), Settings v1, Play mode, Analyze (MultiPV lines, comments, main line / promote / delete, Load PGN), SessionState + Resume (ADR 0011), Home summary; pending: device acceptance run, strength calibration (deferred, see below) |
 | M4–M6 | not started (Home shows them disabled with their milestone) |
 
 ## 2026-09-29 — first MSVC build fixes
@@ -74,6 +74,15 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
   game asks first (not saved until SessionState). Missing/failed engine: Retry / Settings / Home.
   `drawMoveList` is shared with Analyze; `util::civilFromUnix` formats dates. Goldens: `play`,
   `home` (Play enabled).
+- SessionState (ADR 0011): `chess.db` table `session` (schema v2), saved on every move/screen change
+  and on background/exit; Play and Analyze implement `saveSession`/`restore`; at launch "Resume?
+  [Home] [Resume]". Unfinished games survive a kill (also while the engine was thinking).
+- Analyze: MultiPV lines 2–3 under the main line (Settings → Analysis lines; with 3 lines the move
+  list has no room), Menu → Move… (comment, back to main line, promote, delete) and Position…
+  (flip, FEN, Load PGN from `imports/`, new game); `chooseFromList` pages long lists; buttons fall
+  back to the small font when a label is too wide. `util::readTextFile` (size cap).
+- Home: last game (result, side, strength, date) and totals from `played_games` (schema v3 adds
+  `human`); the footer names the analysis engine. Goldens: `analyze-multipv`, `analyze-comment`.
 |delete)").
 
 ## 2026-09-29 — M2 engines on Windows and ARM (ADR 0009)
@@ -155,15 +164,17 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 
 ## Resume point (next steps, in order)
 
-1. Device: deploy and try Settings (persisted across restarts; log line "chess.db open (journal
-   ...)" tells whether WAL works on vfat) and a Play game per strength with Stockfish 19.
-2. M3 remainder (`docs/ai/04-milestones.md`): Analysis screen features (MultiPV 1–3 lines, try move
-   → variation, return to main line, save annotation), Home last-session summary, SessionState +
-   Resume (current screen, game, move index, orientation; also saves an unfinished Play game),
-   strength calibration harness (preset vs preset / fixed Elo → descriptors + ADR).
+1. Device, M3 acceptance: deploy; Settings persisted across restarts (log "chess.db open (journal
+   wal|delete)"); a full Play game per strength with Stockfish 19; Analyze the game, Export PGN;
+   resume after sleep and after killing the app (Resume? dialog); Load PGN from `imports/`.
+2. M4 (Tactics trainer, rating, review): `scripts/fetch-lichess.ps1` (the only other script allowed on
+   the network), `PuzzleImporter` (zstd, `puzzles.db`), `progress.db`, the Tactics and Review screens.
 3. Windows: F5 → Analyze → Engine (Quick/Deep) and Play with real Stockfish (quick visual check).
 
-Deferred until the app is feature-complete (decided 2026-09-29): the device fine-tuning checks —
+Deferred until the app is feature-complete (decided 2026-09-29): strength calibration (M3 item:
+preset vs preset / fixed-Elo matches on the desktop; first decide whether presets use `nodes`
+limits so desktop results hold on the reader, where Stockfish 19 is ~80x slower), and the device
+fine-tuning checks —
 analysis refresh ≤ 1/s (Timing log + Deep), Balanced idle shutdown (> 60 s idle on Analyze),
 profile switch (Settings → Eco: Quick on stockfish11, Deep on stockfish), app launch
 time, 30-minute Eco vs Balanced battery, touch offset (x ~15 px left), `llvm-readelf` check of the
