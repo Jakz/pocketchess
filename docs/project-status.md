@@ -1,19 +1,32 @@
 # Project status — resume point
 
-Last updated: 2026-09-28 (first implementation session). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
+Last updated: 2026-09-29 (first MSVC build, Git repository). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
 
 ## Milestone overview
 
 | Milestone | State |
 | --- | --- |
-| M0.1 Repository skeleton | ✅ done (git init/first commit and the private GitHub repo are still to do: M0.1b) |
-| M0.2 Vendor libraries | 🟡 SDL3 via `scripts/vendor-libs.ps1` (run once); stb/doctest replaced (ADR 0005); sqlite/yaml deferred to first use |
-| M0.3 MSVC solution | 🟡 written, **not yet built with MSVC** (see "Unverified") |
+| M0.1 Repository skeleton | ✅ done; local Git history created 2026-09-29, remote `github.com/Jakz/pocketchess` (M0.1b: first push pending) |
+| M0.2 Vendor libraries | 🟡 SDL3 copied from Enigmistica automatically by the first build of `SDL3.vcxproj` (not in Git); stb/doctest replaced (ADR 0005); sqlite/yaml deferred to first use |
+| M0.3 MSVC solution | 🟡 first Windows build 2026-09-29 hit two harness bugs, both fixed (see below); full build + tests pending |
 | M0.4 PocketBook build | 🟡 written; validated with a stub toolchain on Linux; real Zig/InkView build pending |
 | M0.5 Device spike (Diagnostics) | 🟡 screen implemented; needs the device run |
 | M0.6 Stockfish + plug-in skeleton | 🟡 scaffolding (pin, CMake, fetch/build scripts, descriptor, probe); sources not fetched yet |
 | M1 Chess core + board UI | 🟢 core complete; board UI, sandbox, promotion, golden images done; device self-test pending |
 | M2–M6 | not started (Home shows them disabled with their milestone) |
+
+## 2026-09-29 — first MSVC build fixes
+
+- `scripts/check-sources.ps1`: Windows PowerShell 5.1 ignores `-Include` together with `-LiteralPath`,
+  so folders reached `Get-Content` ("Access to the path ...\src\core\chess is denied"). It now uses
+  `-File` plus an extension filter. The source lists and the layering rule were re-checked: all match.
+- SDL3: `libs\sdl3` had never been copied, and the old `vendor-libs.ps1` could not adapt Enigmistica's
+  project (it imports `Importer.props` and uses `$(RepoRoot)` paths). `projects/msvc/SDL3.vcxproj`
+  (+ filters) is now committed, adapted from Enigmistica's (SDL 3.4.16 as a DLL, output
+  `out\msvc\sdl3\<cfg>\`). Its `VendorSdl3` target runs the simplified `vendor-libs.ps1` (copies
+  `include\`, `src\` and licences) when `libs\sdl3` is missing. `PchessPlatformDesktop` references
+  SDL3 for build order, `PocketChess` copies `SDL3.dll` beside the exe, and the Desktop configuration
+  uses SDL3's Debug build. `libs/sdl3/` is ignored by Git, like the engine sources.
 
 ## Working now (verified in the implementation session, Linux x64, GCC 13 and Clang 18)
 
@@ -51,7 +64,7 @@ Last updated: 2026-09-28 (first implementation session). Plan: `docs/ai/`. Conve
 | `Win32Process.cpp` | no Windows headers | `PocketChessTests` process/probe tests |
 | InkView backend | syntax-checked against a stub `inkview.h` | build with the real SDK, run on the reader |
 | `build-zig.ps1` vs `ZigToolchain.cmake` | Enigmistica's script/toolchain could not be read | compare variable names with Enigmistica's `build-zig.ps1` |
-| PowerShell scripts | no PowerShell in the session | run `scripts/check-sources.ps1` first |
+| PowerShell scripts | no PowerShell in the session | `check-sources.ps1` fixed on Windows; the others still untested |
 | Stockfish CMake flags / INCBIN | SF 19 sources not available | BUILDING.md checklist |
 
 ## Not working yet
@@ -65,14 +78,14 @@ Last updated: 2026-09-28 (first implementation session). Plan: `docs/ai/`. Conve
 
 ## Resume point (next steps, in order)
 
-1. `scripts/vendor-libs.ps1` → open `projects/msvc/PocketChess.sln` → Desktop|x64 → build.
-   Fix any MSVC warnings/errors; `PocketChessTests` must pass (goldens must match: if they do not,
+1. Open `projects/msvc/PocketChess.sln` → Desktop|x64 → build (the first build copies SDL3 from
+   `..\enigmistica`). Fix any MSVC warnings/errors; `PocketChessTests` must pass (goldens must match: if they do not,
    compare `tests/golden/actual/*.png`; a mismatch means FP differences — see ADR 0002).
 2. F5 `PocketChess` (simulator keys in README) and try Analyze, Diagnostics.
 3. `projects/pocketbook/build-zig.ps1 -Configuration Release` — align with Enigmistica's script
    if the toolchain file expects other variables. Deploy, run `pocketchess-selftest.app`, then
    `pocketchess.app` → Diagnostics; record the measurements below.
-4. `git init`, first commit, private GitHub repo (M0.1b).
+4. `git push -u origin main` to `github.com/Jakz/pocketchess` (M0.1b; local history already exists).
 5. `scripts/fetch-engines.ps1 -Pin`, build Stockfish for both targets, Diagnostics → Engine on the
    reader → ADR 0004 checkpoint.
 6. Close M0 with `scripts/verify-all.ps1` and the M0 device checklist; start M2.
