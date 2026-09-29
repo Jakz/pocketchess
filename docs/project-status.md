@@ -1,6 +1,6 @@
 # Project status — resume point
 
-Last updated: 2026-09-29 (M2: Stockfish 11 Eco engine, engine benchmark, device build with both engines). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
+Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
 
 ## Milestone overview
 
@@ -11,9 +11,9 @@ Last updated: 2026-09-29 (M2: Stockfish 11 Eco engine, engine benchmark, device 
 | M0.3 MSVC solution | ✅ Desktop x64 builds on Windows with `PocketChessTests`: 74 suites pass (2026-09-29); the app ran (Home, Analyze, Diagnostics incl. Bench with real engines) |
 | M0.4 PocketBook build | 🟡 `build-zig.ps1 -Configuration Release` builds `pocketchess.app` + `pocketchess-selftest.app` with the real SDK and stages the bundle (2026-09-29); NEEDED/GLIBC check skipped (no `llvm-readelf`); device run pending |
 | M0.5 Device spike (Diagnostics) | 🟡 screen implemented; needs the device run |
-| M0.6 Stockfish + plug-in skeleton | 🟡 sf_19 pinned; Zig builds for windows-x64 (bench, `[integration]`) and arm (static musl hard-float, ADR 0009); device run pending |
+| M0.6 Stockfish + plug-in skeleton | ✅ sf_19 pinned, net beside the binary; Zig builds for windows-x64 and arm (static musl hard-float, ADR 0009); runs on the reader (self-test `[integration]`, probe, Bench), ADR 0004 checkpoint passed |
 | M1 Chess core + board UI | 🟢 core complete; board UI, sandbox, promotion, golden images done; device self-test pending |
-| M2 Engine integration | 🟡 engine subsystem, Analyze engine panel, Stockfish 11 Eco candidate, engine benchmark (Diagnostics → Bench) done; `[integration]` tests pass with both real engines on Windows; device benchmark, profile ADR and the device checklist pending |
+| M2 Engine integration | 🟡 engine subsystem, Analyze engine panel, engine benchmark, device lineup (ADR 0010: Stockfish 19 main, Stockfish 11 for Eco) done and run on the reader; remaining: idle-shutdown and profile-switch checks, analysis refresh rate, 30-minute battery comparison, Settings button in "Engine missing" |
 | M3–M6 | not started (Home shows them disabled with their milestone) |
 
 ## 2026-09-29 — first MSVC build fixes
@@ -117,9 +117,8 @@ Last updated: 2026-09-29 (M2: Stockfish 11 Eco engine, engine benchmark, device 
 
 ## Not working yet
 
-- M2 remainder: device benchmark, the ADR with per-profile defaults and whether Stockfish 11 is
-  bundled (`projects/engines.txt`), `resources:` in the descriptors from device numbers, the M2
-  device checklist. The "Engine missing" dialog has no Settings button yet (no Settings screen).
+- M2 remainder: the device checks in the resume point (refresh rate, idle shutdown, profile
+  switch, battery). The "Engine missing" dialog has no Settings button yet (no Settings screen).
 - No Settings screen yet: power profile / engine per role / MultiPV live in `app::Settings` defaults.
 - No SQLite, settings persistence, session resume (M3), puzzles (M4), games (M5), themes from
   YAML / PNG piece sets / Import (M6).
@@ -129,14 +128,16 @@ Last updated: 2026-09-29 (M2: Stockfish 11 Eco engine, engine benchmark, device 
 
 ## Resume point (next steps, in order)
 
-1. Device (deployed 2026-09-29 with Stockfish 19, 17.1 and 11): Diagnostics → Bench again to
-   compare 17.1 with 19 on the Cortex-A7; still missing from the first run: Keys, sleep/wake,
-   Analyze → Engine (Quick/Deep, leave the screen), app launch time.
-2. ADR (engine choice on the device): which NNUE Stockfish ships (only one fits the 150 MB budget),
-   whether Stockfish 11 is bundled, per-profile defaults; fill the descriptors' `resources:`.
-3. Windows: F5 → Analyze → Engine (Quick/Deep) with real Stockfish (quick visual check).
-4. M2 device checklist (analysis ≤ 1 update/s, stop on leave/sleep/exit, idle shutdown, profile
-   switch, 30-minute Eco vs Balanced battery), then close M0 + M2 with `scripts/verify-all.ps1`.
+1. Device, remaining M2 checks (the build has Stockfish 19 + 11 and the Diagnostics profile toggle):
+   - Diagnostics → Timing log ON, then Analyze → Engine Deep for ~15 s: `present` lines in the log
+     must come at most once per second while the engine runs.
+   - Balanced idle shutdown: Quick analysis, Engine Off, wait > 60 s on Analyze → "idle timeout".
+   - Diagnostics: tap the power-profile line → Eco; Analyze Quick must use stockfish11 and quit
+     after each job; Deep must use stockfish (profile switch without restart).
+   - App launch time (stopwatch, tap to first screen); 30-minute Eco vs Balanced battery %.
+2. Windows: F5 → Analyze → Engine (Quick/Deep) with real Stockfish (quick visual check).
+3. Close M0 + M2: `scripts/verify-all.ps1`, then M3 (Settings screen replaces the Diagnostics
+   profile toggle; "Engine missing" gets its Settings button).
 
 ## Verified on hardware
 
@@ -148,17 +149,19 @@ PB634K3, firmware U634k3.6.10.2544, 2026-09-29 (first device run: self-test, Dia
 | 2026-09-29 | 6.10.2544 | `GetCanvas()` depth / scanline / format | 1072×1448, depth 24, scanline 3216 (RGB), blit with `Stretch(IMAGE_RGB)` |
 | 2026-09-29 | 6.10.2544 | PartialUpdate latency: 1 square / 12 squares / FullUpdate | the calls return at once (0.5–0.6 ms per square, one 318 ms outlier after a scheduled full), `FullUpdate` 48–67 ms: they are asynchronous, so the call time is not the panel time |
 | 2026-09-29 | 6.10.2544 | Touch mapping (corners + center errors) | x −10…−30 px, y +1…+24 px on 4 targets (center not tapped); x consistently a bit left |
-| — | 6.10 | Key codes (Prev, Next, Menu, Home, Back delivered?) | not done yet |
-| 2026-09-29 | 6.10.2544 | Lifecycle events on sleep/wake, library, exit | `EVT_BACKGROUND` then `EVT_EXIT` seen; sleep/wake not yet; `EVT_MTSYNC` (39) comes with every touch (now ignored) |
+| 2026-09-29 | 6.10.2544 | Key codes (Prev, Next, Menu, Home, Back delivered?) | Menu 0x17, Prev 0x18, Next 0x19 delivered (match `IV_KEY_*`); Home/Back never reached the app (a background/foreground pair follows: the system takes them) |
+| 2026-09-29 | 6.10.2544 | Lifecycle events on sleep/wake, library, exit | sleep: `EVT_BACKGROUND`; wake ~5 s later: `EVT_UPDATE` (95) then `EVT_FOREGROUND`; exit: `EVT_EXIT`; the engine stops on background (Analyze, logged); `EVT_MTSYNC` (39) with every touch (ignored) |
 | 2026-09-29 | 6.10.2544 | post(): Poll vs SendEvent | poll every 100 ms while active works (probe, Bench) |
 | 2026-09-29 | 6.10.2544 | glibc version, free RAM, exec allowed in applications/pocketchess | glibc 2.39, 987 MiB RAM (471 MiB free with the app running), 4 CPUs, exec ok, 10.9 GB free |
 | 2026-09-29 | 6.10.2544 | Self-test result | 76 passed, 0 failed (incl. `[integration]` with both engines) |
 | 2026-09-29 | 6.10.2544 | Stockfish 19: readyok ms, RSS, knps, CPU-s | ready 2.4–2.5 s (uciok 2.1 s: net load), RSS 156 MiB after ready, peak 221 MiB (net beside the binary), **~20 knps**, depth ~11 in 1 s |
 | 2026-09-29 | 6.10.2544 | Stockfish 11: readyok ms, RSS, knps, CPU-s | ready 0.6–0.7 s, RSS 37 MiB, ~200 knps, depth ~13 in 0.5 s |
-| 2026-09-29 | 6.10.2544 | Engine benchmark (`logs/engine-bench.yaml`) | Balanced: SF19 17–30 knps, depth 4–12; SF11 167–215 knps, depth 8–17; CPU-s per move = movetime for both |
+| 2026-09-29 | 6.10.2544 | Engine benchmark (`logs/engine-bench.yaml`) | two runs agree; SF19 17–30 knps, SF17.1 12–21 knps, SF11 156–219 knps; CPU-s per move = movetime for all (ADR 0010) |
 
-Engine findings: Stockfish 19 passes the ADR 0004 checkpoint only just (2.4 s < 3 s, 221 < 250 MiB),
-but it is 10× slower than Stockfish 11 on the Cortex-A7, against 2× on x64. NEON is in use (the
-accumulator code is vectorised). Likely cause, not yet proven: the net's threat input features
-(`nnue/features/full_threats.cpp`, 86896 inputs) do heavy 64-bit bitboard work that a 32-bit CPU
-splits in two. An older NNUE Stockfish without them is the obvious comparison.
+| 2026-09-29 | 6.10.2544 | Analyze → Engine with Stockfish 19 | Quick: first result after 3.9 s (cold start 2.3 s), then 1.6 s per position; Deep: stops itself at 30 s (Balanced, 342k nodes); going to background turns the engine off and quits it |
+
+Engine findings (details in ADR 0010): NNUE is ~10× slower per node than Stockfish 11's classical
+evaluation on the Cortex-A7 (2× on x64), for 17.1 as much as for 19, so the threat features are
+not the cause. At equal device time (desktop match at the device's node rates) Stockfish 19 still
+wins +25 =7 −0 against Stockfish 11: Stockfish 19 is the main engine, Stockfish 11 the Eco engine,
+17.1 is dropped.
