@@ -43,6 +43,7 @@ set(PCHESS_UI_SOURCES
     ${REPO_ROOT}/src/app/Dialogs.cpp
     ${REPO_ROOT}/src/app/HeadlessHost.cpp
     ${REPO_ROOT}/src/app/HomeScreen.cpp
+    ${REPO_ROOT}/src/app/MoveList.cpp
     ${REPO_ROOT}/src/app/Screenshot.cpp
     ${REPO_ROOT}/src/app/Script.cpp
     ${REPO_ROOT}/src/app/Settings.cpp

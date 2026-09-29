@@ -6,6 +6,7 @@
 #include "app/DiagnosticsScreen.h"
 #include "app/SettingsScreen.h"
 #include "app/Dialogs.h"
+#include "app/MoveList.h"
 #include "core/chess/Fen.h"
 #include "core/chess/MoveGen.h"
 #include "core/chess/Rules.h"
@@ -168,79 +169,7 @@ void AnalyzeScreen::draw(Canvas& c, const Rect& clip) {
 }
 
 void AnalyzeScreen::drawMoves(Canvas& c) {
-    const BoardTheme& t = app_.theme();
-    const UiStyle& s = app_.style();
-    Font& f = app_.fonts().get(s.fontPx);
-    Font& fb = app_.fonts().get(s.fontPx, FontStyle::Bold);
-
-    struct Token {
-        std::string text;
-        bool current = false;
-        bool future = false;
-    };
-    std::vector<Token> tokens;
-    // Path to the current node, then the main continuation after it (greyed).
-    std::vector<const GameNode*> path;
-    for (const GameNode* n = node_; n && !n->isRoot(); n = n->parent) path.push_back(n);
-    std::reverse(path.begin(), path.end());
-    Position p = tree_.startPosition();
-    auto addMove = [&](const GameNode* n, bool future, bool forceNumber) {
-        if (p.sideToMove() == White) tokens.push_back({std::to_string(p.fullmoveNumber()) + ".", false, future});
-        else if (forceNumber) tokens.push_back({std::to_string(p.fullmoveNumber()) + "…", false, future});
-        tokens.push_back({toSan(p, n->move), n == node_, future});
-        p.makeMove(n->move);
-    };
-    bool first = true;
-    for (const GameNode* n : path) {
-        addMove(n, false, first);
-        first = false;
-    }
-    for (const GameNode* n = node_ ? node_->mainChild() : nullptr; n; n = n->mainChild()) {
-        addMove(n, true, first);
-        first = false;
-    }
-    if (tokens.empty()) {
-        f.draw(c, movesRect_.x, movesRect_.y + f.ascent(), "Tap a piece, then a square.", blend(t.background, t.ink, 150));
-        return;
-    }
-
-    // Wrap tokens into lines and show the window that contains the current move.
-    const int space = f.measure(" ");
-    std::vector<std::vector<size_t>> lines(1);
-    int x = 0, currentLine = 0;
-    for (size_t i = 0; i < tokens.size(); ++i) {
-        const int w = (tokens[i].current ? fb : f).measure(tokens[i].text) + space;
-        if (x + w > movesRect_.w && !lines.back().empty()) {
-            lines.emplace_back();
-            x = 0;
-        }
-        lines.back().push_back(i);
-        x += w;
-        if (tokens[i].current) currentLine = static_cast<int>(lines.size()) - 1;
-    }
-    const int lh = f.lineHeight();
-    const int visible = std::max(1, movesRect_.h / lh);
-    int firstLine = std::max(0, currentLine - visible + 1);
-    if (!node_ || node_->isRoot()) firstLine = 0;
-    c.pushClip(movesRect_);
-    int y = movesRect_.y;
-    for (int li = firstLine; li < static_cast<int>(lines.size()) && li < firstLine + visible; ++li) {
-        int px = movesRect_.x;
-        for (size_t idx : lines[static_cast<size_t>(li)]) {
-            const Token& tk = tokens[idx];
-            Font& ff = tk.current ? fb : f;
-            const int w = ff.measure(tk.text);
-            if (tk.current) {
-                c.fill({px - space / 2, y, w + space, lh}, t.ink);
-                ff.draw(c, px, y + ff.ascent(), tk.text, t.background);
-            } else {
-                ff.draw(c, px, y + ff.ascent(), tk.text, tk.future ? blend(t.background, t.ink, 130) : t.ink);
-            }
-            px += w + space;
-        }
-        y += lh;
-    }
-    c.popClip();
+    drawMoveList(app_, c, movesRect_, tree_, node_, "Tap a piece, then a square.");
 }
 
 void AnalyzeScreen::select(Square s) {
