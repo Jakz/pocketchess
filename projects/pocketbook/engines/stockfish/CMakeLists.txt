@@ -23,6 +23,7 @@ target_compile_definitions(stockfish PRIVATE NDEBUG)
 # __DATE__ (-Werror=date-time). Releases never print it; a fixed value keeps builds reproducible.
 target_compile_definitions(stockfish PRIVATE GIT_DATE=00000000)
 target_compile_options(stockfish PRIVATE -O3 -fno-exceptions -funroll-loops)
+target_link_options(stockfish PRIVATE -s)  # no debug info in the shipped binary
 
 if(PCHESS_ENGINE_TARGET STREQUAL "arm")
     # Makefile ARCH=armv7-neon: arm_version=7, neon=yes, popcnt=yes (32-bit: no IS_64BIT).
