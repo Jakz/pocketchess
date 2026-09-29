@@ -4,6 +4,7 @@ analyze-engine-missing 03545c0e64c2c467 1072 1448
 analyze-engine-quick d85b6200afb916f7 1072 1448
 analyze-kiwipete-flipped f550cab77b93e259 1072 1448
 analyze-mono-mate e69b25a5c0cd3b9d 1072 1448
+analyze-multipv 7d9afd20fae5bff3 1072 1448
 analyze-ruy-lopez b5211089e1044d1b 1072 1448
 home b85f8fcb2e556ed6 1072 1448
 play 4d8a96a764373bdd 1072 1448

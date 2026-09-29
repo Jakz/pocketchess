@@ -4,6 +4,7 @@
 #include "app/Application.h"
 #include "app/HeadlessHost.h"
 #include "app/Script.h"
+#include "app/SettingsScreen.h"
 #include "core/chess/Fen.h"
 #include "support/FakeEngine.h"
 #include "support/Golden.h"
@@ -194,4 +195,27 @@ TEST_CASE("analysis panel: checkmate needs no engine; a crash is reported in the
     CHECK_EQ(h.analyze()->engineHeadline(), std::string("Engine error"));
     CHECK(h.analyze()->enginePv().find("exited") != std::string::npos);
     CHECK_EQ(h.host.backgroundActivity(), 0);
+}
+
+TEST_CASE("analysis panel: MultiPV shows the extra lines under the main line") {
+    EngineHarness h;
+    h.fake.behaviour.extraOptions = {"option name MultiPV type spin default 1 min 1 max 500"};
+    h.app->settings().analysisMultiPv = 3;  // Settings -> Analysis lines
+    h.analyze()->setEngineMode(Mode::Quick);
+    h.pump();
+    h.pump(1s);
+    CHECK_EQ(h.fake.count("setoption name MultiPV value 3"), 1);
+    CHECK_EQ(h.analyze()->engineHeadline(), std::string("+0.20   a3   depth 3"));
+    REQUIRE_EQ(h.analyze()->engineMoreLines().size(), size_t(2));
+    CHECK_EQ(h.analyze()->engineMoreLines()[0], std::string("2) +0.10  a4 a5"));
+    CHECK_EQ(h.analyze()->engineMoreLines()[1], std::string("3) +0.00  Na3 a5"));
+    test::checkGolden("analyze-multipv", h.app->canvas());
+
+    // Back to one line: the panel shrinks when the screen comes back from Settings.
+    h.app->settings().analysisMultiPv = 1;
+    h.app->push(std::make_unique<SettingsScreen>(*h.app));
+    h.app->pop();
+    h.pump();
+    h.pump(1s);
+    CHECK(h.analyze()->engineMoreLines().empty());
 }

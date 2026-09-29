@@ -56,6 +56,7 @@ public:
     // The engine lines as drawn (after throttling): evaluation/best move, and the PV.
     const std::string& engineHeadline() const { return shown_.head; }
     const std::string& enginePv() const { return shown_.pv; }
+    const std::vector<std::string>& engineMoreLines() const { return shown_.more; }
     bool engineJobRunning() const { return job_ != 0; }
     const std::vector<ui::Button>& buttons() const { return buttons_; }
 
@@ -63,6 +64,7 @@ private:
     enum ButtonId { BtnBack, BtnForward, BtnFlip, BtnEngine, BtnMenu };
     struct EngineText {
         std::string head, pv;
+        std::vector<std::string> more;  // MultiPV lines 2..3: "2) +0.10  a4 a5"
         bool operator==(const EngineText&) const = default;
     };
 
@@ -86,6 +88,8 @@ private:
     void onEngineInfo(engine::JobId id, const engine::SearchInfo& info);
     void onEngineDone(const engine::JobResult& r);
     EngineText formatInfo(const engine::SearchInfo& info, bool final) const;
+    std::string formatExtraLine(const engine::SearchInfo& info) const;
+    EngineText composeLines(bool final) const;
     void updateEngineText(EngineText t, bool now);
     void showEngineMissing(const std::string& detail);
 
@@ -102,6 +106,7 @@ private:
 
     EngineMode engineMode_ = EngineMode::Off;
     engine::JobId job_ = 0;
+    std::vector<engine::SearchInfo> lines_;  // latest info per MultiPV line (index 0 = line 1)
     EngineText shown_, pending_;
     std::chrono::steady_clock::time_point lastEngineDraw_{};
     platform::TimerId throttleTimer_ = 0;

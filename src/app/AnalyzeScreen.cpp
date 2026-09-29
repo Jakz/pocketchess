@@ -68,10 +68,12 @@ void AnalyzeScreen::layoutPanel() {
     statusRect_ = {p.x + pad * 2, p.y + pad, p.w - pad * 4, statusH};
     buttonsRect_ = {p.x + pad, p.bottom() - pad - btnH, p.w - 2 * pad, btnH};
     // Engine lines (evaluation + PV) between the status line and the move list, when on.
+    // Head + PV, plus one small line per extra MultiPV line (Settings -> Analysis lines).
+    const int extra = std::clamp(app_.settings().analysisMultiPv, 1, 3) - 1;
     const int engineH = engineMode_ == EngineMode::Off
                             ? 0
                             : app_.fonts().get(s.fontPx, FontStyle::Bold).lineHeight() +
-                                  app_.fonts().get(s.smallPx).lineHeight() + pad / 2;
+                                  (1 + extra) * app_.fonts().get(s.smallPx).lineHeight() + pad / 2;
     engineRect_ = {statusRect_.x, statusRect_.bottom(), statusRect_.w, engineH};
     movesRect_ = {p.x + pad * 2, engineRect_.bottom(), p.w - pad * 4, buttonsRect_.y - pad - engineRect_.bottom()};
 
@@ -371,6 +373,7 @@ void AnalyzeScreen::startAnalysis() {
     engine::EngineManager& em = app_.engines();
     std::weak_ptr<char> alive = alive_;
     const bool warm = em.processRunning();
+    lines_.clear();
     job_ = em.analyze(
         tree_.startPosition(), tree_.movesTo(node_),
         engineMode_ == EngineMode::Quick ? engine::AnalysisMode::Quick : engine::AnalysisMode::Deep,
@@ -392,8 +395,32 @@ void AnalyzeScreen::stopAnalysis() {
 }
 
 void AnalyzeScreen::onEngineInfo(engine::JobId id, const engine::SearchInfo& info) {
-    if (id != job_ || info.multipv != 1) return;
-    updateEngineText(formatInfo(info, false), false);
+    const int k = info.multipv;
+    if (id != job_ || k < 1 || k > 3) return;
+    if (lines_.size() < static_cast<size_t>(k)) lines_.resize(static_cast<size_t>(k));
+    lines_[static_cast<size_t>(k - 1)] = info;
+    if (lines_.front().depth == 0) return;  // line 1 first
+    updateEngineText(composeLines(false), false);
+}
+
+AnalyzeScreen::EngineText AnalyzeScreen::composeLines(bool final) const {
+    EngineText t = formatInfo(lines_.front(), final);
+    for (size_t i = 1; i < lines_.size(); ++i)
+        if (lines_[i].depth > 0) t.more.push_back(formatExtraLine(lines_[i]));
+    return t;
+}
+
+// "2) +0.10  a4 a5 Nf3": evaluation and the first moves of a secondary line.
+std::string AnalyzeScreen::formatExtraLine(const engine::SearchInfo& info) const {
+    std::string s = std::to_string(info.multipv) + ") ";
+    if (info.score) s += engine::formatScore(*info.score, pos_.sideToMove() == White, app_.settings().evalFromWhite);
+    s += " ";
+    Position p = pos_;
+    for (size_t i = 0; i < info.pv.size() && i < 6; ++i) {
+        s += " " + toSan(p, info.pv[i]);
+        p.makeMove(info.pv[i]);
+    }
+    return s;
 }
 
 void AnalyzeScreen::onEngineDone(const engine::JobResult& r) {
@@ -408,7 +435,11 @@ void AnalyzeScreen::onEngineDone(const engine::JobResult& r) {
         updateEngineText({"Engine error", r.error}, true);
         return;
     }
-    if (!r.lines.empty()) updateEngineText(formatInfo(r.lines.front(), true), false);
+    if (!r.lines.empty()) {
+        lines_ = r.lines;
+        lines_.resize(std::min<size_t>(lines_.size(), 3));
+        updateEngineText(composeLines(true), false);
+    }
 }
 
 AnalyzeScreen::EngineText AnalyzeScreen::formatInfo(const engine::SearchInfo& info, bool final) const {
@@ -484,6 +515,11 @@ void AnalyzeScreen::drawEngine(Canvas& c) {
         small.draw(c, engineRect_.x, engineRect_.y + fb.lineHeight() + small.ascent(), pv,
                    blend(t.background, t.ink, 170));
     }
+    int y = engineRect_.y + fb.lineHeight() + small.lineHeight();
+    for (const std::string& line : shown_.more) {
+        small.draw(c, engineRect_.x, y + small.ascent(), line, t.ink);
+        y += small.lineHeight();
+    }
     c.popClip();
 }
 
@@ -499,6 +535,13 @@ void AnalyzeScreen::showEngineMissing(const std::string& detail) {
 }
 
 void AnalyzeScreen::onEnter() {
+    // Back from Settings: "Analysis lines" may have changed the panel's height.
+    const Rect oldEngine = engineRect_;
+    layoutPanel();
+    if (engineRect_ != oldEngine) {
+        shown_.more.clear();
+        app_.invalidate(app_.layout().panel, RefreshHint::Content);
+    }
     if (engineMode_ != EngineMode::Off && !job_) startAnalysis();
 }
 
