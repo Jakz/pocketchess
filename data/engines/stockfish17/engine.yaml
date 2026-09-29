@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Engine descriptor (architecture doc §8.2). Staged to engines/stockfish17/engine.yaml.
+# Candidate (M2): the last NNUE release before the threat input features. Stockfish 19 runs ~20 knps
+# on the Cortex-A7 (10x slower than Stockfish 11); the device benchmark decides which one ships.
+id: stockfish17
+name: "Stockfish 17.1"
+protocol: uci
+binary: { arm: stockfish17, windows-x64: stockfish17.exe }
+files: [nn-1c0000000000.nnue, nn-37f18f62d772.nnue]   # big + small net beside the binary (R2)
+license: GPL-3.0-or-later
+roles: [play, analysis, hint, validate]
+resources:                         # filled in from device measurements (M2 benchmark)
+  disk_mb: null
+  rss_mb: null
+  startup_ms: null
+  energy_class: medium             # between Stockfish 19 (high) and Stockfish 11 (low)
+defaults: { Threads: 1, Hash: 16 }
+strength:                          # UCI_Elo spans 1320-3190, as in Stockfish 19
+  beginner: { options: { "Skill Level": 0 },  limits: { movetime: 80 } }
+  casual:   { options: { "Skill Level": 5 },  limits: { movetime: 200 } }
+  club:     { options: { UCI_LimitStrength: true, UCI_Elo: 1600 } }
+  strong:   { options: { UCI_LimitStrength: true, UCI_Elo: 2000 } }
+  maximum:  { options: {} }

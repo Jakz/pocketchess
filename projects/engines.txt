@@ -5,3 +5,4 @@
 #   data/engines/<id>/engine.yaml                descriptor staged beside the binary
 stockfish
 stockfish11
+stockfish17

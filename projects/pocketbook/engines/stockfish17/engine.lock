@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Pin for the Stockfish 17.1 candidate (M2): the last NNUE release before the threat input
+# features; compared with Stockfish 19 on the device (19 is 10x slower than 11 on the Cortex-A7).
+id = stockfish17
+version = 17.1
+tag = sf_17.1
+source_url = https://github.com/official-stockfish/Stockfish/archive/refs/tags/sf_17.1.zip
+source_sha256 = 8176a590c66780132e3e62bafdde2f46612478af5f6143959792d2230917f828
+nets_base_url = https://tests.stockfishchess.org/api/nn/
+nets_fallback_url = https://github.com/official-stockfish/networks/raw/master/
+license = GPL-3.0-or-later
