@@ -54,10 +54,16 @@
     <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp">
       <Filter>src\core\engine</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\engine\EngineManager.cpp">
+      <Filter>src\core\engine</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\engine\EngineRegistry.cpp">
       <Filter>src\core\engine</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\engine\EngineTypes.cpp">
+      <Filter>src\core\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\engine\PowerProfile.cpp">
       <Filter>src\core\engine</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\engine\UciEngine.cpp">
@@ -131,10 +137,16 @@
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h">
       <Filter>src\core\engine</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\EngineManager.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\engine\EngineRegistry.h">
       <Filter>src\core\engine</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\EngineTypes.h">
+      <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\engine\PowerProfile.h">
       <Filter>src\core\engine</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\Process.h">

@@ -21,6 +21,9 @@
     <ClCompile Include="..\..\tests\core\EngineDescriptorTests.cpp">
       <Filter>tests\core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\tests\core\EngineManagerTests.cpp">
+      <Filter>tests\core</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\tests\core\UciEngineTests.cpp">
       <Filter>tests\core</Filter>
     </ClCompile>

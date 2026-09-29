@@ -52,6 +52,7 @@
   </Target>
   <ItemGroup>
     <ClCompile Include="..\..\tests\core\EngineDescriptorTests.cpp" />
+    <ClCompile Include="..\..\tests\core\EngineManagerTests.cpp" />
     <ClCompile Include="..\..\tests\core\UciEngineTests.cpp" />
     <ClCompile Include="..\..\tests\core\YamlTests.cpp" />
     <ClCompile Include="..\..\tests\support\FakeEngine.cpp" />
