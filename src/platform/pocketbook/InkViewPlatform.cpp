@@ -256,6 +256,9 @@ int InkViewHost::handle(int type, int par1, int par2) {
         return k == ui::KeyCode::None ? 0 : 1;  // unknown keys go to the system
     }
     case EVT_KEYRELEASE: return mapKey(par1) == ui::KeyCode::None ? 0 : 1;
+#ifdef EVT_MTSYNC
+    case EVT_MTSYNC: return 0;  // multitouch frame marker sent with every touch (FW 6.10); single touch only
+#endif
     default:
         util::Log::info("inkview", "event " + std::to_string(type) + " (" + std::to_string(par1) + ", " + std::to_string(par2) + ")");
         return 0;
