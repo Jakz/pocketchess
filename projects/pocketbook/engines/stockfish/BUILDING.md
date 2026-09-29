@@ -3,16 +3,30 @@
 Status: sources fetched and pinned (sf_19, 2026-09-29). The CMake build was checked against the
 real sources on Linux x86-64 (clang, `x86-64-avx2` flags): `bench` and the `[integration]` tests
 pass. The Zig build for `windows-x64` works on Windows (2026-09-29: `bench`, `[integration]` tests,
-RSS 211 MiB after a depth-19 search). The `arm` build links (static musl hard-float, ADR 0009) and
+RSS 117 MiB after a depth-19 search with the net beside the binary). The `arm` build links (static musl hard-float, ADR 0009) and
 still needs its first run on the reader.
 
 Zig's clang rejects `__DATE__` (`-Werror=date-time`), which `misc.cpp` uses unless `GIT_DATE` is
 defined; `CMakeLists.txt` defines a fixed `GIT_DATE` (release builds never print it).
 
-Stockfish 19 facts that matter here: one network, `nn-1a298aa575a0.nnue` (98.5 MB, embedded, so
-the binary is ~99 MB); threads are pthreads with every compiler but MSVC (`thread_native.h`);
-`UCI_Elo` spans 1320–3190 (P10 confirmed); RSS after a short search with Hash 16 is ~260 MB on
-x86-64.
+Stockfish 19 facts that matter here: one network, `nn-1a298aa575a0.nnue` (98.5 MB); threads are
+pthreads with every compiler but MSVC (`thread_native.h`); `UCI_Elo` spans 1320–3190 (P10
+confirmed); the loaded weights go to shared memory when the OS allows it ("Network replica 1:
+Shared memory"), otherwise to the heap — check which one the reader uses.
+
+## Net beside the binary (default since 2026-09-29, R2)
+
+`PCHESS_SF_EMBED_NET` is OFF: the binary is ~1 MB and `nn-*.nnue` ships beside it (listed in
+`files:` of `data/engines/stockfish/engine.yaml`, which `CMakeLists.txt` checks against the pin).
+Stockfish looks for the net in its working directory and then in its binary's folder, so no
+`EvalFile` option is sent. Measured on Windows x64 (Hash 16, 3 s search):
+
+| Build | After readyok | Peak working set | Private | readyok | bench nodes/s |
+| --- | --- | --- | --- | --- | --- |
+| net embedded | 211 MiB | 321 MiB | 154 MiB | ~178 ms | ~1.63 M |
+| net beside the binary | 118 MiB | 228 MiB | 60 MiB | ~213 ms | ~1.62 M (noise) |
+
+The embedded copy stays resident next to the loaded weights; `bench` node counts are identical.
 
 ## Pin
 
@@ -40,11 +54,9 @@ To do when vendoring (M0.6):
 1. When the pin changes: open `libs/stockfish/src/Makefile`, compare the `armv7-neon` /
    `x86-64-avx2` settings and the generic `CXXFLAGS`/`LDFLAGS` with the table (done for sf_19).
    `src/universal/` (multi-arch builds) is not compiled.
-2. Embedding: `CMakeLists.txt` copies `nn-*.nnue` into the build folder, which is the
-   compiler's working directory under Ninja, so INCBIN finds them (the Makefile compiles in `src/`).
-   If the ARM build fails at the assembler, configure with `-DPCHESS_SF_EMBED_NET=OFF`
-   (`NNUE_EMBEDDING_OFF`, net shipped beside the binary, `setoption name EvalFile`) and set
-   `files:` in `data/engines/stockfish/engine.yaml` (R2).
+2. Embedding (`-DPCHESS_SF_EMBED_NET=ON`, not the default): `CMakeLists.txt` copies `nn-*.nnue`
+   into the build folder, which is the compiler's working directory under Ninja, so INCBIN finds
+   them (the Makefile compiles in `src/`). Then set `files: []` in the descriptor.
 3. Windows smoke test: `stockfish.exe bench 16 1 8` must print `Nodes searched` (build-engine.ps1
    does this automatically).
 4. Device: Diagnostics → Engine records time to `readyok`, RSS, nodes/s and CPU-seconds; copy the

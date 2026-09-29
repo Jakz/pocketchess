@@ -73,6 +73,8 @@ TEST_CASE("engine descriptor: the shipped stockfish descriptor parses") {
     CHECK_EQ(d->binaries.at("arm"), std::string("stockfish"));
     CHECK_EQ(d->binaries.at("windows-x64"), std::string("stockfish.exe"));
     CHECK_EQ(d->roles.size(), size_t(4));
+    REQUIRE_EQ(d->files.size(), size_t(1));  // the external net
+    CHECK(d->files[0].rfind("nn-", 0) == 0);
     CHECK(d->resources.energy == EnergyClass::High);
     CHECK_FALSE(d->resources.rssMb.has_value());
     CHECK_EQ(*findOption(d->defaults, "Hash"), std::string("16"));

@@ -40,7 +40,10 @@ std::vector<RealEngine> realEngines() {
             std::filesystem::path exe = d->binaryPath(currentPlatformKey());
             const std::filesystem::path built = repo / "out" / "engines" / d->id / currentPlatformKey() /
                                                 d->binaries[currentPlatformKey()];
-            if (!std::filesystem::exists(exe, ec) && std::filesystem::exists(built, ec)) exe = built;
+            if (!std::filesystem::exists(exe, ec) && std::filesystem::exists(built, ec)) {
+                exe = built;
+                d->dir = built.parent_path();  // files: (external nets) live beside the built binary
+            }
             if (std::filesystem::exists(exe, ec)) out.push_back({*d, exe});
         }
         if (!out.empty()) break;

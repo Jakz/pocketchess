@@ -4,7 +4,7 @@ id: stockfish
 name: "Stockfish 19"
 protocol: uci                      # only 'uci' at first; 'builtin' reserved for InProcessEngine
 binary: { arm: stockfish, windows-x64: stockfish.exe }
-files: []                          # e.g. [nn-xxxx.nnue] when the net is not embedded (R2)
+files: [nn-1a298aa575a0.nnue]      # the net ships beside the binary (R2); must match the pin (CMake checks)
 license: GPL-3.0-or-later
 roles: [play, analysis, hint, validate]
 resources:                         # filled in from device measurements (M0.6/M2); shown in Settings

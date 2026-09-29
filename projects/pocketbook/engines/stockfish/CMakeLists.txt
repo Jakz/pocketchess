@@ -7,7 +7,9 @@ project(pchess_stockfish CXX)
 
 set(ENGINE_SOURCE_DIR "" CACHE PATH "libs/stockfish")
 set(PCHESS_ENGINE_TARGET "arm" CACHE STRING "arm | windows-x64")
-option(PCHESS_SF_EMBED_NET "Embed the NNUE network (INCBIN); OFF ships the .nnue beside the binary (R2)" ON)
+# Default OFF: the embedded copy stays resident next to the loaded weights (~95 MB more RSS, same
+# nodes/s; measured 2026-09-29). Stockfish finds the net in its binary's folder.
+option(PCHESS_SF_EMBED_NET "Embed the NNUE network (INCBIN); OFF ships the .nnue beside the binary (R2)" OFF)
 if(NOT EXISTS "${ENGINE_SOURCE_DIR}/src/uci.cpp")
     message(FATAL_ERROR "Stockfish sources not found in '${ENGINE_SOURCE_DIR}' (run scripts/fetch-engines.ps1)")
 endif()
@@ -62,7 +64,14 @@ endforeach()
 file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/ship")
 if(NOT PCHESS_SF_EMBED_NET)
     target_compile_definitions(stockfish PRIVATE NNUE_EMBEDDING_OFF)
+    # The descriptor's files: list makes the registry disable the engine when a net is missing;
+    # it must name exactly the nets of this pin.
+    file(READ "${CMAKE_CURRENT_LIST_DIR}/../../../../data/engines/stockfish/engine.yaml" SF_DESCRIPTOR)
     foreach(net ${SF_NETS})
+        string(FIND "${SF_DESCRIPTOR}" "${net}" found)
+        if(found EQUAL -1)
+            message(FATAL_ERROR "data/engines/stockfish/engine.yaml: add ${net} to files:")
+        endif()
         configure_file("${SF}/${net}" "${CMAKE_BINARY_DIR}/ship/${net}" COPYONLY)
     endforeach()
 endif()

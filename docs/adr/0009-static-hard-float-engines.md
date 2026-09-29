@@ -28,7 +28,10 @@ links against the device's `libinkview.so` and glibc.
   engine check is: ELF32 ARM, statically linked, no `PT_INTERP`.
 - musl's allocator and threads differ from glibc's; the device benchmark (Diagnostics → Engines)
   measures the result. If nodes/s disappoints, the fallback is `arm-linux-gnueabihf` + static glibc.
-- Stockfish 19 for arm is ~99 MB (almost all of it the embedded 98.5 MB net).
+- Stockfish 19 for arm is ~1 MB plus its 98.5 MB net, shipped beside the binary (not embedded:
+  ~95 MB less RSS at the same speed, see `engines/stockfish/BUILDING.md`).
+- Stockfish 19 keeps its weights in shared memory where available (`shm_open` on Linux, via musl);
+  if the reader has no usable `/dev/shm`, it should fall back to the heap. Check its log line.
 - To verify on the device (M2 checklist): the engine starts from `applications/pocketchess/engines/`
   (exec allowed, M0.5), reaches `readyok`, and `bench` matches the desktop node count (170203 for
   `bench 16 1 8`), which also proves the NEON code paths are correct.
