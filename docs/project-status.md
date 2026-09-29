@@ -1,19 +1,20 @@
 # Project status — resume point
 
-Last updated: 2026-09-29 (first MSVC build, Git repository). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
+Last updated: 2026-09-29 (M2 engine subsystem, first part). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
 
 ## Milestone overview
 
 | Milestone | State |
 | --- | --- |
-| M0.1 Repository skeleton | ✅ done; local Git history created 2026-09-29, remote `github.com/Jakz/pocketchess` (M0.1b: first push pending) |
-| M0.2 Vendor libraries | 🟡 SDL3 copied from Enigmistica automatically by the first build of `SDL3.vcxproj` (not in Git); stb/doctest replaced (ADR 0005); sqlite/yaml deferred to first use |
-| M0.3 MSVC solution | 🟡 first Windows build 2026-09-29 hit two harness bugs, both fixed (see below); full build + tests pending |
+| M0.1 Repository skeleton | ✅ done; history on `github.com/Jakz/pocketchess` since 2026-09-29 (M0.1b done; CI still optional) |
+| M0.2 Vendor libraries | 🟡 SDL3 copied from Enigmistica automatically by the first build of `SDL3.vcxproj` (not in Git); stb/doctest replaced (ADR 0005), yaml-cpp replaced (ADR 0007); sqlite deferred to M3 |
+| M0.3 MSVC solution | 🟡 Debug build of `PocketChess.exe` works on Windows (2026-09-29: Home, Analyze, Diagnostics, touch test ran); `PocketChessTests` not built/run with MSVC yet |
 | M0.4 PocketBook build | 🟡 written; validated with a stub toolchain on Linux; real Zig/InkView build pending |
 | M0.5 Device spike (Diagnostics) | 🟡 screen implemented; needs the device run |
 | M0.6 Stockfish + plug-in skeleton | 🟡 scaffolding (pin, CMake, fetch/build scripts, descriptor, probe); sources not fetched yet |
 | M1 Chess core + board UI | 🟢 core complete; board UI, sandbox, promotion, golden images done; device self-test pending |
-| M2–M6 | not started (Home shows them disabled with their milestone) |
+| M2 Engine integration | 🟡 descriptors + registry, `UciEngine`, `EngineManager`, jobs, power profiles, accounting, Analyze engine panel done (tests with a fake engine); benchmark, Eco engine, real-Stockfish integration test and the device checklist pending |
+| M3–M6 | not started (Home shows them disabled with their milestone) |
 
 ## 2026-09-29 — first MSVC build fixes
 
@@ -27,6 +28,26 @@ Last updated: 2026-09-29 (first MSVC build, Git repository). Plan: `docs/ai/`. C
   `include\`, `src\` and licences) when `libs\sdl3` is missing. `PchessPlatformDesktop` references
   SDL3 for build order, `PocketChess` copies `SDL3.dll` beside the exe, and the Desktop configuration
   uses SDL3's Debug build. `libs/sdl3/` is ignored by Git, like the engine sources.
+
+## 2026-09-29 — M2 engine subsystem (first part, ADR 0007, ADR 0008)
+
+- `core/util/Yaml`: YAML subset reader for descriptors (replaces yaml-cpp, ADR 0007).
+- `core/engine`: `EngineDescriptor` + `EngineRegistry` (engines/*/engine.yaml, disabled with a
+  reason when broken or missing), `EngineTypes` (limits, option validation), `IEngine` +
+  `UciEngine` (state machine with timeouts and retry-once, option deltas and resets, PV → moves),
+  `PowerProfile` (Performance/Balanced/Eco table), `EngineManager` (roles, one process, lazy start,
+  idle timeout, lifecycle stop, BestMove/Analysis/Hint/Validate jobs, per-job CPU-s/wall/nodes/RSS
+  log and totals). `util::Scheduler` carries post/timers into core; the app adapts `Host`
+  (`Host::now()` added, fake time in `HeadlessHost`).
+- Analyze screen: Engine button (Off → Quick → Deep) replaces the FEN/New buttons (both stay in
+  Menu); panel with evaluation (White's view), best move, depth and PV in SAN, throttled to one
+  refresh per second; stops when covered/left/asleep; "Engine missing" dialog.
+- Diagnostics: installed engines with their state, power profile, engine job totals; the probe
+  uses the registry's analysis engine and quits the manager's engine first.
+- Tests: `FakeUci` (scripted engine, in-process `FakeProcess` and the `--fake-engine` child, now
+  playing legal moves), `ManualScheduler`; new suites for YAML, descriptors/registry, UciEngine,
+  EngineManager and the analysis panel; goldens updated for the new button row, plus
+  `analyze-engine-quick` and `analyze-engine-missing`.
 
 ## Working now (verified in the implementation session, Linux x64, GCC 13 and Clang 18)
 
@@ -50,8 +71,11 @@ Last updated: 2026-09-29 (first MSVC build, Git repository). Plan: `docs/ai/`. C
   screenshots.
 - **Processes**: POSIX process implementation tested for real against the fake UCI engine;
   `UciProbe` full cycle (uci → setoption → isready → go → bestmove → quit).
-- **Tests**: 45 suites / ~1,500 assertions pass with GCC and with Clang `-funsigned-char`,
-  ASan + UBSan clean; golden-image hashes identical between GCC and Clang.
+- **Engines (fake engine only)**: descriptor parsing (the shipped Stockfish descriptor), registry,
+  UCI start/options/search/stop/supersede/crash/timeouts, manager roles/profiles/idle/lifecycle,
+  analysis panel with throttling; the `--fake-engine` child process end to end.
+- **Tests**: 69 suites / ~1,960 assertions pass with GCC and with Clang `-funsigned-char`,
+  GCC ASan + UBSan clean; golden-image hashes identical between GCC and Clang.
 - **PocketBook CMake**: configured and linked with a stub toolchain; `pocketchess-selftest.app`
   ran all suites against the bundle layout (golden checksums from `selftest/golden.txt`).
 
@@ -59,7 +83,8 @@ Last updated: 2026-09-29 (first MSVC build, Git repository). Plan: `docs/ai/`. C
 
 | Item | Why unverified | First check |
 | --- | --- | --- |
-| MSVC projects, `/W4` cleanliness | no MSVC in the session | open the sln, build Desktop, run tests |
+| MSVC projects, `/W4` cleanliness | the app builds; tests and the M2 code not yet compiled with MSVC | `projects/msvc/build.ps1 -Configuration Desktop -Target Test` |
+| Engine subsystem against real Stockfish | Stockfish sources not fetched (GitHub not reachable from the session) | `scripts/fetch-engines.ps1 -Pin`, build, Analyze → Engine |
 | SDL3 backend (`src/platform/sdl`) | SDL3 not available; syntax-checked against a stub of the 3.2 API | F5 the desktop app |
 | `Win32Process.cpp` | no Windows headers | `PocketChessTests` process/probe tests |
 | InkView backend | syntax-checked against a stub `inkview.h` | build with the real SDK, run on the reader |
@@ -69,7 +94,9 @@ Last updated: 2026-09-29 (first MSVC build, Git repository). Plan: `docs/ai/`. C
 
 ## Not working yet
 
-- No engine integration beyond the probe (M2: `IEngine`, `EngineManager`, jobs, power profiles).
+- M2 remainder: engine benchmark (Diagnostics → Engines, `logs/engine-bench.yaml`), Stockfish 11
+  Eco candidate, `[integration]` test with the real binary, profile numbers from measurements.
+- No Settings screen yet: power profile / engine per role / MultiPV live in `app::Settings` defaults.
 - No SQLite, settings persistence, session resume (M3), puzzles (M4), games (M5), themes from
   YAML / PNG piece sets / Import (M6).
 - InkView Fast mode uses PartialUpdate (ADR 0002); `post()` polls while background work runs
@@ -78,17 +105,15 @@ Last updated: 2026-09-29 (first MSVC build, Git repository). Plan: `docs/ai/`. C
 
 ## Resume point (next steps, in order)
 
-1. Open `projects/msvc/PocketChess.sln` → Desktop|x64 → build (the first build copies SDL3 from
-   `..\enigmistica`). Fix any MSVC warnings/errors; `PocketChessTests` must pass (goldens must match: if they do not,
-   compare `tests/golden/actual/*.png`; a mismatch means FP differences — see ADR 0002).
-2. F5 `PocketChess` (simulator keys in README) and try Analyze, Diagnostics.
-3. `projects/pocketbook/build-zig.ps1 -Configuration Release` — align with Enigmistica's script
-   if the toolchain file expects other variables. Deploy, run `pocketchess-selftest.app`, then
-   `pocketchess.app` → Diagnostics; record the measurements below.
-4. `git push -u origin main` to `github.com/Jakz/pocketchess` (M0.1b; local history already exists).
-5. `scripts/fetch-engines.ps1 -Pin`, build Stockfish for both targets, Diagnostics → Engine on the
-   reader → ADR 0004 checkpoint.
-6. Close M0 with `scripts/verify-all.ps1` and the M0 device checklist; start M2.
+1. Windows: `projects/msvc/build.ps1 -Configuration Desktop -Target Test` (build + `PocketChessTests`); fix any
+   MSVC errors/warnings. Goldens must match (if not, compare `tests/golden/actual/*.png`).
+2. `scripts/fetch-engines.ps1 -Pin`, build Stockfish for `windows-x64` (and `arm`), then F5 →
+   Analyze → Engine (Quick/Deep) and Diagnostics → Engine; record readyok/RSS/knps.
+3. `projects/pocketbook/build-zig.ps1 -Configuration Release`; deploy; run
+   `pocketchess-selftest.app`, then Diagnostics and Analyze with the engine; fill the table below.
+4. ADR 0004 checkpoint (readyok < 3 s, RSS < 250 MB) → decide whether the Eco engine moves up.
+5. Rest of M2: engine benchmark, Stockfish 11 descriptor/CMake, `[integration]` test, M2 device
+   checklist. Then close M0 + M2 with `scripts/verify-all.ps1`.
 
 ## Verified on hardware
 
