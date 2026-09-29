@@ -4,6 +4,7 @@
 #include "app/Screen.h"
 #include "ui/widgets/Widgets.h"
 
+#include <string>
 #include <vector>
 
 namespace pchess::app {
@@ -20,15 +21,20 @@ public:
     void onEnter() override;
     // Play setup (side, then strength) -> PlayScreen. The strength becomes the new default.
     void startPlay();
+    // "Last session" lines (design notes §6.1), recomputed on every entry.
+    const std::vector<std::string>& summary() const { return summary_; }
 
 private:
     void open(int id);
     void moveFocus(int delta);
+    void refreshSummary();
     ui::Rect focusRect(int index) const;
 
     std::vector<ui::Button> buttons_;
     int focus_ = 0;
-    ui::Rect footer_;
+    ui::Rect footer_, summaryRect_;
+    std::vector<std::string> summary_;
+    std::string engineName_;
 };
 
 } // namespace pchess::app

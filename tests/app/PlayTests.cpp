@@ -2,6 +2,7 @@
 #include "app/AnalyzeScreen.h"
 #include "app/Application.h"
 #include "app/HeadlessHost.h"
+#include "app/HomeScreen.h"
 #include "app/PlayScreen.h"
 #include "app/Script.h"
 #include "core/storage/ChessDb.h"
@@ -171,4 +172,26 @@ TEST_CASE("play: a missing engine shows its dialog once and Home leaves") {
     REQUIRE_EQ(h.top(), std::string("message"));
     h.run("key:ok");  // focus starts on "Home"
     CHECK_EQ(h.top(), std::string("home"));
+}
+
+TEST_CASE("play: Home shows the last game and the totals when it comes back") {
+    const auto root = std::filesystem::temp_directory_path() / "pchess-play-home";
+    std::error_code ec;
+    std::filesystem::remove_all(root, ec);
+    {
+        PlayHarness h(true, root);
+        auto* home = dynamic_cast<HomeScreen*>(h.app->top());
+        REQUIRE(home != nullptr);
+        CHECK(home->summary().empty());  // no games yet
+        PlayScreen* p = h.start(chess::White);
+        REQUIRE(p->playSan("e4"));
+        h.pump();
+        p->resign();
+        h.run("key:back;key:back");  // close the result dialog, leave the finished game
+        REQUIRE_EQ(h.top(), std::string("home"));
+        REQUIRE_EQ(home->summary().size(), size_t(2));
+        CHECK(home->summary()[0].rfind("Last game: lost as White · Casual · ", 0) == 0);
+        CHECK_EQ(home->summary()[1], std::string("Games: 1 · won 0 · drawn 0 · lost 1"));
+    }
+    std::filesystem::remove_all(root, ec);
 }

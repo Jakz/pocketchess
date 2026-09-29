@@ -7,8 +7,12 @@
 #include "app/DiagnosticsScreen.h"
 #include "app/Dialogs.h"
 #include "app/PlayScreen.h"
-#include "core/engine/EngineDescriptor.h"
 #include "app/SettingsScreen.h"
+#include "core/engine/EngineDescriptor.h"
+#include "core/storage/ChessDb.h"
+#include "core/util/Clock.h"
+
+#include <cctype>
 
 namespace pchess::app {
 
@@ -52,13 +56,49 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
         y += btnH + gap;
     }
     footer_ = {0, l.screen.h - s.fontPx * 3, l.screen.w, s.fontPx * 3};
+    const int summaryTop = buttons_.back().rect.bottom() + gap * 2;
+    summaryRect_ = {margin, summaryTop, l.screen.w - 2 * margin, footer_.y - summaryTop};
+    refreshSummary();
     for (size_t i = 0; i < buttons_.size(); ++i)
         if (buttons_[i].id == Analyze) focus_ = static_cast<int>(i);
 }
 
 void HomeScreen::onEnter() {
-    // Battery and engine status only update on screen entry (no animated status area, §6.1).
+    // Battery, engine and summary only update on screen entry (no animated status area, §6.1).
+    refreshSummary();
     app_.invalidate(footer_, RefreshHint::Content);
+    app_.invalidate(summaryRect_, RefreshHint::Content);
+}
+
+void HomeScreen::refreshSummary() {
+    const engine::EngineDescriptor* e = app_.engines().engineFor(engine::Role::Analysis);
+    engineName_ = e ? e->name : "none";
+    summary_.clear();
+    storage::Database* db = app_.userDb();
+    if (!db) return;
+    auto recent = storage::recentPlayedGames(*db, 1);
+    auto stats = storage::playStats(*db);
+    if (!recent || recent->empty()) return;
+    const storage::PlayedGame& g = recent->front();
+    std::string outcome = "played";
+    if (g.result == "1/2-1/2") outcome = "drew";
+    else if (!g.human.empty() && g.result != "*")
+        outcome = (g.human == "white") == (g.result == "1-0") ? "won" : "lost";
+    std::string line = "Last game: " + outcome;
+    if (!g.human.empty()) line += std::string(" as ") + (g.human == "white" ? "White" : "Black");
+    if (!g.strength.empty()) {
+        std::string label = g.strength;
+        label[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(label[0])));
+        line += " · " + label;
+    }
+    static const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    const util::CivilTime d = util::civilFromUnix(g.date);
+    line += " · " + std::to_string(d.day) + " " + months[(d.month - 1) % 12] + " " + std::to_string(d.year);
+    summary_.push_back(line);
+    if (stats && stats->games > 0)
+        summary_.push_back("Games: " + std::to_string(stats->games) + " · won " + std::to_string(stats->won) +
+                           " · drawn " + std::to_string(stats->drawn) + " · lost " + std::to_string(stats->lost));
 }
 
 Rect HomeScreen::focusRect(int index) const {
@@ -84,9 +124,16 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
     }
 
     Font& small = app_.fonts().get(s.smallPx);
+    if (clip.intersects(summaryRect_)) {
+        int y = summaryRect_.y;
+        for (const std::string& line : summary_) {
+            small.draw(c, (l.screen.w - small.measure(line)) / 2, y + small.ascent(), line, t.ink);
+            y += small.lineHeight();
+        }
+    }
     const std::string battery = batteryText(app_);
     const std::string left = battery.empty() ? "" : "Battery " + battery;
-    const std::string right = "Engine: off";
+    const std::string right = "Engine: " + engineName_;
     const int baseline = footer_.y + footer_.h / 2 + small.ascent() / 2;
     const int pad = s.fontPx;
     small.draw(c, pad, baseline, left, t.ink);
