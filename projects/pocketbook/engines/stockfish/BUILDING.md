@@ -1,7 +1,13 @@
 # Stockfish plug-in — build notes
 
-Status: **scaffolded, not yet built** (M0.6). Everything here must be checked against the vendored
-sources the first time `scripts/fetch-engines.ps1 -Engine stockfish` runs.
+Status: sources fetched and pinned (sf_19, 2026-09-29). The CMake build was checked against the
+real sources on Linux x86-64 (clang, `x86-64-avx2` flags): `bench` and the `[integration]` tests
+pass. The Zig builds for `windows-x64` and `arm` still need their first run on Windows.
+
+Stockfish 19 facts that matter here: one network, `nn-1a298aa575a0.nnue` (98.5 MB, embedded, so
+the binary is ~99 MB); threads are pthreads with every compiler but MSVC (`thread_native.h`);
+`UCI_Elo` spans 1320–3190 (P10 confirmed); RSS after a short search with Hash 16 is ~260 MB on
+x86-64.
 
 ## Pin
 
@@ -20,14 +26,14 @@ the network download base. Network files are verified by their name: Stockfish n
 
 | Target | Makefile ARCH | Defines | Compiler flags |
 | --- | --- | --- | --- |
-| `arm` (PB634K3, Cortex-A7) | `armv7-neon` | `USE_POPCNT USE_NEON=7 USE_PTHREADS NDEBUG` | `-mcpu=cortex_a7 -mfpu=neon -mfloat-abi=softfp` |
-| `windows-x64` | `x86-64-avx2` | `IS_64BIT USE_POPCNT USE_AVX2 USE_SSE41 USE_SSSE3 USE_SSE2 NDEBUG` (no `USE_PTHREADS`: the Makefile omits it for mingw) | `-mavx2 -mbmi -mpopcnt -msse4.1 -mssse3 -msse2`; links `advapi32`, `-static` |
+| `arm` (PB634K3, Cortex-A7) | `armv7-neon` | `USE_POPCNT USE_NEON=7 NDEBUG` | `-mcpu=cortex_a7 -mfpu=neon -mfloat-abi=softfp`; links `pthread` |
+| `windows-x64` | `x86-64-avx2` | `IS_64BIT USE_POPCNT USE_AVX2 USE_SSE41 USE_SSSE3 USE_SSE2 NDEBUG` | `-mavx2 -mbmi -mpopcnt -msse4.1 -mssse3 -msse2`; links `pthread` (winpthreads), `advapi32`, `-static` |
 
 To do when vendoring (M0.6):
 
-1. Open `libs/stockfish/src/Makefile`, find the `armv7-neon` and `x86-64-avx2` blocks and the
-   generic `CXXFLAGS` section, and compare with the table (Stockfish 19 may have renamed flags
-   or added `USE_NEON_DOTPROD`/`-DARCH=...`). Update `CMakeLists.txt` and this table.
+1. When the pin changes: open `libs/stockfish/src/Makefile`, compare the `armv7-neon` /
+   `x86-64-avx2` settings and the generic `CXXFLAGS`/`LDFLAGS` with the table (done for sf_19).
+   `src/universal/` (multi-arch builds) is not compiled.
 2. Embedding: `CMakeLists.txt` copies `nn-*.nnue` into the build folder, which is the
    compiler's working directory under Ninja, so INCBIN finds them (the Makefile compiles in `src/`).
    If the ARM build fails at the assembler, configure with `-DPCHESS_SF_EMBED_NET=OFF`
