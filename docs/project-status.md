@@ -140,17 +140,25 @@ Last updated: 2026-09-29 (M2: Stockfish 11 Eco engine, engine benchmark, device 
 
 ## Verified on hardware
 
+PB634K3, firmware U634k3.6.10.2544, 2026-09-29 (first device run: self-test, Diagnostics, Bench).
+
 | Date | Firmware | Item | Result |
 | --- | --- | --- | --- |
-| — | 6.10 | App launch time to first screen | |
-| — | 6.10 | `GetCanvas()` depth / scanline / format | |
-| — | 6.10 | PartialUpdate latency: 1 square / 12 squares / FullUpdate | |
-| — | 6.10 | Touch mapping (corners + center errors) | |
-| — | 6.10 | Key codes (Prev, Next, Menu, Home, Back delivered?) | |
-| — | 6.10 | Lifecycle events on sleep/wake, library, exit | |
-| — | 6.10 | post(): Poll vs SendEvent | |
-| — | 6.10 | glibc version, free RAM, exec allowed in applications/pocketchess | |
-| — | 6.10 | Self-test result | |
-| — | 6.10 | Stockfish 19: readyok ms, RSS, knps, CPU-s | |
-| — | 6.10 | Stockfish 11: readyok ms, RSS, knps, CPU-s | |
-| — | 6.10 | Engine benchmark (`logs/engine-bench.yaml`) | |
+| — | 6.10 | App launch time to first screen | not measured yet |
+| 2026-09-29 | 6.10.2544 | `GetCanvas()` depth / scanline / format | 1072×1448, depth 24, scanline 3216 (RGB), blit with `Stretch(IMAGE_RGB)` |
+| 2026-09-29 | 6.10.2544 | PartialUpdate latency: 1 square / 12 squares / FullUpdate | the calls return at once (0.5–0.6 ms per square, one 318 ms outlier after a scheduled full), `FullUpdate` 48–67 ms: they are asynchronous, so the call time is not the panel time |
+| 2026-09-29 | 6.10.2544 | Touch mapping (corners + center errors) | x −10…−30 px, y +1…+24 px on 4 targets (center not tapped); x consistently a bit left |
+| — | 6.10 | Key codes (Prev, Next, Menu, Home, Back delivered?) | not done yet |
+| 2026-09-29 | 6.10.2544 | Lifecycle events on sleep/wake, library, exit | `EVT_BACKGROUND` then `EVT_EXIT` seen; sleep/wake not yet; `EVT_MTSYNC` (39) comes with every touch (now ignored) |
+| 2026-09-29 | 6.10.2544 | post(): Poll vs SendEvent | poll every 100 ms while active works (probe, Bench) |
+| 2026-09-29 | 6.10.2544 | glibc version, free RAM, exec allowed in applications/pocketchess | glibc 2.39, 987 MiB RAM (471 MiB free with the app running), 4 CPUs, exec ok, 10.9 GB free |
+| 2026-09-29 | 6.10.2544 | Self-test result | 76 passed, 0 failed (incl. `[integration]` with both engines) |
+| 2026-09-29 | 6.10.2544 | Stockfish 19: readyok ms, RSS, knps, CPU-s | ready 2.4–2.5 s (uciok 2.1 s: net load), RSS 156 MiB after ready, peak 221 MiB (net beside the binary), **~20 knps**, depth ~11 in 1 s |
+| 2026-09-29 | 6.10.2544 | Stockfish 11: readyok ms, RSS, knps, CPU-s | ready 0.6–0.7 s, RSS 37 MiB, ~200 knps, depth ~13 in 0.5 s |
+| 2026-09-29 | 6.10.2544 | Engine benchmark (`logs/engine-bench.yaml`) | Balanced: SF19 17–30 knps, depth 4–12; SF11 167–215 knps, depth 8–17; CPU-s per move = movetime for both |
+
+Engine findings: Stockfish 19 passes the ADR 0004 checkpoint only just (2.4 s < 3 s, 221 < 250 MiB),
+but it is 10× slower than Stockfish 11 on the Cortex-A7, against 2× on x64. NEON is in use (the
+accumulator code is vectorised). Likely cause, not yet proven: the net's threat input features
+(`nnue/features/full_threats.cpp`, 86896 inputs) do heavy 64-bit bitboard work that a 32-bit CPU
+splits in two. An older NNUE Stockfish without them is the obvious comparison.
