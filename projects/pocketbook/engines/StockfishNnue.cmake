@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# NNUE Stockfish plug-ins (D4, D8), shared by every pinned version: engines/<id>/CMakeLists.txt sets
+# SF_ID (= target, binary and descriptor id) and includes this file. Sources: libs/<id>/ (local
+# only, fetch-engines.ps1). The flags replicate the upstream Makefile for ARCH=armv7-neon and
+# x86-64-avx2; each version's BUILDING.md records the check. Re-check them whenever a pin changes.
+if(NOT SF_ID)
+    message(FATAL_ERROR "set SF_ID before including StockfishNnue.cmake")
+endif()
+set(ENGINE_SOURCE_DIR "" CACHE PATH "libs/<id>")
+set(PCHESS_ENGINE_TARGET "arm" CACHE STRING "arm | windows-x64")
+# Default OFF: the embedded copy stays resident next to the loaded weights (~95 MB more RSS, same
+# nodes/s; measured 2026-09-29). Stockfish finds the net in its binary's folder.
+option(PCHESS_SF_EMBED_NET "Embed the NNUE network (INCBIN); OFF ships the .nnue beside the binary (R2)" OFF)
+if(NOT EXISTS "${ENGINE_SOURCE_DIR}/src/uci.cpp")
+    message(FATAL_ERROR "Stockfish sources not found in '${ENGINE_SOURCE_DIR}' (run scripts/fetch-engines.ps1)")
+endif()
+set(SF "${ENGINE_SOURCE_DIR}/src")
+
+# Globbing keeps the list valid across Stockfish versions (files move between releases).
+file(GLOB SF_SOURCES "${SF}/*.cpp" "${SF}/nnue/*.cpp" "${SF}/nnue/features/*.cpp" "${SF}/syzygy/*.cpp")
+add_executable(${SF_ID} ${SF_SOURCES})
+set_target_properties(${SF_ID} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+target_include_directories(${SF_ID} PRIVATE "${SF}")
+target_compile_definitions(${SF_ID} PRIVATE NDEBUG)
+# misc.cpp falls back to __DATE__ without GIT_DATE (Makefile: from git log); Zig's clang rejects
+# __DATE__ (-Werror=date-time). Releases never print it; a fixed value keeps builds reproducible.
+target_compile_definitions(${SF_ID} PRIVATE GIT_DATE=00000000)
+target_compile_options(${SF_ID} PRIVATE -O3 -fno-exceptions -funroll-loops)
+target_link_options(${SF_ID} PRIVATE -s)  # no debug info in the shipped binary
+
+if(PCHESS_ENGINE_TARGET STREQUAL "arm")
+    # Makefile ARCH=armv7-neon: arm_version=7, neon=yes, popcnt=yes (32-bit: no IS_64BIT).
+    target_compile_definitions(${SF_ID} PRIVATE USE_POPCNT USE_NEON=7)
+    # zig-arm-engine.cmake: static arm-linux-musleabihf with -mcpu=cortex_a7 (VFPv4 + NEON).
+    target_compile_options(${SF_ID} PRIVATE -mfpu=neon)
+else()
+    # Makefile ARCH=x86-64-avx2.
+    target_compile_definitions(${SF_ID} PRIVATE IS_64BIT USE_POPCNT USE_AVX2 USE_SSE41 USE_SSSE3 USE_SSE2)
+    target_compile_options(${SF_ID} PRIVATE -mavx2 -mbmi -mpopcnt -msse4.1 -mssse3 -msse2)
+endif()
+
+# Threads: thread_native.h uses pthreads with every compiler except MSVC (Makefile: -lpthread;
+# on Windows/mingw that is winpthreads).
+target_link_libraries(${SF_ID} PRIVATE pthread)
+if(WIN32)
+    # misc.cpp uses the large-page privilege APIs; one self-contained .exe (Makefile: -static).
+    target_link_libraries(${SF_ID} PRIVATE advapi32)
+    target_link_options(${SF_ID} PRIVATE -static)
+endif()
+
+# NNUE network(s): the names are read from evaluate.h (EvalFileDefaultNameBig/Small).
+file(READ "${SF}/evaluate.h" SF_EVALUATE_H)
+string(REGEX MATCHALL "nn-[0-9a-f]+\\.nnue" SF_NETS "${SF_EVALUATE_H}")
+list(REMOVE_DUPLICATES SF_NETS)
+# The nets go into the build folder either way: INCBIN's .incbin "nn-....nnue" is resolved
+# relative to the compiler's working directory, which is the build folder under Ninja (the
+# upstream Makefile compiles inside src/). Without embedding they ship beside the binary.
+foreach(net ${SF_NETS})
+    if(NOT EXISTS "${SF}/${net}")
+        message(FATAL_ERROR "${SF}/${net} missing (run scripts/fetch-engines.ps1)")
+    endif()
+    configure_file("${SF}/${net}" "${CMAKE_BINARY_DIR}/${net}" COPYONLY)
+endforeach()
+# Files to ship beside the binary go to ship/ (build-engine.ps1 copies that folder).
+file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/ship")
+if(NOT PCHESS_SF_EMBED_NET)
+    target_compile_definitions(${SF_ID} PRIVATE NNUE_EMBEDDING_OFF)
+    # The descriptor's files: list makes the registry disable the engine when a net is missing;
+    # it must name exactly the nets of this pin.
+    file(READ "${CMAKE_CURRENT_LIST_DIR}/../../../data/engines/${SF_ID}/engine.yaml" SF_DESCRIPTOR)
+    foreach(net ${SF_NETS})
+        string(FIND "${SF_DESCRIPTOR}" "${net}" found)
+        if(found EQUAL -1)
+            message(FATAL_ERROR "data/engines/${SF_ID}/engine.yaml: add ${net} to files:")
+        endif()
+        configure_file("${SF}/${net}" "${CMAKE_BINARY_DIR}/ship/${net}" COPYONLY)
+    endforeach()
+endif()
+message(STATUS "${SF_ID}: ${PCHESS_ENGINE_TARGET}, nets: ${SF_NETS}, embedded: ${PCHESS_SF_EMBED_NET}")

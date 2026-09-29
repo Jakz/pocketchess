@@ -7,7 +7,7 @@ RSS 117 MiB after a depth-19 search with the net beside the binary). The `arm` b
 still needs its first run on the reader.
 
 Zig's clang rejects `__DATE__` (`-Werror=date-time`), which `misc.cpp` uses unless `GIT_DATE` is
-defined; `CMakeLists.txt` defines a fixed `GIT_DATE` (release builds never print it).
+defined; `../StockfishNnue.cmake` (shared with other NNUE versions) defines a fixed `GIT_DATE` (release builds never print it).
 
 Stockfish 19 facts that matter here: one network, `nn-1a298aa575a0.nnue` (98.5 MB); threads are
 pthreads with every compiler but MSVC (`thread_native.h`); `UCI_Elo` spans 1320–3190 (P10
