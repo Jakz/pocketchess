@@ -40,7 +40,7 @@ find_package(Threads REQUIRED)
 add_compile_options(-Wall -Wextra -ffp-contract=off)
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_options(-O2 -ffunction-sections -fdata-sections)
-    add_link_options(-Wl,--gc-sections)
+    add_link_options(-Wl,--gc-sections -s)  # -s: Zig otherwise keeps its debug info
 else()
     add_compile_options(-O0 -g)
 endif()
