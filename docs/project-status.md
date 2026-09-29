@@ -14,7 +14,8 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 | M0.6 Stockfish + plug-in skeleton | ✅ sf_19 pinned, net beside the binary; Zig builds for windows-x64 and arm (static musl hard-float, ADR 0009); runs on the reader (self-test `[integration]`, probe, Bench), ADR 0004 checkpoint passed |
 | M1 Chess core + board UI | 🟢 core complete; board UI, sandbox, promotion, golden images done; device self-test pending |
 | M2 Engine integration | 🟢 functionally done: engine subsystem, Analyze engine panel, benchmark, device lineup (ADR 0010: Stockfish 19 main, Stockfish 11 for Eco), all run on the reader. Device fine-tuning checks deferred until the app is feature-complete (decision 2026-09-29, see below) |
-| M3–M6 | not started (Home shows them disabled with their milestone) |
+| M3 Play, Analysis, Home, session | 🟡 SQLite vendored (3.53.4), `core/storage` (RAII wrapper, migrations, `chess.db` v1), Settings v1 screen persisted in `chess.db`; next: Play mode, Analysis screen, Home summary, SessionState + Resume, strength calibration |
+| M4–M6 | not started (Home shows them disabled with their milestone) |
 
 ## 2026-09-29 — first MSVC build fixes
 
@@ -48,6 +49,22 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
   playing legal moves), `ManualScheduler`; new suites for YAML, descriptors/registry, UciEngine,
   EngineManager and the analysis panel; goldens updated for the new button row, plus
   `analyze-engine-quick` and `analyze-engine-missing`.
+
+## 2026-09-29 — M3 start: SQLite, storage, Settings
+
+- SQLite 3.53.4 amalgamation committed in `libs/sqlite/` (SHA3-256 checked against sqlite.org);
+  options in `pchess_sqlite_config.h`, shared by `Sqlite.vcxproj` and the CMake `pchess-sqlite`
+  (`THREADSAFE=0`, no extensions, WAL with `synchronous=NORMAL`).
+- `core/storage`: `Database`/`Statement` (Results, transactions, ReadWrite = WAL with a DELETE
+  fallback, ReadOnly = immutable URI, Memory), `migrate()` by `user_version`, `ChessDb` v1
+  (`settings`, `played_games`, `favorites`).
+- Settings v1: `Settings::toMap/fromMap`, loaded at start from `user/chess.db` and saved on every
+  change (`AppConfig::persistSettings`, off for tests and headless screenshots). Settings screen
+  (Display, Input, Engine; paged rows, toggles and choice dialogs) from Home and from "Engine
+  missing"; threads/hash/Deep limit reach the engine manager; "Tap to move" is honoured. The
+  Diagnostics profile toggle is gone. Goldens: `home`, `analyze-engine-missing`, new `settings`.
+- Not yet checked on the reader: whether WAL works on its vfat storage (the log says
+  "chess.db open (journal wal|delete)").
 
 ## 2026-09-29 — M2 engines on Windows and ARM (ADR 0009)
 
