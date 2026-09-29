@@ -38,10 +38,24 @@ function Find-Tool([string]$name, [string[]]$candidates) {
     return $null
 }
 
-function Get-VsInstallPath {
+# Every Visual Studio install (newest first): the "C++ CMake tools" component ships cmake + ninja.
+function Get-VsInstallPaths {
+    $paths = @()
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-    if (-not (Test-Path $vswhere)) { return $null }
-    return (& $vswhere -latest -prerelease -products * -property installationPath | Select-Object -First 1)
+    if (Test-Path $vswhere) { $paths += @(& $vswhere -all -prerelease -products * -sort -property installationPath) }
+    $paths += 'C:\Program Files\Microsoft Visual Studio\18\Community'  # Enigmistica's fallback
+    return $paths | Where-Object { $_ }
+}
+
+# zig.exe: -ZigPath, then the toolchain (zig\<version>\zig.exe, newest first), then PATH.
+function Get-ZigCandidates([string]$toolchain, [string]$explicit) {
+    $c = @($explicit, (Join-Path $toolchain 'zig\zig.exe'), (Join-Path $toolchain 'zig.exe'))
+    $zigDir = Join-Path $toolchain 'zig'
+    if (Test-Path $zigDir) {
+        $c += @(Get-ChildItem -LiteralPath $zigDir -Directory | Sort-Object { try { [version]$_.Name } catch { [version]'0.0' } } -Descending |
+                ForEach-Object { Join-Path $_.FullName 'zig.exe' })
+    }
+    return $c
 }
 
 $toolchain = Resolve-Toolchain
@@ -49,13 +63,11 @@ $toolchainFile = Join-Path $toolchain 'ZigToolchain.cmake'
 if (-not (Test-Path $toolchainFile)) { throw "Missing $toolchainFile" }
 $sdk = if ($SdkLocal) { (Resolve-Path $SdkLocal).Path } else { Join-Path $toolchain 'inkview\6.10' }
 
-$zig = Find-Tool 'zig' @($ZigPath, (Join-Path $toolchain 'zig\zig.exe'), (Join-Path $toolchain 'zig.exe'))
-if (-not $zig) { throw 'zig not found (pass -ZigPath or put zig in the toolchain folder / PATH)' }
-$vs = Get-VsInstallPath
-$vsCMake = if ($vs) { Join-Path $vs 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe' } else { $null }
-$vsNinja = if ($vs) { Join-Path $vs 'Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe' } else { $null }
-$cmake = Find-Tool 'cmake' @($vsCMake)
-$ninja = Find-Tool 'ninja' @($vsNinja)
+$zig = Find-Tool 'zig' (Get-ZigCandidates $toolchain $ZigPath)
+if (-not $zig) { throw "zig not found in $toolchain\zig\<version>\ (pass -ZigPath or put zig on PATH)" }
+$vsTools = @(Get-VsInstallPaths | ForEach-Object { Join-Path $_ 'Common7\IDE\CommonExtensions\Microsoft\CMake' })
+$cmake = Find-Tool 'cmake' @($vsTools | ForEach-Object { Join-Path $_ 'CMake\bin\cmake.exe' })
+$ninja = Find-Tool 'ninja' @($vsTools | ForEach-Object { Join-Path $_ 'Ninja\ninja.exe' })
 if (-not $cmake -or -not $ninja) { throw 'cmake/ninja not found (install the VS "C++ CMake tools" component or put them on PATH)' }
 
 $outRoot = Join-Path $RepoRoot 'out\pocketbook-zig'

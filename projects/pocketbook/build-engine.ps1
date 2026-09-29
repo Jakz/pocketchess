@@ -36,11 +36,23 @@ $ids = if ($Engine) { @($Engine) } else {
     @(Get-Content (Join-Path $RepoRoot 'projects\engines.txt') | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
 }
 
-$zig = Find-Tool 'zig' @($ZigPath, (Join-Path $ToolchainRoot 'zig\zig.exe'), (Join-Path $ToolchainRoot 'zig.exe'))
+# zig.exe: -ZigPath, then the toolchain (zig\<version>\zig.exe, newest first), then PATH.
+$zigCandidates = @($ZigPath, (Join-Path $ToolchainRoot 'zig\zig.exe'), (Join-Path $ToolchainRoot 'zig.exe'))
+$zigDir = Join-Path $ToolchainRoot 'zig'
+if (Test-Path $zigDir) {
+    $zigCandidates += @(Get-ChildItem -LiteralPath $zigDir -Directory |
+        Sort-Object { try { [version]$_.Name } catch { [version]'0.0' } } -Descending |
+        ForEach-Object { Join-Path $_.FullName 'zig.exe' })
+}
+$zig = Find-Tool 'zig' $zigCandidates
+# cmake + ninja: any Visual Studio install with the "C++ CMake tools" component, then PATH.
+$vsRoots = @()
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-$vs = if (Test-Path $vswhere) { & $vswhere -latest -prerelease -products * -property installationPath | Select-Object -First 1 } else { $null }
-$cmake = Find-Tool 'cmake' @($(if ($vs) { Join-Path $vs 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe' }))
-$ninja = Find-Tool 'ninja' @($(if ($vs) { Join-Path $vs 'Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe' }))
+if (Test-Path $vswhere) { $vsRoots += @(& $vswhere -all -prerelease -products * -sort -property installationPath) }
+$vsRoots += 'C:\Program Files\Microsoft Visual Studio\18\Community'
+$vsTools = @($vsRoots | Where-Object { $_ } | ForEach-Object { Join-Path $_ 'Common7\IDE\CommonExtensions\Microsoft\CMake' })
+$cmake = Find-Tool 'cmake' @($vsTools | ForEach-Object { Join-Path $_ 'CMake\bin\cmake.exe' })
+$ninja = Find-Tool 'ninja' @($vsTools | ForEach-Object { Join-Path $_ 'Ninja\ninja.exe' })
 
 foreach ($id in $ids) {
     $src = Join-Path $RepoRoot "libs\$id"
@@ -50,7 +62,11 @@ foreach ($id in $ids) {
         if ($AllowMissing) { Write-Warning $msg; continue }
         throw $msg
     }
-    if (-not $zig -or -not $cmake -or -not $ninja) { throw 'zig, cmake and ninja are required (see projects/pocketbook/README.md)' }
+    $missing = @(@{zig = $zig; cmake = $cmake; ninja = $ninja}.GetEnumerator() | Where-Object { -not $_.Value } | ForEach-Object { $_.Key })
+    if ($missing) {
+        throw "Not found: $($missing -join ', '). zig is looked for in $ToolchainRoot\zig\<version>\ (or -ZigPath); cmake/ninja in the Visual Studio 'C++ CMake tools' component or on PATH."
+    }
+    Write-Host "zig: $zig`ncmake: $cmake`nninja: $ninja"
 
     $toolchainFile = if ($Target -eq 'arm') { Join-Path $ToolchainRoot 'ZigToolchain.cmake' } else { Join-Path $PSScriptRoot 'engines\zig-windows-x64.cmake' }
     $buildDir = Join-Path $RepoRoot "out\engines-build\$id\$Target"
@@ -72,11 +88,16 @@ foreach ($id in $ids) {
     $bin = if ($Target -eq 'windows-x64') { "$id.exe" } else { $id }
     Copy-Item (Join-Path $buildDir $bin) $outDir -Force
     # Networks shipped beside the binary when not embedded (R2).
-    Get-ChildItem -Path $buildDir -Filter *.nnue -ErrorAction SilentlyContinue | Copy-Item -Destination $outDir -Force
+    $ship = Join-Path $buildDir 'ship'
+    Get-ChildItem -Path $outDir -Filter *.nnue -ErrorAction SilentlyContinue | Remove-Item -Force
+    if (Test-Path $ship) { Get-ChildItem -LiteralPath $ship -File | Copy-Item -Destination $outDir -Force }
     Write-Host "Engine $id -> $outDir"
 
     if ($Target -eq 'windows-x64' -and -not $NoSmokeTest -and $id -like 'stockfish*') {
-        $out = & (Join-Path $outDir $bin) bench 16 1 8 2>&1 | Out-String
+        # Stockfish prints the bench summary on stderr; Windows PowerShell 5.1 turns redirected
+        # stderr into errors under 'Stop', so let cmd merge the streams.
+        $exePath = Join-Path $outDir $bin
+        $out = cmd /c "`"$exePath`" bench 16 1 8 2>&1" | Out-String
         if ($out -notmatch 'Nodes searched\s*:\s*(\d+)') { throw "Smoke test failed for $id`n$out" }
         Write-Host "Smoke test: bench -> $($Matches[1]) nodes"
     }
