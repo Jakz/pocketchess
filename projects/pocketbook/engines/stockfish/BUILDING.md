@@ -3,7 +3,8 @@
 Status: sources fetched and pinned (sf_19, 2026-09-29). The CMake build was checked against the
 real sources on Linux x86-64 (clang, `x86-64-avx2` flags): `bench` and the `[integration]` tests
 pass. The Zig build for `windows-x64` works on Windows (2026-09-29: `bench`, `[integration]` tests,
-RSS 211 MiB after a depth-19 search); the `arm` build still needs its first run.
+RSS 211 MiB after a depth-19 search). The `arm` build links (static musl hard-float, ADR 0009) and
+still needs its first run on the reader.
 
 Zig's clang rejects `__DATE__` (`-Werror=date-time`), which `misc.cpp` uses unless `GIT_DATE` is
 defined; `CMakeLists.txt` defines a fixed `GIT_DATE` (release builds never print it).
@@ -21,7 +22,8 @@ the network download base. Network files are verified by their name: Stockfish n
 
 ## Toolchains
 
-- `arm`: the shared `ZigToolchain.cmake` (`zig-cc.cmd`/`zig-cxx.cmd`, `arm-linux-gnueabi.2.36`).
+- `arm`: `../zig-arm-engine.cmake` with the `zig-arm-*.cmd` wrappers (`arm-linux-musleabihf`,
+  `-mcpu=cortex_a7`, static), not the app's soft-float `ZigToolchain.cmake` (ADR 0009).
 - `windows-x64`: `../zig-windows-x64.cmake` with the `zig-win-*.cmd` wrappers
   (`x86_64-windows-gnu`). Both need `ZIG_EXE`, set by `build-engine.ps1`, which finds
   `zig\<version>\zig.exe` in the toolchain and cmake/ninja in Visual Studio's "C++ CMake tools".
@@ -30,7 +32,7 @@ the network download base. Network files are verified by their name: Stockfish n
 
 | Target | Makefile ARCH | Defines | Compiler flags |
 | --- | --- | --- | --- |
-| `arm` (PB634K3, Cortex-A7) | `armv7-neon` | `USE_POPCNT USE_NEON=7 NDEBUG` | `-mcpu=cortex_a7 -mfpu=neon -mfloat-abi=softfp`; links `pthread` |
+| `arm` (PB634K3, Cortex-A7) | `armv7-neon` | `USE_POPCNT USE_NEON=7 NDEBUG` | `-mcpu=cortex_a7 -mfpu=neon` (hard-float, static musl); links `pthread` |
 | `windows-x64` | `x86-64-avx2` | `IS_64BIT USE_POPCNT USE_AVX2 USE_SSE41 USE_SSSE3 USE_SSE2 NDEBUG` | `-mavx2 -mbmi -mpopcnt -msse4.1 -mssse3 -msse2`; links `pthread` (winpthreads), `advapi32`, `-static` |
 
 To do when vendoring (M0.6):

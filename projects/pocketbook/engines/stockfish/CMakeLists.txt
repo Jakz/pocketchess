@@ -27,8 +27,8 @@ target_compile_options(stockfish PRIVATE -O3 -fno-exceptions -funroll-loops)
 if(PCHESS_ENGINE_TARGET STREQUAL "arm")
     # Makefile ARCH=armv7-neon: arm_version=7, neon=yes, popcnt=yes (32-bit: no IS_64BIT).
     target_compile_definitions(stockfish PRIVATE USE_POPCNT USE_NEON=7)
-    # Zig links its libc++ statically, like the app (no -static-libstdc++ needed).
-    target_compile_options(stockfish PRIVATE -mcpu=cortex_a7 -mfpu=neon -mfloat-abi=softfp)
+    # zig-arm-engine.cmake: static arm-linux-musleabihf with -mcpu=cortex_a7 (VFPv4 + NEON).
+    target_compile_options(stockfish PRIVATE -mfpu=neon)
 else()
     # Makefile ARCH=x86-64-avx2.
     target_compile_definitions(stockfish PRIVATE IS_64BIT USE_POPCNT USE_AVX2 USE_SSE41 USE_SSSE3 USE_SSE2)

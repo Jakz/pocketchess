@@ -68,7 +68,8 @@ foreach ($id in $ids) {
     }
     Write-Host "zig: $zig`ncmake: $cmake`nninja: $ninja"
 
-    $toolchainFile = if ($Target -eq 'arm') { Join-Path $ToolchainRoot 'ZigToolchain.cmake' } else { Join-Path $PSScriptRoot 'engines\zig-windows-x64.cmake' }
+    # Engines have their own toolchains: arm is a static musl hard-float build (ADR 0009).
+    $toolchainFile = if ($Target -eq 'arm') { Join-Path $PSScriptRoot 'engines\zig-arm-engine.cmake' } else { Join-Path $PSScriptRoot 'engines\zig-windows-x64.cmake' }
     $buildDir = Join-Path $RepoRoot "out\engines-build\$id\$Target"
     $outDir = Join-Path $RepoRoot "out\engines\$id\$Target"
     if ($Clean) { Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $buildDir, $outDir }
