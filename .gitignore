@@ -24,5 +24,3 @@ CMakeUserPresets.json
 # Golden-image mismatches written by the tests
 /tests/golden/actual/
 
-# Cowork session outputs (screenshots, drafts), not part of the project
-/Claude outputs/
