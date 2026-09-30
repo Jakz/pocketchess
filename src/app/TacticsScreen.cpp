@@ -11,6 +11,7 @@
 #include "core/util/Log.h"
 
 #include <algorithm>
+#include <chrono>
 
 namespace pchess::app {
 
@@ -100,7 +101,13 @@ void TacticsScreen::loadNext() {
     if (!st.tacticsTheme.empty()) req.include = pack->themeMask({st.tacticsTheme});
     req.skip = [this](const std::string& id) { return seen_.count(id) != 0; };
     puzzles::PuzzleSelector selector(*pack, app_.random());
+    const auto t0 = std::chrono::steady_clock::now();
     auto p = selector.next(req);
+    // M4 device budget: selection < 50 ms on the 50k pack (architecture doc §9).
+    const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+    util::Log::info("tactics", "selection " + std::to_string(static_cast<int>(ms + 0.5)) + " ms (rating " +
+                                   std::to_string(req.rating) + ", " + std::to_string(seen_.size()) + " seen, pack " +
+                                   pack->name() + ")");
     if (!p) {
         setStatus("Puzzle pack error", p.error().message());
     } else if (!p->has_value()) {
@@ -133,6 +140,7 @@ void TacticsScreen::startSession(puzzles::Puzzle p) {
         timer_.start(kOpponentDelay, [this, alive] {
             if (!alive.expired()) afterOpponent();
         });
+        updateButtons();  // Next stays off while the opponent's move is pending
     } else {
         setStatus(sideText() + " · tap Next for the opponent's move", "");
     }
