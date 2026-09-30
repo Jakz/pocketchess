@@ -56,6 +56,7 @@ int main(int argc, char** argv) {
     if (fonts.empty()) fonts = findUp("data/fonts");
     setGoldenDir(golden.empty() ? "tests/golden" : golden);
     setFontDir(fonts.empty() ? "data/fonts" : fonts);
+    if (const std::string fixtures = findUp("tests/fixtures"); !fixtures.empty()) setFixtureDir(fixtures);
     std::filesystem::path self = std::filesystem::absolute(argv[0]);
     if (!self.has_extension() && std::filesystem::exists(self.string() + ".exe")) self += ".exe";  // Windows
     setSelfExe(self.string());

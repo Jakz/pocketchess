@@ -54,6 +54,7 @@ void runAll() {
     using namespace pchess::test;
     setGoldenDir((g_paths->root() / "selftest").string());
     setFontDir(g_paths->fonts().string());
+    setFixtureDir((g_paths->root() / "selftest" / "fixtures").string());
     setSelfExe(selfPath().string());
 
     std::FILE* log = std::fopen((g_paths->logs() / "selftest.log").string().c_str(), "w");

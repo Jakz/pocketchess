@@ -22,6 +22,7 @@ RunState& state() {
 bool g_updateGolden = false;
 std::string g_goldenDir = "tests/golden";
 std::string g_fontDir = "data/fonts";
+std::string g_fixtureDir = "tests/fixtures";
 std::string g_selfExe;
 
 } // namespace
@@ -89,6 +90,8 @@ const std::string& goldenDir() { return g_goldenDir; }
 void setGoldenDir(std::string dir) { g_goldenDir = std::move(dir); }
 const std::string& fontDir() { return g_fontDir; }
 void setFontDir(std::string dir) { g_fontDir = std::move(dir); }
+const std::string& fixtureDir() { return g_fixtureDir; }
+void setFixtureDir(std::string dir) { g_fixtureDir = std::move(dir); }
 const std::string& selfExe() { return g_selfExe; }
 void setSelfExe(std::string path) { g_selfExe = std::move(path); }
 

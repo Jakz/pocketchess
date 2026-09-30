@@ -53,6 +53,7 @@
     <ClCompile Include="..\..\src\core\chess\Types.cpp" />
     <ClCompile Include="..\..\src\core\chess\Zobrist.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp" />
+    <ClCompile Include="..\..\src\core\puzzles\PuzzleImport.cpp" />
     <ClCompile Include="..\..\src\core\storage\ChessDb.cpp" />
     <ClCompile Include="..\..\src\core\storage\Database.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineBenchmark.cpp" />
@@ -86,6 +87,8 @@
     <ClInclude Include="..\..\src\core\chess\Zobrist.h" />
     <ClInclude Include="..\..\src\core\engine\Engine.h" />
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h" />
+    <ClInclude Include="..\..\src\core\puzzles\Puzzle.h" />
+    <ClInclude Include="..\..\src\core\puzzles\PuzzleImport.h" />
     <ClInclude Include="..\..\src\core\storage\ChessDb.h" />
     <ClInclude Include="..\..\src\core\storage\Database.h" />
     <ClInclude Include="..\..\src\core\engine\EngineBenchmark.h" />

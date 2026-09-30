@@ -76,6 +76,8 @@ const std::string& goldenDir();      // tests/golden (desktop) or <root>/selftes
 void setGoldenDir(std::string dir);
 const std::string& fontDir();        // data/fonts (desktop) or <root>/assets/fonts (device)
 void setFontDir(std::string dir);
+const std::string& fixtureDir();     // tests/fixtures (desktop) or <root>/selftest/fixtures (device)
+void setFixtureDir(std::string dir);
 const std::string& selfExe();        // path of the running test executable (fake engine child)
 void setSelfExe(std::string path);
 

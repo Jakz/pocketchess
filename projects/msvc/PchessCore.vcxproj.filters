@@ -13,6 +13,9 @@
     <Filter Include="src\core\engine">
       <UniqueIdentifier>{788EE710-4808-556C-922F-1DDE45AB5BBE}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\core\puzzles">
+      <UniqueIdentifier>{7A3C5E91-2B4D-5F6A-8C0E-1D3F5B7A9C24}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\core\storage">
       <UniqueIdentifier>{4F6B2D8E-1C3A-5B7D-9E0F-2A4C6E8B0D13}</UniqueIdentifier>
     </Filter>
@@ -56,6 +59,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp">
       <Filter>src\core\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\puzzles\PuzzleImport.cpp">
+      <Filter>src\core\puzzles</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\storage\ChessDb.cpp">
       <Filter>src\core\storage</Filter>
@@ -151,6 +157,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h">
       <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\puzzles\Puzzle.h">
+      <Filter>src\core\puzzles</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\puzzles\PuzzleImport.h">
+      <Filter>src\core\puzzles</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\storage\ChessDb.h">
       <Filter>src\core\storage</Filter>

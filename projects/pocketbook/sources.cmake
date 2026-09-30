@@ -24,6 +24,7 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/engine/UciEngine.cpp
     ${REPO_ROOT}/src/core/engine/UciParser.cpp
     ${REPO_ROOT}/src/core/engine/UciProbe.cpp
+    ${REPO_ROOT}/src/core/puzzles/PuzzleImport.cpp
     ${REPO_ROOT}/src/core/storage/ChessDb.cpp
     ${REPO_ROOT}/src/core/storage/Database.cpp
     ${REPO_ROOT}/src/core/util/Clock.cpp
@@ -82,6 +83,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/core/EngineManagerTests.cpp
     ${REPO_ROOT}/tests/core/EngineTests.cpp
     ${REPO_ROOT}/tests/core/PerftTests.cpp
+    ${REPO_ROOT}/tests/core/PuzzleTests.cpp
     ${REPO_ROOT}/tests/core/StorageTests.cpp
     ${REPO_ROOT}/tests/core/UciEngineTests.cpp
     ${REPO_ROOT}/tests/core/YamlTests.cpp
