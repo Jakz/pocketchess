@@ -60,6 +60,9 @@
     <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp">
       <Filter>src\core\engine</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\puzzles\Progress.cpp">
+      <Filter>src\core\puzzles</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\puzzles\PuzzleImport.cpp">
       <Filter>src\core\puzzles</Filter>
     </ClCompile>
@@ -160,6 +163,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h">
       <Filter>src\core\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\puzzles\Progress.h">
+      <Filter>src\core\puzzles</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\puzzles\Puzzle.h">
       <Filter>src\core\puzzles</Filter>

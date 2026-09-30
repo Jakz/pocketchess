@@ -24,6 +24,7 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/engine/UciEngine.cpp
     ${REPO_ROOT}/src/core/engine/UciParser.cpp
     ${REPO_ROOT}/src/core/engine/UciProbe.cpp
+    ${REPO_ROOT}/src/core/puzzles/Progress.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzleImport.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzlePack.cpp
     ${REPO_ROOT}/src/core/storage/ChessDb.cpp

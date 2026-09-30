@@ -4,6 +4,7 @@
 #include "core/chess/San.h"
 #include "core/puzzles/PuzzleImport.h"
 #include "core/puzzles/PuzzlePack.h"
+#include "core/puzzles/Progress.h"
 #include "core/util/Files.h"
 #include "support/Test.h"
 
@@ -220,4 +221,88 @@ TEST_CASE("puzzle selector: deterministic per seed, near the rating, widening, s
         REQUIRE(q->has_value());
         CHECK(((*q)->themes & endgame) == 0);
     }
+}
+
+TEST_CASE("rating: Elo expectation and K=24 binary updates") {
+    CHECK(std::abs(expectedScore(1500, 1500) - 0.5) < 1e-9);
+    CHECK(std::abs(expectedScore(1900, 1500) - 0.9090909) < 1e-6);
+    CHECK_EQ(updatedRating(1500, 1500, true), 1512);
+    CHECK_EQ(updatedRating(1500, 1500, false), 1488);
+    CHECK_EQ(updatedRating(1500, 1900, true), 1522);  // beating a harder puzzle gains more
+    CHECK_EQ(updatedRating(1500, 1100, false), 1478);
+}
+
+TEST_CASE("review schedule: 1 -> 3 -> 7 -> 21 -> 60 days, a failure resets, first-try solves stay out") {
+    constexpr int64_t day = 86400, t0 = 1'800'000'000;
+    ReviewState s = scheduleAfter({}, true, t0);
+    CHECK_EQ(s.intervalDays, 0);
+    CHECK_FALSE(s.nextReview.has_value());
+
+    s = scheduleAfter({}, false, t0);
+    CHECK_EQ(s.intervalDays, 1);
+    CHECK_EQ(s.nextReview.value_or(0), t0 + day);
+    const int expected[] = {3, 7, 21, 60, 60};
+    int64_t t = t0;
+    for (int days : expected) {
+        t += day;
+        s = scheduleAfter(s, true, t);
+        CHECK_EQ(s.intervalDays, days);
+        CHECK_EQ(s.nextReview.value_or(0), t + days * day);
+    }
+    s = scheduleAfter(s, false, t);
+    CHECK_EQ(s.intervalDays, 1);
+    CHECK_EQ(s.attempts, 7);
+    CHECK_EQ(s.failures, 2);
+    CHECK_EQ(s.successes, 5);
+}
+
+TEST_CASE("progress: rated attempts move the rating; failures come back for review on the day") {
+    auto mem = storage::Database::open({}, storage::Database::Mode::Memory);
+    REQUIRE(mem.ok());
+    auto progress = Progress::fromDatabase(std::move(*mem));
+    REQUIRE(progress.ok());
+    Progress& pr = *progress;
+    constexpr int64_t day = 86400, t0 = 1'800'000'000;
+    CHECK_EQ(pr.rating(), kInitialRating);
+
+    Puzzle a;
+    a.id = "A";
+    a.rating = 1500;
+    Puzzle b;
+    b.id = "B";
+    b.rating = 1500;
+    auto r1 = pr.record("sample", a, true, true, t0);
+    REQUIRE(r1.ok());
+    CHECK_EQ(r1->ratingAfter, 1512);
+    auto r2 = pr.record("sample", b, false, true, t0 + 60);
+    REQUIRE(r2.ok());
+    CHECK_EQ(r2->ratingBefore, 1512);
+    CHECK_EQ(pr.rating(), r2->ratingAfter);
+    CHECK(r2->ratingAfter < 1512);
+
+    auto seen = pr.seenIds();
+    REQUIRE(seen.ok());
+    CHECK_EQ(seen->size(), size_t(2));
+    CHECK_EQ(pr.dueCount(t0 + day - 1).value(), 0);
+    CHECK_EQ(pr.dueCount(t0 + day + 60).value(), 1);
+    auto due = pr.dueIds(t0 + 2 * day, 10);
+    REQUIRE(due.ok());
+    REQUIRE_EQ(due->size(), size_t(1));
+    CHECK_EQ((*due)[0], std::string("B"));
+
+    // The review attempt reschedules without moving the rating.
+    const int before = pr.rating();
+    auto r3 = pr.record("sample", b, true, false, t0 + 2 * day);
+    REQUIRE(r3.ok());
+    CHECK_EQ(pr.rating(), before);
+    CHECK_EQ(r3->state.intervalDays, 3);
+    CHECK_EQ(pr.dueCount(t0 + 2 * day).value(), 0);
+    auto st = pr.state("B");
+    REQUIRE(st.ok());
+    REQUIRE(st->has_value());
+    CHECK_EQ((*st)->attempts, 2);
+    auto hist = pr.history(10);
+    REQUIRE(hist.ok());
+    CHECK_EQ(hist->size(), size_t(2));  // only rated attempts
+    CHECK_EQ((*hist)[0].rating, before);
 }
