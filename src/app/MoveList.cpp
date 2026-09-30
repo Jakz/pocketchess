@@ -13,7 +13,8 @@ using namespace ui;
 using namespace chess;
 
 void drawMoveList(Application& app, Canvas& c, const Rect& rect, const GameTree& tree, const GameNode* current,
-                  const std::string& emptyHint) {
+                  const std::string& emptyHint, std::vector<MoveHit>* hits) {
+    if (hits) hits->clear();
     const BoardTheme& t = app.theme();
     const UiStyle& s = app.style();
     Font& f = app.fonts().get(s.fontPx);
@@ -23,6 +24,7 @@ void drawMoveList(Application& app, Canvas& c, const Rect& rect, const GameTree&
         std::string text;
         bool current = false;
         bool future = false;
+        const GameNode* node = nullptr;  // null for move numbers
     };
     std::vector<Token> tokens;
     // Path to the current node, then the main continuation after it (greyed).
@@ -33,7 +35,7 @@ void drawMoveList(Application& app, Canvas& c, const Rect& rect, const GameTree&
     auto addMove = [&](const GameNode* n, bool future, bool forceNumber) {
         if (p.sideToMove() == White) tokens.push_back({std::to_string(p.fullmoveNumber()) + ".", false, future});
         else if (forceNumber) tokens.push_back({std::to_string(p.fullmoveNumber()) + "…", false, future});
-        tokens.push_back({toSan(p, n->move), n == current, future});
+        tokens.push_back({toSan(p, n->move), n == current, future, n});
         p.makeMove(n->move);
     };
     bool first = true;
@@ -82,6 +84,7 @@ void drawMoveList(Application& app, Canvas& c, const Rect& rect, const GameTree&
             } else {
                 ff.draw(c, px, y + ff.ascent(), tk.text, tk.future ? blend(t.background, t.ink, 130) : t.ink);
             }
+            if (hits && tk.node) hits->push_back({Rect{px - space / 2, y, w + space, lh}.intersected(rect), tk.node});
             px += w + space;
         }
         y += lh;

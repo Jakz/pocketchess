@@ -47,11 +47,19 @@ AnalyzeScreen::AnalyzeScreen(Application& app, const std::string& fen) : Screen(
     reset(start);
 }
 
-AnalyzeScreen::AnalyzeScreen(Application& app, GameTree game) : Screen(app) {
+AnalyzeScreen::AnalyzeScreen(Application& app, GameTree game, const std::vector<Move>& path) : Screen(app) {
     board_.setRect(app_.layout().board);
     layoutPanel();
     tree_ = std::move(game);
-    setNode(tree_.mainLineEnd());
+    GameNode* n = path.empty() ? tree_.mainLineEnd() : tree_.root();
+    for (Move m : path) {
+        GameNode* next = nullptr;
+        for (const auto& c : n->children)
+            if (c->move == m) next = c.get();
+        if (!next) break;
+        n = next;
+    }
+    setNode(n);
     app_.invalidate(app_.layout().panel, RefreshHint::Content);
 }
 
