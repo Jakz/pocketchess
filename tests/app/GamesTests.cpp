@@ -193,3 +193,18 @@ TEST_CASE("page buttons: Settings -> Input -> Swapped turns Prev into Next and b
     h.run("key:next");
     CHECK_EQ(h.browser()->page(), 1);
 }
+
+TEST_CASE("games: keys only - Menu opens a game from the page, the study menu goes back") {
+    const auto root = gamesRoot("pchess-games-keys");
+    GamesHarness h(root);
+    h.app->push(std::make_unique<GamesScreen>(*h.app));
+    h.app->flush();
+    h.run("key:menu;key:ok");  // "Open a game…"
+    h.run("key:next;key:ok");  // the second row of the page
+    REQUIRE(h.study() != nullptr);
+    h.run("key:menu");
+    // "Back to the list" is the entry before "Close".
+    for (int i = 0; i < 2; ++i) h.run("key:prev");
+    h.run("key:ok");
+    CHECK(h.browser() != nullptr);
+}

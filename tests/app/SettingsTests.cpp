@@ -137,3 +137,17 @@ TEST_CASE("settings screen: changes are saved in user/chess.db and survive a res
     }
     std::filesystem::remove_all(root, ec);
 }
+
+TEST_CASE("settings screen: keys only - Prev above the first row focuses Back, Menu leaves") {
+    SettingsHarness h;
+    REQUIRE(h.screen() != nullptr);
+    h.run("key:next");  // first row
+    CHECK_EQ(h.screen()->focusedLabel(), std::string("Mode"));
+    h.run("key:prev");  // "‹ Back"
+    CHECK(h.screen()->focusedLabel().empty());
+    h.run("key:next");
+    CHECK_EQ(h.screen()->focusedLabel(), std::string("Mode"));
+    h.run("key:prev;key:menu");
+    CHECK(h.screen() == nullptr);  // back on Home
+    CHECK_EQ(std::string(h.app->top()->name()), std::string("home"));
+}

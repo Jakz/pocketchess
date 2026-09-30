@@ -219,7 +219,7 @@ void GameStudyScreen::onKey(const InputEvent& e) {
 }
 
 void GameStudyScreen::openMenu() {
-    enum Action { Variations, Analyze, Flip, Info };
+    enum Action { Variations, Analyze, Flip, Info, Back };
     std::vector<std::string> labels;
     std::vector<Action> actions;
     if (node_ && node_->children.size() > 1) {
@@ -236,6 +236,8 @@ void GameStudyScreen::openMenu() {
         labels.push_back("Game info");
         actions.push_back(Info);
     }
+    labels.push_back("Back to the list");  // the reader's Back key never reaches the app
+    actions.push_back(Back);
     labels.push_back("Close");
     app_.push(std::make_unique<MessageDialog>(
         app_, "Game", "", labels,
@@ -249,6 +251,7 @@ void GameStudyScreen::openMenu() {
                 refreshBoard();
                 break;
             case Info: showInfo(); break;
+            case Back: app_.pop(); break;
             }
         },
         true));

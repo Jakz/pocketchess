@@ -55,7 +55,8 @@ private:
     std::vector<ui::Button> nav_;  // Prev page / Next page
     ui::Rect body_, footer_;
     int page_ = 0;
-    int focus_ = -1;  // row index on the current page (item rows only), -1 = none
+    static constexpr int kFocusBack = -2;  // the status bar's "‹ Back" (keys: Prev above the first row)
+    int focus_ = -1;  // row index on the current page (item rows only), -1 = none, kFocusBack
 };
 
 } // namespace pchess::app

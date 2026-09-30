@@ -317,9 +317,13 @@ void GamesScreen::editOpening() {
 }
 
 void GamesScreen::openMenu() {
-    enum Action { Pack, Clear, Home };
+    enum Action { Open, Pack, Clear, Home };
     std::vector<std::string> labels;
     std::vector<Action> actions;
+    if (!rows_.empty()) {  // key-only use: the reader's buttons are Prev, Next and Menu
+        labels.push_back("Open a game…");
+        actions.push_back(Open);
+    }
     const auto packs = app_.gamePackNames();
     if (packs.size() > 1) {
         labels.push_back("Pack…");
@@ -335,6 +339,14 @@ void GamesScreen::openMenu() {
         [this, actions, packs](int i) {
             if (i < 0 || i >= static_cast<int>(actions.size())) return;
             switch (actions[static_cast<size_t>(i)]) {
+            case Open: {
+                std::vector<std::string> games;
+                for (const games::GameRow& r : rows_) games.push_back(r.white + " – " + r.black);
+                chooseFromList(app_, "Open", games, [this](int g) {
+                    if (g >= 0) open(static_cast<size_t>(g));
+                }, rowsPerPage_);
+                break;
+            }
             case Pack:
                 chooseFromList(app_, "Game pack", packs, [this, packs](int p) {
                     if (p < 0) return;

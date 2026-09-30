@@ -382,7 +382,8 @@ void DiagnosticsScreen::onGesture(const Gesture& g) {
 void DiagnosticsScreen::onKey(const InputEvent& e) {
     log(std::string("key ") + toString(e.key) + " raw " + std::to_string(e.rawCode) + (e.repeat ? " (repeat)" : ""));
     if (keyCapture_ || touchMode_) return;
-    if (e.key == KeyCode::Back || e.key == KeyCode::Home) app_.pop();
+    // Menu leaves too: the reader never delivers Back/Home (key tests use the key capture mode).
+    if (e.key == KeyCode::Back || e.key == KeyCode::Home || e.key == KeyCode::Menu) app_.pop();
 }
 
 } // namespace pchess::app

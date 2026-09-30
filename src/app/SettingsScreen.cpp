@@ -202,6 +202,7 @@ std::string SettingsScreen::focusedLabel() const {
 }
 
 Rect SettingsScreen::focusRect() const {
+    if (focus_ == kFocusBack) return statusBackRect(app_);
     if (focus_ < 0) return {};
     return pages_[static_cast<size_t>(page_)][static_cast<size_t>(focus_)].rect;
 }
@@ -212,6 +213,7 @@ void SettingsScreen::draw(Canvas& c, const Rect& clip) {
     c.fill(clip, t.background);
     const std::string pageText = std::to_string(page_ + 1) + "/" + std::to_string(pages_.size());
     drawStatusBar(app_, c, "Settings", pageText, "Back");
+    if (focus_ == kFocusBack) c.frame(statusBackRect(app_), s.stroke, t.frame);
 
     Font& body = app_.fonts().get(s.fontPx);
     Font& bold = app_.fonts().get(s.fontPx, FontStyle::Bold);
@@ -277,13 +279,20 @@ void SettingsScreen::activate(int item) {
 
 void SettingsScreen::moveFocus(int delta) {
     const auto& rows = pages_[static_cast<size_t>(page_)];
-    int f = focus_;
+    int f = focus_ == kFocusBack ? -1 : focus_;
     for (size_t k = 0; k < rows.size(); ++k) {
         f += delta;
         if (f < 0 || f >= static_cast<int>(rows.size())) {
             // Past the page edge: go to the neighbouring page (focus on its first/last row).
             const int next = page_ + (delta > 0 ? 1 : -1);
-            if (next < 0 || next >= static_cast<int>(pages_.size())) return;
+            if (next < 0) {  // above the first row: "‹ Back" (the reader's Back key never reaches the app)
+                const Rect old = focusRect();
+                focus_ = kFocusBack;
+                if (!old.empty()) app_.invalidate(old, RefreshHint::Selection);
+                app_.invalidate(focusRect().inset(-app_.style().stroke), RefreshHint::Selection);
+                return;
+            }
+            if (next >= static_cast<int>(pages_.size())) return;
             setPage(next);
             const auto& nrows = pages_[static_cast<size_t>(page_)];
             f = delta > 0 ? 0 : static_cast<int>(nrows.size()) - 1;
@@ -325,6 +334,7 @@ void SettingsScreen::onKey(const InputEvent& e) {
     case KeyCode::Left: setPage(page_ - 1); break;
     case KeyCode::Right: setPage(page_ + 1); break;
     case KeyCode::Ok: case KeyCode::Menu:
+        if (focus_ == kFocusBack) return app_.pop();
         if (focus_ >= 0) activate(pages_[static_cast<size_t>(page_)][static_cast<size_t>(focus_)].item);
         break;
     case KeyCode::Back: case KeyCode::Home: app_.pop(); break;

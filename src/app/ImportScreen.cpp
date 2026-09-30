@@ -64,6 +64,7 @@ void ImportScreen::rescan() {
                                                      .count()) +
                                   " ms");
     page_ = std::min(page_, pageCount() - 1);
+    if (focus_ >= static_cast<int>(items_.size())) focus_ = static_cast<int>(items_.size()) - 1;
     showPage();
 }
 
@@ -85,6 +86,7 @@ void ImportScreen::draw(Canvas& c, const Rect& clip) {
     c.fill(clip, t.background);
     const std::string right = items_.empty() ? "" : std::to_string(page_ + 1) + "/" + std::to_string(pageCount());
     drawStatusBar(app_, c, "Import", right, "Home");
+    if (focus_ == kFocusBack) c.frame(statusBackRect(app_), s.stroke, t.frame);
     for (const Button& b : nav_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
     if (!clip.intersects(listRect_)) return;
@@ -127,6 +129,7 @@ void ImportScreen::draw(Canvas& c, const Rect& clip) {
         small.draw(c, row.x + pad, y1 + body.descent() + small.ascent() + pad / 3, fitText(small, line2, row.w - 2 * pad),
                    dim);
         c.fill({row.x, row.bottom() - 1, row.w, 1}, blend(t.background, t.frame, 90));
+        if (static_cast<int>(i) == focus_) c.frame(row, s.stroke, t.frame);
     }
     c.popClip();
 }
@@ -248,16 +251,38 @@ void ImportScreen::onGesture(const Gesture& g) {
     }
 }
 
+Rect ImportScreen::focusRect() const {
+    if (focus_ == kFocusBack) return statusBackRect(app_);
+    if (focus_ < 0 || focus_ / rowsPerPage_ != page_) return {};
+    return {listRect_.x, listRect_.y + (focus_ % rowsPerPage_) * rowH_, listRect_.w, rowH_};
+}
+
+// Keys (the reader delivers Prev, Next and Menu): Prev/Next walk the items, pages follow; above
+// the first item is "‹ Back".
+void ImportScreen::moveFocus(int delta) {
+    const int n = static_cast<int>(items_.size());
+    int f = (focus_ < 0 ? -1 : focus_) + delta;  // from "nothing" or "‹ Back", Next goes to the first item
+    if (f >= n) return;
+    if (f < 0) f = kFocusBack;
+    const Rect old = focusRect();
+    focus_ = f;
+    if (focus_ >= 0 && focus_ / rowsPerPage_ != page_) {
+        page_ = focus_ / rowsPerPage_;
+        showPage();
+        return;
+    }
+    if (!old.empty()) app_.invalidate(old.inset(-app_.style().stroke), RefreshHint::Selection);
+    if (!focusRect().empty()) app_.invalidate(focusRect().inset(-app_.style().stroke), RefreshHint::Selection);
+}
+
 void ImportScreen::onKey(const InputEvent& e) {
     switch (e.key) {
-    case KeyCode::Prev: case KeyCode::Left: case KeyCode::Up:
-        if (page_ > 0) --page_, showPage();
-        break;
-    case KeyCode::Next: case KeyCode::Right: case KeyCode::Down:
-        if (page_ + 1 < pageCount()) ++page_, showPage();
-        break;
+    case KeyCode::Prev: case KeyCode::Left: case KeyCode::Up: moveFocus(-1); break;
+    case KeyCode::Next: case KeyCode::Right: case KeyCode::Down: moveFocus(1); break;
     case KeyCode::Ok: case KeyCode::Menu:
-        if (!items_.empty()) choose(static_cast<size_t>(page_ * rowsPerPage_));
+        if (focus_ == kFocusBack) return app_.pop();
+        if (focus_ >= 0) return choose(static_cast<size_t>(focus_));
+        moveFocus(1);
         break;
     case KeyCode::Back: case KeyCode::Home: app_.pop(); break;
     default: break;

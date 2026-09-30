@@ -35,11 +35,15 @@ private:
     void showPage();
     int pageCount() const;
     void openInAnalyze(const ImportItem& item);
+    void moveFocus(int delta);
+    ui::Rect focusRect() const;
 
     std::vector<ImportItem> items_;
     std::vector<ui::Button> nav_;
     ui::Rect listRect_;
     int rowH_ = 0, rowsPerPage_ = 8, page_ = 0;
+    static constexpr int kFocusBack = -2;  // the status bar's "‹ Back" (Prev above the first item)
+    int focus_ = -1;                       // item index for key use, -1 = none
 };
 
 } // namespace pchess::app
