@@ -70,6 +70,7 @@ set(PCHESS_UI_SOURCES
     ${REPO_ROOT}/src/ui/render/Refresh.cpp
     ${REPO_ROOT}/src/ui/theme/BoardTheme.cpp
     ${REPO_ROOT}/src/ui/theme/PieceSet.cpp
+    ${REPO_ROOT}/src/ui/theme/ThemeManager.cpp
     ${REPO_ROOT}/src/ui/widgets/Widgets.cpp
 )
 

@@ -67,10 +67,4 @@ BoardTheme BoardTheme::highContrastMono() {
 
 std::vector<BoardTheme> BoardTheme::builtIns() { return {paper(), slate(), classicMono(), highContrastMono()}; }
 
-BoardTheme BoardTheme::byName(const std::string& name) {
-    for (auto& t : builtIns())
-        if (t.name == name) return t;
-    return paper();
-}
-
 } // namespace pchess::ui

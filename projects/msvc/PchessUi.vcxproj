@@ -63,6 +63,7 @@
     <ClCompile Include="..\..\src\ui\render\Refresh.cpp" />
     <ClCompile Include="..\..\src\ui\theme\BoardTheme.cpp" />
     <ClCompile Include="..\..\src\ui\theme\PieceSet.cpp" />
+    <ClCompile Include="..\..\src\ui\theme\ThemeManager.cpp" />
     <ClCompile Include="..\..\src\ui\widgets\Widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -96,6 +97,7 @@
     <ClInclude Include="..\..\src\ui\render\Refresh.h" />
     <ClInclude Include="..\..\src\ui\theme\BoardTheme.h" />
     <ClInclude Include="..\..\src\ui\theme\PieceSet.h" />
+    <ClInclude Include="..\..\src\ui\theme\ThemeManager.h" />
     <ClInclude Include="..\..\src\ui\widgets\Widgets.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

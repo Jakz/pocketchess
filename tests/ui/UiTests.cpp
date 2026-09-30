@@ -8,10 +8,12 @@
 #include "ui/canvas/PngWriter.h"
 #include "ui/input/Input.h"
 #include "ui/render/Refresh.h"
+#include "ui/theme/ThemeManager.h"
 #include "ui/widgets/Widgets.h"
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 
 using namespace pchess;
 using namespace pchess::ui;
@@ -252,4 +254,87 @@ TEST_CASE("fitText: unchanged when it fits, else shortened with an ellipsis on a
     CHECK(fit.size() < long_.size());
     CHECK(fit.rfind("…") == fit.size() - std::string("…").size());
     CHECK_EQ(fitText(f, "abc", 1), std::string("…"));
+}
+
+// --- Themes (M6) -----------------------------------------------------------------------------------
+
+TEST_CASE("themes: YAML descriptors override the mode's defaults, mono gray keys included") {
+    auto color = util::parseYaml("name: Walnut\nmode: color\nlight: \"#eadbc0\"\ndark: 120\n"
+                                 "selected_pattern: hatch\ntint_markers: false\n");
+    REQUIRE(color.ok());
+    auto t = parseTheme(*color);
+    REQUIRE(t.ok());
+    CHECK_EQ(t->name, std::string("Walnut"));
+    CHECK(!t->mono);
+    CHECK((t->light == Rgb::hex(0xEADBC0)));
+    CHECK((t->dark == Rgb::gray(120)));
+    CHECK((t->check == BoardTheme::paper().check));  // not given: Paper's
+    CHECK(t->selectedStyle == MarkerStyle::Hatch);
+    CHECK(!t->tintMarkers);
+
+    auto mono = parseTheme(*util::parseYaml("name: News\nmode: mono\nlight_gray: 250\ndark_gray: 190\n"));
+    REQUIRE(mono.ok());
+    CHECK(mono->mono);
+    CHECK((mono->dark == Rgb::gray(190)));
+    CHECK((mono->ink == BoardTheme::classicMono().ink));
+
+    // A theme written out reads back the same.
+    auto back = parseTheme(*util::parseYaml(themeToYaml(*t)));
+    REQUIRE(back.ok());
+    CHECK((back->light == t->light && back->frame == t->frame && back->coordOnDark == t->coordOnDark));
+    CHECK(back->selectedStyle == t->selectedStyle);
+    CHECK_EQ(back->tintMarkers, t->tintMarkers);
+}
+
+TEST_CASE("themes: malformed descriptors are rejected with the line") {
+    auto err = [](const char* yaml) {
+        auto doc = util::parseYaml(yaml);
+        if (!doc) return doc.error().context;
+        auto t = parseTheme(*doc);
+        return t ? std::string() : t.error().context;
+    };
+    CHECK(err("mode: color\n").find("name") != std::string::npos);
+    CHECK(err("name: X\nmode: sepia\n").find("mode") != std::string::npos);
+    CHECK(err("name: X\nlight: #eadbc0\n").find("quoted") != std::string::npos);  // # starts a comment
+    CHECK(err("name: X\nlight: \"#eadbcz\"\n").find("line 2") != std::string::npos);
+    CHECK(err("name: X\ndark: 300\n").find("0..255") != std::string::npos);
+    CHECK(err("name: X\nligth: \"#ffffff\"\n").find("unknown key 'ligth'") != std::string::npos);
+    CHECK(err("name: X\ncheck_pattern: stripes\n").find("double_border") != std::string::npos);
+    CHECK(err("name: X\ntint_markers: maybe\n").find("true or false") != std::string::npos);
+}
+
+TEST_CASE("themes: the manager adds a folder's themes and skips broken or duplicate files") {
+    const std::filesystem::path dir = std::filesystem::temp_directory_path() / "pchess-themes-test";
+    std::filesystem::remove_all(dir);
+    std::filesystem::create_directories(dir);
+    auto write = [&](const char* name, const char* text) {
+        std::ofstream(dir / name, std::ios::binary) << text;
+    };
+    write("a.yaml", "name: Walnut\nlight: \"#eadbc0\"\n");
+    write("b.yaml", "name: Broken\nlight: nope\n");
+    write("c.yaml", "name: Paper\n");  // a built-in's name
+    write("d.yaml", "name: Newsprint\nmode: mono\n");
+    write("notes.txt", "not a theme");
+
+    ThemeManager m;
+    const size_t builtIns = m.themes().size();
+    CHECK_EQ(m.loadDirectory(dir), 2);
+    CHECK_EQ(m.themes().size(), builtIns + 2);
+    CHECK_EQ(m.problems().size(), size_t(2));
+    CHECK(m.find("Walnut") != nullptr);
+    const auto monoNames = m.names(true);
+    CHECK(std::find(monoNames.begin(), monoNames.end(), "Newsprint") != monoNames.end());
+    CHECK_EQ(m.resolve("Walnut", false).name, std::string("Walnut"));
+    CHECK_EQ(m.resolve("Walnut", true).name, std::string("ClassicMono"));  // mode mismatch
+    CHECK_EQ(m.resolve("Missing", false).name, std::string("Paper"));
+    CHECK_EQ(m.loadDirectory(dir / "missing"), 0);
+    std::filesystem::remove_all(dir);
+}
+
+TEST_CASE("themes: the bundled theme files load") {
+    ThemeManager m;
+    CHECK_EQ(m.loadDirectory(std::filesystem::path(test::fontDir()).parent_path() / "themes"), 2);
+    CHECK(m.problems().empty());
+    REQUIRE(m.find("Walnut") != nullptr);
+    CHECK(m.find("Newsprint") != nullptr && m.find("Newsprint")->mono);
 }

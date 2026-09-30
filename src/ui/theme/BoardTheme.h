@@ -34,13 +34,12 @@ struct BoardTheme {
     bool tintMarkers = true;  // color themes: also tint selected/last-move/check squares
     bool coordinates = true;
 
-    // Built-ins (design notes §19; M6 adds YAML-loaded themes).
+    // Built-ins (design notes §19); YAML themes come from ThemeManager.
     static BoardTheme paper();
     static BoardTheme slate();
     static BoardTheme classicMono();
     static BoardTheme highContrastMono();
     static std::vector<BoardTheme> builtIns();
-    static BoardTheme byName(const std::string& name);  // falls back to paper()
 };
 
 } // namespace pchess::ui
