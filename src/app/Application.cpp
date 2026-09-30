@@ -252,6 +252,7 @@ void Application::applySettings() {
     theme_ = themes_.resolve(settings_.mono ? settings_.monoTheme : settings_.boardTheme, settings_.mono);
     theme_.coordinates = settings_.coordinates;
     policy_.setFullEvery(settings_.fullRefreshEvery);
+    Log::setLevel(settings_.debugLogging ? util::LogLevel::Debug : util::LogLevel::Info);
     applyPieceSet();
 
     engine::EngineSettings es = engines_->settings();
@@ -434,9 +435,15 @@ void Application::handleInput(const InputEvent& e) {
     Screen* s = top();
     if (!s) return;
     switch (e.type) {
-    case InputEvent::Type::Key:
-        s->onKey(e);
+    case InputEvent::Type::Key: {
+        InputEvent ev = e;
+        if (settings_.swapPageKeys) {  // Settings -> Input -> Page buttons
+            if (ev.key == KeyCode::Prev) ev.key = KeyCode::Next;
+            else if (ev.key == KeyCode::Next) ev.key = KeyCode::Prev;
+        }
+        s->onKey(ev);
         break;
+    }
     case InputEvent::Type::KeyRelease:
         break;
     case InputEvent::Type::Text:

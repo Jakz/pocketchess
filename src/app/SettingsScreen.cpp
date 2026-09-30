@@ -96,6 +96,7 @@ void SettingsScreen::buildItems() {
     addBool("Input", "Tap to move", st.tapToMove);
     addBool("Input", "Drag to move", st.dragToMove);
     addBool("Input", "Show legal moves", st.showLegalMoves);
+    addBool("Input", "Page buttons", st.swapPageKeys, "Swapped", "Normal");
 
     // Engine / Power
     add("Engine", "Power profile", {"Performance", "Balanced", "Eco"},
@@ -150,6 +151,7 @@ void SettingsScreen::buildItems() {
     // Advanced
     addInts("Advanced", "Review clock offset", st.clockOffsetDays, {0, 1, 3, 7, 30},
             {"None", "+1 day", "+3 days", "+7 days", "+30 days"});
+    addBool("Advanced", "Debug logging", st.debugLogging);
 }
 
 void SettingsScreen::paginate() {

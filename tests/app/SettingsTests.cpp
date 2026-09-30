@@ -54,6 +54,9 @@ TEST_CASE("settings: key/value round trip; unknown keys and invalid values keep 
     s.deepLimitSeconds = -1;
     s.analysisMultiPv = 3;
     s.evalFromWhite = false;
+    s.pieceSet = "Merida";
+    s.swapPageKeys = true;
+    s.debugLogging = true;
     Settings back;
     back.fromMap(s.toMap());
     CHECK(back.toMap() == s.toMap());

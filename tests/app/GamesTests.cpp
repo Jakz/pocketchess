@@ -178,3 +178,18 @@ TEST_CASE("game study: stepping, jumping, variations, favorites and Analyze from
     std::error_code ec;
     std::filesystem::remove_all(root, ec);
 }
+
+TEST_CASE("page buttons: Settings -> Input -> Swapped turns Prev into Next and back") {
+    const auto root = gamesRoot("pchess-games-swap");
+    GamesHarness h(root);
+    h.app->push(std::make_unique<GamesScreen>(*h.app));
+    h.app->flush();
+    h.app->settings().swapPageKeys = true;
+    h.run("key:prev");
+    CHECK_EQ(h.browser()->page(), 1);
+    h.run("key:next");
+    CHECK_EQ(h.browser()->page(), 0);
+    h.app->settings().swapPageKeys = false;
+    h.run("key:next");
+    CHECK_EQ(h.browser()->page(), 1);
+}

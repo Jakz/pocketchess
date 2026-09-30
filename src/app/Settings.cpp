@@ -42,6 +42,7 @@ std::map<std::string, std::string> Settings::toMap() const {
         {"input.tap_to_move", boolText(tapToMove)},
         {"input.drag_to_move", boolText(dragToMove)},
         {"input.show_legal_moves", boolText(showLegalMoves)},
+        {"input.swap_page_keys", boolText(swapPageKeys)},
         {"engine.power_profile", engine::toString(powerProfile)},
         {"engine.analysis_engine", analysisEngine},
         {"engine.play_engine", playEngine},
@@ -58,6 +59,7 @@ std::map<std::string, std::string> Settings::toMap() const {
         {"tactics.auto_next", boolText(tacticsAutoNext)},
         {"tactics.auto_opponent", boolText(tacticsAutoOpponent)},
         {"advanced.clock_offset_days", std::to_string(clockOffsetDays)},
+        {"advanced.debug_logging", boolText(debugLogging)},
     };
 }
 
@@ -71,6 +73,7 @@ void Settings::fromMap(const std::map<std::string, std::string>& m) {
     readBool(m, "input.tap_to_move", tapToMove);
     readBool(m, "input.drag_to_move", dragToMove);
     readBool(m, "input.show_legal_moves", showLegalMoves);
+    readBool(m, "input.swap_page_keys", swapPageKeys);
     if (auto it = m.find("engine.power_profile"); it != m.end())
         if (auto p = engine::powerProfileFromString(it->second)) powerProfile = *p;
     readString(m, "engine.analysis_engine", analysisEngine);
@@ -88,6 +91,7 @@ void Settings::fromMap(const std::map<std::string, std::string>& m) {
     readBool(m, "tactics.auto_next", tacticsAutoNext);
     readBool(m, "tactics.auto_opponent", tacticsAutoOpponent);
     readInt(m, "advanced.clock_offset_days", clockOffsetDays, -3650, 3650);
+    readBool(m, "advanced.debug_logging", debugLogging);
 }
 
 } // namespace pchess::app

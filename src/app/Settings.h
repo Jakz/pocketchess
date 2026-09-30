@@ -21,6 +21,7 @@ struct Settings {
     bool tapToMove = true;
     bool dragToMove = true;
     bool showLegalMoves = true;
+    bool swapPageKeys = false;         // the reader's page buttons: Prev <-> Next (left hand, flipped cover)
     // Engine / Power
     engine::PowerProfileId powerProfile = engine::PowerProfileId::Balanced;
     std::string analysisEngine;        // engine id; empty = the profile's default
@@ -40,6 +41,7 @@ struct Settings {
     bool tacticsAutoOpponent = true;   // the opponent's move plays by itself (else: tap Next)
     // Advanced
     int clockOffsetDays = 0;           // shifts "now" for reviews (device test of the schedule)
+    bool debugLogging = false;         // Debug-level lines in logs/pocketchess.log
 
     // key -> value text. Unknown keys and invalid values are ignored by fromMap (defaults stay),
     // so older and newer databases both load.
