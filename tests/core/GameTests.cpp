@@ -142,6 +142,33 @@ TEST_CASE("game pack: import keeps moves, and comments/variations for annotated 
     CHECK_EQ(n->children[1]->comment, std::string("is the quiet alternative."));
 }
 
+TEST_CASE("game pack: clock and eval commands are dropped; games keep their PGN only for real annotations") {
+    auto db = storage::Database::open({}, storage::Database::Mode::Memory);
+    REQUIRE(db.ok());
+    GameImporter imp(*db, nullptr);
+    REQUIRE(imp.begin().ok());
+    auto machine =
+        chess::parsePgnGame("[White \"A\"]\n[Black \"B\"]\n\n1. e4 { [%eval 0.18] [%clk 1:00:50] } e5 { [%clk 0:59:10] } 1-0\n");
+    auto human = chess::parsePgnGame("[White \"C\"]\n[Black \"D\"]\n\n1. e4 { [%clk 1:00:50] Best by test. } e5 1-0\n");
+    auto engine = chess::parsePgnGame(
+        "[White \"E\"]\n[Black \"F\"]\n\n1. e4 e5 2. Qh5 $6 {Inaccuracy. Nf3 was best.} (2. Nf3 Nc6) 2... Nc6 1-0\n");
+    REQUIRE((machine.ok() && human.ok() && engine.ok()));
+    REQUIRE(imp.add(*machine).ok());
+    REQUIRE(imp.add(*engine).ok());
+    REQUIRE(imp.add(*human).ok());
+    REQUIRE(imp.finish({}).ok());
+    CHECK_EQ(imp.stats().annotated, uint64_t(1));
+    auto pack = GamePack::fromDatabase(std::move(*db), "t");
+    REQUIRE(pack.ok());
+    GameFilter f;
+    f.player = "c";
+    auto rows = pack->page(f, 0, 5);
+    REQUIRE((rows.ok() && rows->size() == 1));
+    auto g = pack->load((*rows)[0].id);
+    REQUIRE(g.ok());
+    CHECK_EQ(g->tree.root()->mainChild()->comment, std::string("Best by test."));
+}
+
 TEST_CASE("game pack: filters, counts and pages") {
     GamePack pack = samplePack();
     auto count = [&](const GameFilter& f) {

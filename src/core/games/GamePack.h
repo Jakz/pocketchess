@@ -38,7 +38,8 @@ class GameImporter {
 public:
     GameImporter(storage::Database& db, const OpeningBook* openings);
     Result<void> begin();  // creates the schema and opens the transaction
-    Result<bool> add(const chess::PgnGame& game);  // false: skipped
+    // false: skipped. Machine annotations ([%clk], [%eval] ...) are removed from `game` first.
+    Result<bool> add(chess::PgnGame& game);
     Result<void> finish(const std::map<std::string, std::string>& meta);  // commit + ANALYZE
     const ImportStats& stats() const { return stats_; }
 

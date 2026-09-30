@@ -50,6 +50,45 @@ int toInt(const std::string& s) {
     return v;
 }
 
+// Machine annotations ("[%clk 1:00:50]", "[%eval 0.18]", "[%csl ...]") are dropped: broadcasts and
+// Lichess exports carry them on every move, which would store the full PGN of every game.
+std::string withoutCommands(const std::string& s) {
+    std::string out;
+    for (size_t i = 0; i < s.size(); ++i) {
+        if (s[i] == '[' && i + 1 < s.size() && s[i + 1] == '%') {
+            const size_t end = s.find(']', i);
+            if (end == std::string::npos) break;
+            i = end;
+            continue;
+        }
+        const bool space = s[i] == ' ' || s[i] == '\n' || s[i] == '\t' || s[i] == '\r';
+        if (space && (out.empty() || out.back() == ' ')) continue;
+        out += space ? ' ' : s[i];
+    }
+    while (!out.empty() && out.back() == ' ') out.pop_back();
+    return out;
+}
+
+// Lichess computer analysis: "$6 {Inaccuracy. b6 was best.} (8... b6 ...)", "{Checkmate is now
+// unavoidable. Qxf7+ was best.}". Generated, not written by anyone: comment, NAGs and the
+// suggested line (a sibling variation) go.
+bool computerComment(const std::string& c) {
+    static const std::string tail = " was best.";
+    return c.size() > tail.size() && c.compare(c.size() - tail.size(), tail.size(), tail) == 0;
+}
+
+void stripCommands(GameNode* n) {
+    if (n->comment.find("[%") != std::string::npos) n->comment = withoutCommands(n->comment);
+    if (n->preComment.find("[%") != std::string::npos) n->preComment = withoutCommands(n->preComment);
+    if (computerComment(n->comment)) {
+        n->comment.clear();
+        n->nags.clear();
+        if (n->parent && n->parent->children.size() > 1 && n->parent->children.front().get() == n)
+            n->parent->children.resize(1);  // the engine's suggestion
+    }
+    for (const auto& c : n->children) stripCommands(c.get());
+}
+
 bool annotated(const GameNode* n) {
     if (!n->comment.empty() || !n->preComment.empty() || !n->nags.empty() || n->children.size() > 1) return true;
     for (const auto& c : n->children)
@@ -207,7 +246,7 @@ Result<int64_t> GameImporter::playerId(const std::string& name) {
     return id;
 }
 
-Result<bool> GameImporter::add(const PgnGame& game) {
+Result<bool> GameImporter::add(PgnGame& game) {
     const std::vector<chess::Move> moves = game.tree.mainLine();
     if (moves.empty()) {
         ++stats_.skipped;
@@ -229,6 +268,7 @@ Result<bool> GameImporter::add(const PgnGame& game) {
     std::string date = game.header("Date");
     if (date.empty() || date.rfind("????", 0) == 0) date = game.header("UTCDate");  // Lichess exports
     const int year = toInt(date.substr(0, 4));
+    stripCommands(game.tree.root());
     const bool keepPgn = annotated(game.tree.root());
     if (keepPgn) ++stats_.annotated;
 
