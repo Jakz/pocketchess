@@ -74,7 +74,7 @@ void SettingsScreen::buildItems() {
     add("Display", "Mode", {"Color", "Monochrome"}, [&st] { return st.mono ? 1 : 0; },
         [&st](int i) { st.mono = i == 1; });
     std::vector<std::string> colorThemes, monoThemes;
-    for (const BoardTheme& t : BoardTheme::builtIns()) (t.mono ? monoThemes : colorThemes).push_back(t.name);
+    for (const BoardTheme& t : app_.themes().themes()) (t.mono ? monoThemes : colorThemes).push_back(t.name);
     add("Display", "Color theme", colorThemes, [&st, colorThemes] { return indexOf(colorThemes, st.boardTheme); },
         [&st, colorThemes](int i) { st.boardTheme = colorThemes[static_cast<size_t>(i)]; });
     add("Display", "Monochrome theme", monoThemes, [&st, monoThemes] { return indexOf(monoThemes, st.monoTheme); },

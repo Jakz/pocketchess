@@ -20,6 +20,7 @@
 #include "ui/render/Refresh.h"
 #include "ui/theme/BoardTheme.h"
 #include "ui/theme/PieceSet.h"
+#include "ui/theme/ThemeManager.h"
 #include "ui/widgets/Widgets.h"
 
 #include <filesystem>
@@ -137,6 +138,7 @@ public:
     ui::Canvas& canvas() { return canvas_; }
     ui::FontLibrary& fonts() { return fonts_; }
     ui::PieceCache& pieces() { return pieces_; }
+    const ui::ThemeManager& themes() const { return themes_; }
     const ui::BoardTheme& theme() const { return theme_; }
     const ui::UiStyle& style() const { return style_; }
     const Layout& layout() const { return layout_; }
@@ -181,6 +183,7 @@ private:
     ui::Canvas canvas_;
     ui::FontLibrary fonts_;
     ui::PieceCache pieces_;
+    ui::ThemeManager themes_;
     ui::BoardTheme theme_;
     ui::UiStyle style_;
     Layout layout_;

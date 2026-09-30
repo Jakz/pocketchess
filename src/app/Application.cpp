@@ -81,6 +81,7 @@ void Application::start() {
         if (!set->complete()) Log::warn("app", "piece glyphs incomplete in the bundled font");
         pieces_.setPieceSet(set);
     }
+    themes_.loadDirectory(paths_.themes());
 
     if (config_.persistSettings) {
         // Content errors never stop the app (design notes §32): settings then stay in memory.
@@ -107,7 +108,8 @@ void Application::start() {
     // Command-line overrides apply to this session only.
     if (config_.mono) settings_.mono = *config_.mono;
     if (!config_.theme.empty()) {
-        const BoardTheme t = BoardTheme::byName(config_.theme);
+        const BoardTheme* found = themes_.find(config_.theme);
+        const BoardTheme t = found ? *found : BoardTheme::paper();
         if (t.mono) {
             settings_.mono = true;
             settings_.monoTheme = t.name;
@@ -204,8 +206,7 @@ std::unique_ptr<Screen> Application::makeScreen(const std::string& name) {
 }
 
 void Application::applySettings() {
-    theme_ = settings_.mono ? BoardTheme::byName(settings_.monoTheme) : BoardTheme::byName(settings_.boardTheme);
-    if (settings_.mono && !theme_.mono) theme_ = BoardTheme::classicMono();
+    theme_ = themes_.resolve(settings_.mono ? settings_.monoTheme : settings_.boardTheme, settings_.mono);
     theme_.coordinates = settings_.coordinates;
     policy_.setFullEvery(settings_.fullRefreshEvery);
 
