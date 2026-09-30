@@ -2,6 +2,7 @@
 #include "app/Dialogs.h"
 
 #include "app/Application.h"
+#include "ui/theme/Palette.h"
 
 #include <algorithm>
 #include <memory>
@@ -103,6 +104,89 @@ void MessageDialog::onKey(const InputEvent& e) {
     }
     app_.invalidate(old, RefreshHint::Selection);
     app_.invalidate(buttons_[static_cast<size_t>(focus_)].rect.inset(-app_.style().stroke * 3), RefreshHint::Selection);
+}
+
+// --- SwatchDialog -------------------------------------------------------------------------------
+
+SwatchDialog::SwatchDialog(Application& app, std::string title, std::vector<Swatch> swatches, int current,
+                           std::function<void(int)> done)
+    : Dialog(app), title_(std::move(title)), swatches_(std::move(swatches)), current_(current), done_(std::move(done)) {
+    const UiStyle& s = app_.style();
+    const Rect screen = app_.layout().screen;
+    const int pad = s.fontPx;
+    const int w = screen.w * 11 / 12;
+    const int cols = 4;
+    const int rows = (static_cast<int>(swatches_.size()) + cols - 1) / cols;
+    const int labelH = app_.fonts().get(s.smallPx).lineHeight();
+    const int cellW = (w - 2 * pad - (cols - 1) * pad / 2) / cols;
+    const int swatchH = std::max(kMinTouchPx - labelH, cellW / 2);
+    const int cellH = swatchH + labelH;
+    titleH_ = app_.fonts().get(s.titlePx, FontStyle::Bold).lineHeight() + s.fontPx;
+    const int h = titleH_ + pad / 2 + rows * (cellH + pad / 2) + kMinTouchPx + pad * 3 / 2;
+    rect_ = {screen.x + (screen.w - w) / 2, screen.y + std::max(0, (screen.h - h) / 2), w, h};
+    for (int i = 0; i < static_cast<int>(swatches_.size()); ++i) {
+        const int r = i / cols, col = i % cols;
+        cells_.push_back({rect_.x + pad + col * (cellW + pad / 2), rect_.y + titleH_ + pad / 2 + r * (cellH + pad / 2),
+                          cellW, cellH});
+    }
+    close_.label = "Close";
+    close_.rect = {rect_.x + pad, rect_.bottom() - pad - kMinTouchPx, w - 2 * pad, kMinTouchPx};
+    focus_ = current_ >= 0 && current_ < static_cast<int>(swatches_.size()) ? current_ : 0;
+}
+
+Rect SwatchDialog::focusRect(int i) const {
+    const int st = app_.style().stroke;
+    return (i < static_cast<int>(cells_.size()) ? cells_[static_cast<size_t>(i)] : close_.rect).inset(-st * 3);
+}
+
+void SwatchDialog::draw(Canvas& c, const Rect&) {
+    drawFrame(c, title_);
+    const BoardTheme& t = app_.theme();
+    const UiStyle& s = app_.style();
+    Font& small = app_.fonts().get(s.smallPx);
+    for (size_t i = 0; i < cells_.size(); ++i) {
+        const Swatch& sw = swatches_[i];
+        const Rect cell = cells_[i];
+        const Rect box{cell.x, cell.y, cell.w, cell.h - small.lineHeight()};
+        if (sw.b) {
+            c.fill({box.x, box.y, box.w / 2, box.h}, sw.a);
+            c.fill({box.x + box.w / 2, box.y, box.w - box.w / 2, box.h}, *sw.b);
+        } else {
+            c.fill(box, sw.a);
+        }
+        c.frame(box, static_cast<int>(i) == current_ ? s.stroke * 3 : s.stroke, t.frame);
+        if (static_cast<int>(i) == current_) small.drawCentered(c, box, "✓", textOn(t, sw.a));
+        small.drawCentered(c, {cell.x, box.bottom(), cell.w, small.lineHeight()}, fitText(small, sw.label, cell.w), t.ink);
+    }
+    drawButton(c, close_, t, app_.fonts(), s);
+    c.frame(focusRect(focus_), s.stroke, t.frame);
+}
+
+void SwatchDialog::finish(int index) {
+    auto done = std::move(done_);
+    app_.pop();
+    if (done) done(index);
+}
+
+void SwatchDialog::onGesture(const Gesture& g) {
+    if (g.type != Gesture::Type::Tap) return;
+    for (size_t i = 0; i < cells_.size(); ++i)
+        if (cells_[i].contains(g.start)) return finish(static_cast<int>(i));
+    if (close_.rect.contains(g.start) || !rect_.contains(g.start)) finish(-1);
+}
+
+void SwatchDialog::onKey(const InputEvent& e) {
+    const int n = static_cast<int>(cells_.size()) + 1;  // + Close
+    const Rect old = focusRect(focus_);
+    switch (e.key) {
+    case KeyCode::Prev: case KeyCode::Left: case KeyCode::Up: focus_ = (focus_ + n - 1) % n; break;
+    case KeyCode::Next: case KeyCode::Right: case KeyCode::Down: focus_ = (focus_ + 1) % n; break;
+    case KeyCode::Ok: case KeyCode::Menu: return finish(focus_ < n - 1 ? focus_ : -1);
+    case KeyCode::Back: case KeyCode::Home: return finish(-1);
+    default: return;
+    }
+    app_.invalidate(old, RefreshHint::Selection);
+    app_.invalidate(focusRect(focus_), RefreshHint::Selection);
 }
 
 // --- chooseFromList -----------------------------------------------------------------------------

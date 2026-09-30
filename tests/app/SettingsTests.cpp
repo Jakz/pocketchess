@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include "app/AnalyzeScreen.h"
 #include "app/Application.h"
 #include "app/HeadlessHost.h"
 #include "app/Script.h"
 #include "app/SettingsScreen.h"
 #include "support/Golden.h"
 #include "support/Test.h"
+#include "ui/theme/Palette.h"
 
 #include <filesystem>
 
@@ -150,4 +152,40 @@ TEST_CASE("settings screen: keys only - Prev above the first row focuses Back, M
     h.run("key:prev;key:menu");
     CHECK(h.screen() == nullptr);  // back on Home
     CHECK_EQ(std::string(h.app->top()->name()), std::string("home"));
+}
+
+TEST_CASE("settings screen: accent and piece colors are picked from swatches and color the board") {
+    SettingsHarness h;
+    h.focus("Accent color");
+    h.run("key:ok");
+    REQUIRE_EQ(std::string(h.app->top()->name()), std::string("swatches"));
+    for (int i = 0; i < 7; ++i) h.run("key:next");  // Theme, Graphite, Red, Orange, Amber, Green, Teal -> Blue
+    h.app->flush();
+    test::checkGolden("swatches", h.app->canvas());
+    h.run("key:ok");
+    CHECK_EQ(h.app->settings().accent, std::string("Blue"));
+    CHECK((h.app->theme().accent == *ui::findAccent("Blue")));
+
+    h.focus("Piece colors");
+    h.run("key:ok");
+    for (int i = 0; i < 7; ++i) h.run("key:next");
+    h.run("key:ok");
+    CHECK_EQ(h.app->settings().pieceColor, std::string("Blue"));
+    CHECK(h.app->theme().tintPieces);
+
+    // Mono mode ignores both (patterns and grays only).
+    h.app->settings().mono = true;
+    h.app->applySettings();
+    CHECK_FALSE(h.app->theme().tintPieces);
+    h.app->settings().mono = false;
+    h.app->applySettings();
+
+    h.app->pop();
+    h.app->push(std::make_unique<AnalyzeScreen>(*h.app, std::string()));
+    REQUIRE(runScript(*h.app, "tap:604,934").ok());  // select e2: accent-tinted square
+    h.app->flush();
+    test::checkGolden("analyze-colors", h.app->canvas());
+    h.app->settings().accent.clear();
+    h.app->settings().pieceColor.clear();
+    h.app->applySettings();
 }

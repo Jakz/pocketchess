@@ -50,6 +50,34 @@ private:
 void chooseFromList(Application& app, const std::string& title, std::vector<std::string> items,
                     std::function<void(int)> done, int pageSize = 6);
 
+// A color choice: a grid of swatches (one color, or two halves such as a board's light and dark
+// squares) with their names, the current one framed, and Close. `done(index)` or -1.
+struct Swatch {
+    std::string label;
+    ui::Rgb a;
+    std::optional<ui::Rgb> b;  // right half
+};
+
+class SwatchDialog final : public Dialog {
+public:
+    SwatchDialog(Application& app, std::string title, std::vector<Swatch> swatches, int current,
+                 std::function<void(int)> done);
+    const char* name() const override { return "swatches"; }
+    void draw(ui::Canvas& c, const ui::Rect& clip) override;
+    void onGesture(const ui::Gesture& g) override;
+    void onKey(const ui::InputEvent& e) override;
+
+private:
+    void finish(int index);
+    ui::Rect focusRect(int i) const;
+    std::string title_;
+    std::vector<Swatch> swatches_;
+    std::vector<ui::Rect> cells_;
+    ui::Button close_;
+    int current_ = -1, focus_ = 0;  // focus == size(): Close
+    std::function<void(int)> done_;
+};
+
 // Promotion choice over the board: Q R B N in a row.
 class PromotionDialog final : public Dialog {
 public:

@@ -15,6 +15,7 @@
 #include "core/util/Clock.h"
 #include "core/util/Files.h"
 #include "core/util/Log.h"
+#include "ui/theme/Palette.h"
 
 #include <algorithm>
 #include <chrono>
@@ -251,6 +252,13 @@ void Application::applyPieceSet() {
 void Application::applySettings() {
     theme_ = themes_.resolve(settings_.mono ? settings_.monoTheme : settings_.boardTheme, settings_.mono);
     theme_.coordinates = settings_.coordinates;
+    if (!settings_.mono) {  // color mode only: mono themes keep patterns and grays
+        if (auto a = findAccent(settings_.accent)) applyAccent(theme_, *a);
+        if (auto h = findAccent(settings_.pieceColor)) applyPieceTint(theme_, *h);
+    }
+    pieces_.setTint(theme_.tintPieces ? std::optional<PieceCache::Tint>(PieceCache::Tint{
+                                            Rgb::hex(0x1E1E1E), theme_.whitePiece, theme_.blackPiece})
+                                      : std::nullopt);
     policy_.setFullEvery(settings_.fullRefreshEvery);
     Log::setLevel(settings_.debugLogging ? util::LogLevel::Debug : util::LogLevel::Info);
     applyPieceSet();

@@ -6,6 +6,7 @@
 #include "app/Dialogs.h"
 #include "core/engine/EngineDescriptor.h"
 #include "core/util/Log.h"
+#include "ui/theme/Palette.h"
 
 #include <algorithm>
 
@@ -77,6 +78,38 @@ void SettingsScreen::buildItems() {
     for (const BoardTheme& t : app_.themes().themes()) (t.mono ? monoThemes : colorThemes).push_back(t.name);
     add("Display", "Color theme", colorThemes, [&st, colorThemes] { return indexOf(colorThemes, st.boardTheme); },
         [&st, colorThemes](int i) { st.boardTheme = colorThemes[static_cast<size_t>(i)]; });
+    items_.back().swatches = [this, colorThemes] {
+        std::vector<Swatch> out;
+        for (const std::string& n : colorThemes)
+            if (const BoardTheme* t = app_.themes().find(n)) out.push_back({n, t->light, t->dark});
+        return out;
+    };
+    // Accent and piece colors (color mode): the hues of ui::accentColors().
+    std::vector<std::string> hues{""}, accentTexts{"Theme"}, pieceTexts{"Black & white"};
+    for (const NamedColor& c : accentColors()) {
+        hues.push_back(c.name);
+        accentTexts.push_back(c.name);
+        pieceTexts.push_back(c.name);
+    }
+    add("Display", "Accent color", accentTexts, [&st, hues] { return indexOf(hues, st.accent); },
+        [&st, hues](int i) { st.accent = hues[static_cast<size_t>(i)]; });
+    items_.back().swatches = [this] {
+        const BoardTheme own = app_.themes().resolve(app_.settings().boardTheme, false);
+        std::vector<Swatch> out{{"Theme", own.accent, std::nullopt}};
+        for (const NamedColor& c : accentColors()) out.push_back({c.name, c.color, std::nullopt});
+        return out;
+    };
+    add("Display", "Piece colors", pieceTexts, [&st, hues] { return indexOf(hues, st.pieceColor); },
+        [&st, hues](int i) { st.pieceColor = hues[static_cast<size_t>(i)]; });
+    items_.back().swatches = [] {
+        std::vector<Swatch> out{{"Black & white", Rgb::gray(255), Rgb::gray(0)}};
+        for (const NamedColor& c : accentColors()) {
+            BoardTheme t;
+            applyPieceTint(t, c.color);
+            out.push_back({c.name, t.whitePiece, t.blackPiece});
+        }
+        return out;
+    };
     add("Display", "Monochrome theme", monoThemes, [&st, monoThemes] { return indexOf(monoThemes, st.monoTheme); },
         [&st, monoThemes](int i) { st.monoTheme = monoThemes[static_cast<size_t>(i)]; });
     std::vector<std::string> pieceSets;
@@ -237,6 +270,19 @@ void SettingsScreen::draw(Canvas& c, const Rect& clip) {
         body.draw(c, row.rect.x + pad, baseline, it.label, t.ink);
         const std::string value = valueText(it);
         body.draw(c, row.rect.right() - pad - body.measure(value), baseline, value, dim);
+        if (it.swatches) {  // the current color next to its name
+            const auto sw = it.swatches();
+            const int cur = it.current();
+            if (cur >= 0 && cur < static_cast<int>(sw.size())) {
+                const int sz = body.lineHeight();
+                const Rect box{row.rect.right() - pad - body.measure(value) - pad - 2 * sz, row.rect.y + (row.rect.h - sz) / 2,
+                               2 * sz, sz};
+                const Swatch& s0 = sw[static_cast<size_t>(cur)];
+                c.fill(s0.b ? Rect{box.x, box.y, box.w / 2, box.h} : box, s0.a);
+                if (s0.b) c.fill({box.x + box.w / 2, box.y, box.w - box.w / 2, box.h}, *s0.b);
+                c.frame(box, s.stroke, t.frame);
+            }
+        }
         c.fill({row.rect.x, row.rect.bottom() - 1, row.rect.w, 1}, blend(t.background, t.frame, 90));
         if (static_cast<int>(r) == focus_) c.frame(row.rect, s.stroke, t.frame);
     }
@@ -259,6 +305,16 @@ void SettingsScreen::changed() {
 void SettingsScreen::activate(int item) {
     Item& it = items_[static_cast<size_t>(item)];
     util::Log::info("settings", "open " + it.label);
+    if (it.swatches) {  // color rows: pick from colored rectangles
+        app_.push(std::make_unique<SwatchDialog>(app_, it.label, it.swatches(), it.current(), [this, item](int i) {
+            if (i < 0) return;
+            Item& chosen = items_[static_cast<size_t>(item)];
+            chosen.set(i);
+            util::Log::info("settings", chosen.label + " = " + valueText(chosen));
+            changed();
+        }));
+        return;
+    }
     if (it.choices.size() == 2) {  // toggles in place
         const int cur = it.current();
         it.set(cur == 0 ? 1 : 0);

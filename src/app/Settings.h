@@ -14,6 +14,8 @@ struct Settings {
     std::string boardTheme = "Paper";  // used in color mode
     std::string monoTheme = "ClassicMono";
     std::string pieceSet = "Cburnett"; // assets/pieces/<set>; "DejaVu" = the built-in font glyphs
+    std::string accent;                // accentColors() name; empty = the theme's own (color mode)
+    std::string pieceColor;            // accentColors() hue for the pieces; empty = black and white
     bool mono = false;                 // Color / Monochrome
     bool coordinates = true;
     int fullRefreshEvery = 12;         // full refresh interval (content updates)

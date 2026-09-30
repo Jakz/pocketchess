@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include "app/Dialogs.h"
 #include "app/Screen.h"
 #include "ui/widgets/Widgets.h"
 
@@ -34,6 +35,7 @@ private:
         std::vector<std::string> choices;  // display texts
         std::function<int()> current;      // index into choices (-1: none matches)
         std::function<void(int)> set;
+        std::function<std::vector<Swatch>()> swatches;  // color rows: a SwatchDialog instead of a list
     };
     struct Row {
         int item = -1;  // -1: section header
