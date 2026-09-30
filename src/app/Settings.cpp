@@ -51,6 +51,7 @@ std::map<std::string, std::string> Settings::toMap() const {
         {"engine.multipv", std::to_string(analysisMultiPv)},
         {"engine.eval_from_white", boolText(evalFromWhite)},
         {"tactics.pack", tacticsPack},
+        {"games.pack", gamesPack},
         {"tactics.theme", tacticsTheme},
         {"tactics.difficulty", std::to_string(tacticsDifficulty)},
         {"tactics.auto_next", boolText(tacticsAutoNext)},
@@ -79,6 +80,7 @@ void Settings::fromMap(const std::map<std::string, std::string>& m) {
     readInt(m, "engine.multipv", analysisMultiPv, 1, 3);
     readBool(m, "engine.eval_from_white", evalFromWhite);
     readString(m, "tactics.pack", tacticsPack);
+    readString(m, "games.pack", gamesPack);
     readString(m, "tactics.theme", tacticsTheme);
     readInt(m, "tactics.difficulty", tacticsDifficulty, -400, 400);
     readBool(m, "tactics.auto_next", tacticsAutoNext);

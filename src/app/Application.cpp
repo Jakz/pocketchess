@@ -225,31 +225,37 @@ void Application::applySettings() {
     if (started_) invalidateAll(RefreshHint::Screen);
 }
 
-std::vector<std::string> Application::puzzlePackNames() const {
+std::vector<std::string> Application::packNames(const char* kind) const {
     std::vector<std::string> names;
     std::error_code ec;
-    for (const auto& de : std::filesystem::directory_iterator(paths_.content() / "puzzles", ec))
+    for (const auto& de : std::filesystem::directory_iterator(paths_.content() / kind, ec))
         if (de.is_regular_file(ec) && de.path().extension() == ".db") names.push_back(de.path().stem().string());
     std::sort(names.begin(), names.end());
     return names;
 }
 
-puzzles::PuzzlePack* Application::puzzlePack() {
-    // The chosen pack, else the largest installed one (by file size: more puzzles).
-    std::string name = settings_.tacticsPack;
-    const auto names = puzzlePackNames();
-    if (std::find(names.begin(), names.end(), name) == names.end()) {
-        name.clear();
-        std::uintmax_t best = 0;
-        std::error_code ec;
-        for (const auto& n : names) {
-            const auto size = std::filesystem::file_size(paths_.content() / "puzzles" / (n + ".db"), ec);
-            if (!ec && size >= best) {
-                best = size;
-                name = n;
-            }
+// The wanted pack when installed, else the largest one (by file size: the most content).
+std::string Application::choosePack(const char* kind, const std::string& wanted) const {
+    const auto names = packNames(kind);
+    if (std::find(names.begin(), names.end(), wanted) != names.end()) return wanted;
+    std::string name;
+    std::uintmax_t best = 0;
+    std::error_code ec;
+    for (const auto& n : names) {
+        const auto size = std::filesystem::file_size(paths_.content() / kind / (n + ".db"), ec);
+        if (!ec && size >= best) {
+            best = size;
+            name = n;
         }
     }
+    return name;
+}
+
+std::vector<std::string> Application::puzzlePackNames() const { return packNames("puzzles"); }
+std::vector<std::string> Application::gamePackNames() const { return packNames("games"); }
+
+puzzles::PuzzlePack* Application::puzzlePack() {
+    const std::string name = choosePack("puzzles", settings_.tacticsPack);
     if (name.empty()) return nullptr;
     if (pack_ && packName_ == name) return pack_.get();
     auto pack = puzzles::PuzzlePack::open(paths_.content() / "puzzles" / (name + ".db"));
@@ -261,6 +267,21 @@ puzzles::PuzzlePack* Application::puzzlePack() {
     packName_ = name;
     Log::info("app", "puzzle pack " + name + ": " + std::to_string(pack_->count()) + " puzzles");
     return pack_.get();
+}
+
+games::GamePack* Application::gamePack() {
+    const std::string name = choosePack("games", settings_.gamesPack);
+    if (name.empty()) return nullptr;
+    if (gamePack_ && gamePackName_ == name) return gamePack_.get();
+    auto pack = games::GamePack::open(paths_.content() / "games" / (name + ".db"));
+    if (!pack) {
+        Log::error("app", "game pack " + name + ": " + pack.error().message());
+        return nullptr;
+    }
+    gamePack_ = std::make_unique<games::GamePack>(std::move(*pack));
+    gamePackName_ = name;
+    Log::info("app", "game pack " + name + ": " + std::to_string(gamePack_->count()) + " games");
+    return gamePack_.get();
 }
 
 int64_t Application::now() const {

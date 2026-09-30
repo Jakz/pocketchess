@@ -5,6 +5,7 @@
 #include "app/Settings.h"
 #include "core/engine/EngineManager.h"
 #include "core/engine/EngineRegistry.h"
+#include "core/games/GamePack.h"
 #include "core/puzzles/Progress.h"
 #include "core/puzzles/PuzzlePack.h"
 #include "core/storage/Database.h"
@@ -122,6 +123,9 @@ public:
     puzzles::Progress* progress() { return progress_.get(); }
     puzzles::PuzzlePack* puzzlePack();
     std::vector<std::string> puzzlePackNames() const;  // file stems, sorted
+    // Historical games (M5): content/games/<pack>.db (Settings -> Games -> Pack, else the largest).
+    games::GamePack* gamePack();
+    std::vector<std::string> gamePackNames() const;
     int64_t now() const;  // unix seconds for reviews: the clock plus Settings clock offset (device tests)
 
     // Engines (M2): registry of engines/*/engine.yaml and the job manager.
@@ -148,6 +152,8 @@ public:
 
 private:
     std::unique_ptr<Screen> makeScreen(const std::string& name);
+    std::vector<std::string> packNames(const char* kind) const;
+    std::string choosePack(const char* kind, const std::string& wanted) const;
     void offerResume(std::map<std::string, std::string> session);
     std::unique_ptr<Screen> restoreScreen(const std::map<std::string, std::string>& session);
     void computeLayout();
@@ -166,6 +172,8 @@ private:
     std::unique_ptr<puzzles::Progress> progress_;
     std::unique_ptr<puzzles::PuzzlePack> pack_;
     std::string packName_;  // the name pack_ was opened for
+    std::unique_ptr<games::GamePack> gamePack_;
+    std::string gamePackName_;
     util::Random random_;
     bool sessionReady_ = false;  // false until the Resume question is answered (keeps the old session)
     bool sessionEmpty_ = true;   // what the table holds now (skips redundant clears)

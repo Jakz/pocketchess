@@ -32,6 +32,7 @@ struct Settings {
     bool evalFromWhite = true;         // show evaluations from White's point of view
     // Tactics (M4, design notes §20)
     std::string tacticsPack;           // pack name (content/puzzles/<name>.db); empty = the largest installed
+    std::string gamesPack;             // content/games/<name>.db; empty = the largest installed
     std::string tacticsTheme;          // puzzles must have this theme; empty = any
     int tacticsDifficulty = 0;         // offset added to the rating when choosing puzzles: -200, 0, +200
     bool tacticsAutoNext = false;      // next puzzle 1.5 s after a solve
