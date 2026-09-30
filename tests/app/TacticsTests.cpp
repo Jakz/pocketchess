@@ -191,3 +191,25 @@ TEST_CASE("tactics: without a pack the screen explains where packs go; Home show
     CHECK(home->summary().empty());  // no puzzles played yet
     std::filesystem::remove_all(root, ec);
 }
+
+TEST_CASE("tactics: Settings -> Tactics -> Skip theme keeps that theme out of the selection") {
+    const auto root = packRoot("pchess-tactics-skip");
+    TacticsHarness h(root);
+    REQUIRE(h.open(TacticsScreen::Mode::Train) != nullptr);
+    puzzles::PuzzlePack* pack = h.app->puzzlePack();
+    REQUIRE(pack != nullptr);
+    const auto names = pack->themesOf(h.session().puzzle().themes);
+    REQUIRE(!names.empty());
+    const std::string skipped = names.front();
+    const uint64_t bit = pack->themeMask({skipped});
+    h.app->settings().tacticsSkipTheme = skipped;
+    for (int i = 0; i < 10; ++i) {
+        h.solve();  // Next only leaves a finished puzzle
+        h.tactics()->next();
+        h.pump(700ms);
+        REQUIRE(h.tactics()->session() != nullptr);
+        CHECK((h.session().puzzle().themes & bit) == 0);
+    }
+    std::error_code ec;
+    std::filesystem::remove_all(root, ec);
+}

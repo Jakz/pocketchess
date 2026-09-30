@@ -68,7 +68,7 @@ Last updated: 2026-09-30 (M6 features done on desktop: themes, piece sets, Impor
   make a game pack with the bundled `assets/openings`), FEN (one or a chooser), game/puzzle packs,
   themes, piece sets, engine folders (binary header must match the CPU). Installs move into
   `user/{content,themes,pieces,engines}`, which deploys never touch; the app scans bundle + user.
-- Settings v2: Piece set, Page buttons (swap Prev/Next), Debug logging. The "engine binary path"
+- Settings v2: Piece set, Page buttons (swap Prev/Next), Debug logging, Tactics → Skip theme (M4 leftover). The "engine binary path"
   item of the plan is covered by importing an engine folder.
 - Polish: key-only navigation for the reader's Prev/Next/Menu (Back focus above the first row in
   Settings and Import, "Open a game…" in Games, "Back to the list" in the study menu, Menu leaves
@@ -229,7 +229,6 @@ Last updated: 2026-09-30 (M6 features done on desktop: themes, piece sets, Impor
 
 - M2 remainder: the deferred device checks listed under the resume point (refresh rate, idle shutdown, profile
   switch, battery).
-- Tactics theme exclusion in Settings (M4 leftover; the selector supports it).
 - `kMinTouchPx` is a constant 106 px (9 mm at 300 ppi): right for the PB634K3, too large on the
   lower-ppi `mono-758x1024` profile (rows look sparse). Make it `profile.mm(9)` when another device
   is targeted.

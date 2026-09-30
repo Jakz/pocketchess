@@ -144,6 +144,10 @@ void SettingsScreen::buildItems() {
     }
     add("Tactics", "Theme", themeTexts, [&st, themes] { return indexOf(themes, st.tacticsTheme); },
         [&st, themes](int i) { st.tacticsTheme = themes[static_cast<size_t>(i)]; });
+    std::vector<std::string> skipTexts = themeTexts;
+    skipTexts[0] = "None";
+    add("Tactics", "Skip theme", skipTexts, [&st, themes] { return indexOf(themes, st.tacticsSkipTheme); },
+        [&st, themes](int i) { st.tacticsSkipTheme = themes[static_cast<size_t>(i)]; });
     addInts("Tactics", "Difficulty", st.tacticsDifficulty, {-200, 0, 200}, {"Easier", "Normal", "Harder"});
     addBool("Tactics", "Opponent's move", st.tacticsAutoOpponent, "Automatic", "Tap Next");
     addBool("Tactics", "Next puzzle after a solve", st.tacticsAutoNext, "Automatic", "Tap Next");

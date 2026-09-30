@@ -36,6 +36,7 @@ struct Settings {
     std::string tacticsPack;           // pack name (content/puzzles/<name>.db); empty = the largest installed
     std::string gamesPack;             // content/games/<name>.db; empty = the largest installed
     std::string tacticsTheme;          // puzzles must have this theme; empty = any
+    std::string tacticsSkipTheme;      // puzzles with this theme are skipped; empty = none
     int tacticsDifficulty = 0;         // offset added to the rating when choosing puzzles: -200, 0, +200
     bool tacticsAutoNext = false;      // next puzzle 1.5 s after a solve
     bool tacticsAutoOpponent = true;   // the opponent's move plays by itself (else: tap Next)

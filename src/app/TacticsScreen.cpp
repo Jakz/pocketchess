@@ -99,6 +99,7 @@ void TacticsScreen::loadNext() {
     puzzles::SelectRequest req;
     req.rating = (app_.progress() ? app_.progress()->rating() : puzzles::kInitialRating) + st.tacticsDifficulty;
     if (!st.tacticsTheme.empty()) req.include = pack->themeMask({st.tacticsTheme});
+    if (!st.tacticsSkipTheme.empty()) req.exclude = pack->themeMask({st.tacticsSkipTheme});
     req.skip = [this](const std::string& id) { return seen_.count(id) != 0; };
     puzzles::PuzzleSelector selector(*pack, app_.random());
     const auto t0 = std::chrono::steady_clock::now();

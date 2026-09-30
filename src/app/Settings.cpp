@@ -55,6 +55,7 @@ std::map<std::string, std::string> Settings::toMap() const {
         {"tactics.pack", tacticsPack},
         {"games.pack", gamesPack},
         {"tactics.theme", tacticsTheme},
+        {"tactics.skip_theme", tacticsSkipTheme},
         {"tactics.difficulty", std::to_string(tacticsDifficulty)},
         {"tactics.auto_next", boolText(tacticsAutoNext)},
         {"tactics.auto_opponent", boolText(tacticsAutoOpponent)},
@@ -87,6 +88,7 @@ void Settings::fromMap(const std::map<std::string, std::string>& m) {
     readString(m, "tactics.pack", tacticsPack);
     readString(m, "games.pack", gamesPack);
     readString(m, "tactics.theme", tacticsTheme);
+    readString(m, "tactics.skip_theme", tacticsSkipTheme);
     readInt(m, "tactics.difficulty", tacticsDifficulty, -400, 400);
     readBool(m, "tactics.auto_next", tacticsAutoNext);
     readBool(m, "tactics.auto_opponent", tacticsAutoOpponent);
