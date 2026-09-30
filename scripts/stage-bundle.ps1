@@ -78,13 +78,20 @@ foreach ($id in $engineIds) {
     }
 }
 
-# 3. Content packs: generated ones when present, otherwise the small samples.
+# 3. Content packs: generated puzzles when present, otherwise the small sample; games always ship the
+#    curated sample (annotated classics) next to any generated pack.
 if (-not $Content) { $Content = Join-Path $RepoRoot 'data/generated' }
 foreach ($kind in 'puzzles', 'games') {
     $gen = Join-Path $Content $kind
     $sample = Join-Path $RepoRoot "data/samples/$kind"
-    $from = if (Test-Path $gen) { $gen } elseif (Test-Path $sample) { $sample } else { $null }
-    if ($from) { foreach ($f in Get-ChildItem -LiteralPath $from -Filter *.db -File) { Copy-IfNewer $f.FullName (Join-Path $Dest "content/$kind/$($f.Name)") } }
+    $froms = @()
+    if (Test-Path $gen) { $froms += $gen }
+    if ((Test-Path $sample) -and ($kind -eq 'games' -or $froms.Count -eq 0)) { $froms += $sample }
+    foreach ($from in $froms) {
+        foreach ($f in Get-ChildItem -LiteralPath $from -Filter *.db -File) {
+            Copy-IfNewer $f.FullName (Join-Path $Dest "content/$kind/$($f.Name)")
+        }
+    }
 }
 
 Write-Host "stage-bundle: $Target -> $Dest ($copied file(s) updated)"
