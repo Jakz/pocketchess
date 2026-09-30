@@ -383,52 +383,55 @@ void AnalyzeScreen::loadPgnFromImports() {
     for (const auto& f : files) names.push_back(f.filename().string());
     std::weak_ptr<char> alive = alive_;
     chooseFromList(app_, "Load PGN", names, [this, alive, files](int fi) {
-        if (alive.expired() || fi < 0) return;
-        const std::filesystem::path file = files[static_cast<size_t>(fi)];
-        auto text = util::readTextFile(file, 16u << 20);
-        if (!text) {
-            app_.showMessage("Cannot read the file", text.error().message());
-            return;
+        if (!alive.expired() && fi >= 0) loadPgnFile(files[static_cast<size_t>(fi)]);
+    });
+}
+
+void AnalyzeScreen::loadPgnFile(const std::filesystem::path& file) {
+    std::weak_ptr<char> alive = alive_;
+    auto text = util::readTextFile(file, 16u << 20);
+    if (!text) {
+        app_.showMessage("Cannot read the file", text.error().message());
+        return;
+    }
+    auto parsed = std::make_shared<std::vector<PgnGame>>();
+    std::string firstError;
+    int errors = 0;
+    for (auto& g : parsePgn(*text)) {
+        if (g) {
+            parsed->push_back(std::move(g.value()));
+        } else {
+            ++errors;
+            if (firstError.empty()) firstError = g.error().message();
         }
-        auto parsed = std::make_shared<std::vector<PgnGame>>();
-        std::string firstError;
-        int errors = 0;
-        for (auto& g : parsePgn(*text)) {
-            if (g) {
-                parsed->push_back(std::move(g.value()));
-            } else {
-                ++errors;
-                if (firstError.empty()) firstError = g.error().message();
-            }
-        }
-        util::Log::info("analyze", file.filename().string() + ": " + std::to_string(parsed->size()) + " game(s), " +
-                                       std::to_string(errors) + " skipped");
-        if (parsed->empty()) {
-            app_.showMessage("No games", firstError.empty() ? "The file has no games." : firstError);
-            return;
-        }
-        auto load = [this, parsed](int gi) {
-            PgnGame& g = (*parsed)[static_cast<size_t>(gi)];
-            tree_ = std::move(g.tree);
-            setNode(tree_.root());  // from the start: step through with Next
-            app_.invalidate(app_.layout().panel, RefreshHint::Content);
-        };
-        if (parsed->size() == 1) return load(0);
-        std::vector<std::string> labels;
-        // "White – Black · result", each name shortened on its own so both stay visible.
-        auto shortName = [](std::string s) {
-            if (s.empty() || s == "?") return std::string("?");
-            if (s.size() <= 18) return s;
-            size_t cut = 17;  // on a UTF-8 character boundary
-            while (cut > 0 && (static_cast<unsigned char>(s[cut]) & 0xC0) == 0x80) --cut;
-            return s.substr(0, cut) + "…";
-        };
-        for (const PgnGame& g : *parsed)
-            labels.push_back(shortName(g.header("White")) + " – " + shortName(g.header("Black")) + " · " +
-                             (g.result == "1/2-1/2" ? "½-½" : g.result));
-        chooseFromList(app_, file.filename().string(), labels, [alive, load](int gi) {
-            if (!alive.expired() && gi >= 0) load(gi);
-        });
+    }
+    util::Log::info("analyze", file.filename().string() + ": " + std::to_string(parsed->size()) + " game(s), " +
+                                   std::to_string(errors) + " skipped");
+    if (parsed->empty()) {
+        app_.showMessage("No games", firstError.empty() ? "The file has no games." : firstError);
+        return;
+    }
+    auto load = [this, parsed](int gi) {
+        PgnGame& g = (*parsed)[static_cast<size_t>(gi)];
+        tree_ = std::move(g.tree);
+        setNode(tree_.root());  // from the start: step through with Next
+        app_.invalidate(app_.layout().panel, RefreshHint::Content);
+    };
+    if (parsed->size() == 1) return load(0);
+    std::vector<std::string> labels;
+    // "White – Black · result", each name shortened on its own so both stay visible.
+    auto shortName = [](std::string s) {
+        if (s.empty() || s == "?") return std::string("?");
+        if (s.size() <= 18) return s;
+        size_t cut = 17;  // on a UTF-8 character boundary
+        while (cut > 0 && (static_cast<unsigned char>(s[cut]) & 0xC0) == 0x80) --cut;
+        return s.substr(0, cut) + "…";
+    };
+    for (const PgnGame& g : *parsed)
+        labels.push_back(shortName(g.header("White")) + " – " + shortName(g.header("Black")) + " · " +
+                         (g.result == "1/2-1/2" ? "½-½" : g.result));
+    chooseFromList(app_, file.filename().string(), labels, [alive, load](int gi) {
+        if (!alive.expired() && gi >= 0) load(gi);
     });
 }
 
@@ -534,7 +537,7 @@ void AnalyzeScreen::startAnalysis() {
     stopAnalysis();
     if (engineMode_ == EngineMode::Off || app_.top() != this) return;
     if (legal_.empty()) {
-        updateEngineText({pos_.inCheck() ? "Checkmate" : "Stalemate", ""}, true);
+        updateEngineText({pos_.inCheck() ? "Checkmate" : "Stalemate", "", {}}, true);
         return;
     }
     engine::EngineManager& em = app_.engines();
@@ -551,7 +554,7 @@ void AnalyzeScreen::startAnalysis() {
         [this, alive](const engine::JobResult& r) {
             if (!alive.expired()) onEngineDone(r);
         });
-    updateEngineText({warm ? "Engine: thinking…" : "Engine: starting…", ""}, true);
+    updateEngineText({warm ? "Engine: thinking…" : "Engine: starting…", "", {}}, true);
 }
 
 void AnalyzeScreen::stopAnalysis() {
@@ -599,7 +602,7 @@ void AnalyzeScreen::onEngineDone(const engine::JobResult& r) {
             showEngineMissing(r.error);
             return;
         }
-        updateEngineText({"Engine error", r.error}, true);
+        updateEngineText({"Engine error", r.error, {}}, true);
         return;
     }
     if (!r.lines.empty()) {

@@ -10,6 +10,7 @@
 #include "ui/widgets/Widgets.h"
 
 #include <chrono>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -58,6 +59,8 @@ public:
     void deleteMove();
     // Position -> Load PGN: a file from imports/, then a game from it (chooseFromList).
     void loadPgnFromImports();
+    // Opens a PGN file: one game directly, several through a chooser (Import screen, Load PGN).
+    void loadPgnFile(const std::filesystem::path& file);
     bool loadFen(const std::string& fen);
     void setEngineMode(EngineMode m);
     void cycleEngineMode();
