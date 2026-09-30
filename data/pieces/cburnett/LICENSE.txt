@@ -1,0 +1,4 @@
+The SVG files in this folder are distributed under the GNU General Public License, version 2 or
+(at your option) any later version; PocketChess uses them under GPL-3.0-or-later (see LICENSE at
+the repository root for the full text). Author: Colin M.L. Burnett.
+Source: lichess-org/lila public/piece/cburnett @ 9641f3c031c5de39081ccb2bec640061cfd54912, listed in Lichess's COPYING.md.

@@ -8,6 +8,10 @@ data/fonts/DejaVuSans.ttf => assets/fonts/DejaVuSans.ttf
 data/fonts/DejaVuSans-Bold.ttf => assets/fonts/DejaVuSans-Bold.ttf
 data/fonts/LICENSE-DejaVu.txt => assets/fonts/LICENSE-DejaVu.txt
 data/themes/*.yaml => assets/themes
+data/pieces/cburnett/* => assets/pieces/cburnett/
+data/pieces/merida/* => assets/pieces/merida/
+data/pieces/chessnut/* => assets/pieces/chessnut/
+data/pieces/bold/* => assets/pieces/bold/
 
 [windows] data/simulator/kaleido3.yaml => simulator/kaleido3.yaml
 [pocketbook] tests/golden/golden.txt => selftest/golden.txt

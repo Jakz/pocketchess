@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# High-contrast e-ink set: Cburnett's shapes with strokes 1.8x as wide (design notes §18, ADR 0012).
+name: Bold
+author: Colin M.L. Burnett (shapes); PocketChess (stroke variant)
+license: GPL-2.0-or-later
+source: derived from ../cburnett
+base: cburnett
+stroke_scale: 1.8
