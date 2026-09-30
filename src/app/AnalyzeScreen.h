@@ -117,6 +117,7 @@ private:
     ui::BoardView board_;
     std::vector<ui::Button> buttons_;
     ui::Rect statusRect_, engineRect_, movesRect_, buttonsRect_;
+    int moreLinesFit_ = 0;  // extra MultiPV lines that fit above the buttons
 
     EngineMode engineMode_ = EngineMode::Off;
     engine::JobId job_ = 0;

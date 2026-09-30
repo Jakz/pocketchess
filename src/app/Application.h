@@ -91,6 +91,8 @@ public:
 
     // --- Services for screens -----------------------------------------------------------------
     void invalidate(const ui::Rect& r, ui::RefreshHint hint);
+    // Board squares: tiles that never draw outside themselves, so no margin (e-ink area stays minimal).
+    void invalidateExact(const ui::Rect& r, ui::RefreshHint hint);
     void invalidateAll(ui::RefreshHint hint = ui::RefreshHint::Screen);
     void push(std::unique_ptr<Screen> s);
     void pop();

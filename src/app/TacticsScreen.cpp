@@ -308,7 +308,7 @@ void TacticsScreen::refreshBoard(RefreshHint hint) {
         }
     }
     v.flipped = flipped_;
-    for (const Rect& r : board_.update(v)) app_.invalidate(r, hint);
+    for (const Rect& r : board_.update(v)) app_.invalidateExact(r, hint);
     updateButtons();
 }
 

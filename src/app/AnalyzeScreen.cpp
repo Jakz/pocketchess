@@ -78,15 +78,21 @@ void AnalyzeScreen::layoutPanel() {
     const int statusH = app_.fonts().get(s.fontPx, FontStyle::Bold).lineHeight() + pad;
     statusRect_ = {p.x + pad * 2, p.y + pad, p.w - pad * 4, statusH};
     buttonsRect_ = {p.x + pad, p.bottom() - pad - btnH, p.w - 2 * pad, btnH};
-    // Engine lines (evaluation + PV) between the status line and the move list, when on.
-    // Head + PV, plus one small line per extra MultiPV line (Settings -> Analysis lines).
-    const int extra = std::clamp(app_.settings().analysisMultiPv, 1, 3) - 1;
-    const int engineH = engineMode_ == EngineMode::Off
-                            ? 0
-                            : app_.fonts().get(s.fontPx, FontStyle::Bold).lineHeight() +
-                                  (1 + extra) * app_.fonts().get(s.smallPx).lineHeight() + pad / 2;
+    // Engine: the headline (evaluation, best move, depth) sits at the right of the status row; the
+    // PV and one small line per extra MultiPV line (Settings -> Analysis lines) go below it. Areas
+    // never overlap: the move list keeps at least one line and extra lines that do not fit are
+    // dropped (a repaint of one area must never touch another, e.g. the button row).
+    const int avail = std::max(0, buttonsRect_.y - pad - statusRect_.bottom());
+    const int minMoves = std::min(avail, app_.fonts().get(s.fontPx).lineHeight());
+    const int small = app_.fonts().get(s.smallPx).lineHeight();
+    moreLinesFit_ = std::clamp(app_.settings().analysisMultiPv, 1, 3) - 1;
+    int engineH = 0;
+    if (engineMode_ != EngineMode::Off) {
+        while (moreLinesFit_ > 0 && (1 + moreLinesFit_) * small + pad / 2 > avail - minMoves) --moreLinesFit_;
+        engineH = std::min((1 + moreLinesFit_) * small + pad / 2, avail - minMoves);
+    }
     engineRect_ = {statusRect_.x, statusRect_.bottom(), statusRect_.w, engineH};
-    movesRect_ = {p.x + pad * 2, engineRect_.bottom(), p.w - pad * 4, buttonsRect_.y - pad - engineRect_.bottom()};
+    movesRect_ = {p.x + pad * 2, engineRect_.bottom(), p.w - pad * 4, avail - engineH};
 
     const char* labels[] = {"◀ Back", "Next ▶", "Flip", "Engine", "Menu"};
     const auto cells = splitRow(buttonsRect_, 5, pad);
@@ -132,7 +138,7 @@ void AnalyzeScreen::refreshBoard(RefreshHint hint) {
             for (Move m : legal_)
                 if (m.from() == selected_) v.targets |= bb(m.to());
     }
-    for (const Rect& r : board_.update(v)) app_.invalidate(r, hint);
+    for (const Rect& r : board_.update(v)) app_.invalidateExact(r, hint);
 }
 
 void AnalyzeScreen::refreshPanel() {
@@ -183,7 +189,13 @@ void AnalyzeScreen::draw(Canvas& c, const Rect& clip) {
 
     if (clip.intersects(statusRect_)) {
         Font& f = app_.fonts().get(s.fontPx, FontStyle::Bold);
-        f.draw(c, statusRect_.x, statusRect_.y + f.ascent() + s.fontPx / 6, statusText(), t.ink);
+        const int baseline = statusRect_.y + f.ascent() + s.fontPx / 6;
+        c.pushClip(statusRect_);
+        const std::string head = engineMode_ == EngineMode::Off ? std::string() : shown_.head;
+        const int headW = head.empty() ? 0 : f.measure(head);
+        f.draw(c, statusRect_.x, baseline, fitText(f, statusText(), statusRect_.w - headW - s.fontPx), t.ink);
+        if (!head.empty()) f.draw(c, statusRect_.right() - headW, baseline, head, t.ink);
+        c.popClip();
     }
     if (!engineRect_.empty() && clip.intersects(engineRect_)) drawEngine(c);
     if (clip.intersects(movesRect_)) drawMoves(c);
@@ -657,6 +669,7 @@ void AnalyzeScreen::updateEngineText(EngineText t, bool now) {
         shown_ = pending_;
         lastEngineDraw_ = current;
         app_.invalidate(engineRect_, RefreshHint::Content);
+        app_.invalidate(statusRect_, RefreshHint::Content);  // the headline is on the status row
         return;
     }
     if (throttleTimer_) return;
@@ -672,22 +685,19 @@ void AnalyzeScreen::updateEngineText(EngineText t, bool now) {
 void AnalyzeScreen::drawEngine(Canvas& c) {
     const BoardTheme& t = app_.theme();
     const UiStyle& s = app_.style();
-    Font& fb = app_.fonts().get(s.fontPx, FontStyle::Bold);
     Font& small = app_.fonts().get(s.smallPx);
     c.pushClip(engineRect_);
-    fb.draw(c, engineRect_.x, engineRect_.y + fb.ascent(), shown_.head, t.ink);
     if (!shown_.pv.empty()) {
         std::string pv = shown_.pv;
         while (!pv.empty() && small.measure(pv) > engineRect_.w) {
             const size_t sp = pv.rfind(' ');
             pv = sp == std::string::npos ? std::string() : pv.substr(0, sp);
         }
-        small.draw(c, engineRect_.x, engineRect_.y + fb.lineHeight() + small.ascent(), pv,
-                   blend(t.background, t.ink, 170));
+        small.draw(c, engineRect_.x, engineRect_.y + small.ascent(), pv, blend(t.background, t.ink, 170));
     }
-    int y = engineRect_.y + fb.lineHeight() + small.lineHeight();
-    for (const std::string& line : shown_.more) {
-        small.draw(c, engineRect_.x, y + small.ascent(), line, t.ink);
+    int y = engineRect_.y + small.lineHeight();
+    for (size_t i = 0; i < shown_.more.size() && static_cast<int>(i) < moreLinesFit_; ++i) {
+        small.draw(c, engineRect_.x, y + small.ascent(), shown_.more[i], t.ink);
         y += small.lineHeight();
     }
     c.popClip();

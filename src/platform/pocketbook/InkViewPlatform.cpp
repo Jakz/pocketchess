@@ -288,8 +288,22 @@ InfoList InkViewPresenter::info() const {
     return info;
 }
 
-void InkViewPresenter::present(const ui::Canvas& canvas, const ui::PresentRequest& req) {
+// Regions on an 8-pixel grid: the Kaleido 3 panel handles color at half resolution and dithers
+// each blit from its own origin, so a region starting on an odd row/column can land out of phase
+// with its neighbours (a visible seam at control edges). The canvas holds the whole frame, so a
+// slightly larger blit is always correct.
+static ui::Rect alignedToGrid(const ui::Rect& r, int width, int height) {
+    constexpr int kGrid = 8;
+    const int x0 = r.x / kGrid * kGrid, y0 = r.y / kGrid * kGrid;
+    const int x1 = std::min(width, (r.right() + kGrid - 1) / kGrid * kGrid);
+    const int y1 = std::min(height, (r.bottom() + kGrid - 1) / kGrid * kGrid);
+    return {x0, y0, x1 - x0, y1 - y0};
+}
+
+void InkViewPresenter::present(const ui::Canvas& canvas, const ui::PresentRequest& in) {
     const auto t0 = std::chrono::steady_clock::now();
+    ui::PresentRequest req = in;
+    for (ui::Rect& r : req.rects) r = alignedToGrid(r, canvas.width(), canvas.height());
     for (const ui::Rect& r : req.rects) {
         const uint8_t* src = canvas.row(r.y) + r.x * 3;
         // Stretch converts RGB to the panel format; 1:1 size = plain copy (Enigmistica pattern).

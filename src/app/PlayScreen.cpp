@@ -109,7 +109,7 @@ void PlayScreen::refreshBoard(RefreshHint hint) {
             for (Move m : legal_)
                 if (m.from() == selected_) v.targets |= bb(m.to());
     }
-    for (const Rect& r : board_.update(v)) app_.invalidate(r, hint);
+    for (const Rect& r : board_.update(v)) app_.invalidateExact(r, hint);
 }
 
 void PlayScreen::refreshPanel() {

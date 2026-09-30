@@ -89,6 +89,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/GamesTests.cpp
     ${REPO_ROOT}/tests/app/ImportTests.cpp
     ${REPO_ROOT}/tests/app/PlayTests.cpp
+    ${REPO_ROOT}/tests/app/RedrawTests.cpp
     ${REPO_ROOT}/tests/app/SessionTests.cpp
     ${REPO_ROOT}/tests/app/SettingsTests.cpp
     ${REPO_ROOT}/tests/app/TacticsTests.cpp

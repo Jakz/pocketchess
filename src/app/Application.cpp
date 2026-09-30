@@ -371,9 +371,18 @@ void Application::saveSettings() {
         Log::error("app", "saving settings: " + r.error().message());
 }
 
-void Application::invalidate(const Rect& r, RefreshHint hint) {
+void Application::invalidateExact(const Rect& r, RefreshHint hint) {
     if (r.empty()) return;
     dirty_.add(r);
+    if (static_cast<int>(hint) > static_cast<int>(strongest_)) strongest_ = hint;
+}
+
+void Application::invalidate(const Rect& r, RefreshHint hint) {
+    if (r.empty()) return;
+    // A few pixels around the area too: anti-aliased glyph edges and frames that stray past an
+    // area's border are then erased and redrawn with it (partial redraws == full redraws).
+    const int margin = std::max(2, style_.stroke * 2);
+    dirty_.add(r.inset(-margin).intersected(canvas_.bounds()));
     if (static_cast<int>(hint) > static_cast<int>(strongest_)) strongest_ = hint;
 }
 

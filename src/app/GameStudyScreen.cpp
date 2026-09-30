@@ -129,7 +129,7 @@ std::string GameStudyScreen::headline() const {
 void GameStudyScreen::refreshBoard() {
     BoardVisual v = BoardVisual::fromPosition(pos_, node_ && !node_->isRoot() ? node_->move : Move::none());
     v.flipped = flipped_;
-    for (const Rect& r : board_.update(v)) app_.invalidate(r, RefreshHint::Content);
+    for (const Rect& r : board_.update(v)) app_.invalidateExact(r, RefreshHint::Content);
 }
 
 void GameStudyScreen::updateButtons() {
