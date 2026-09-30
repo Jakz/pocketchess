@@ -15,7 +15,8 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 | M1 Chess core + board UI | 🟢 core complete; board UI, sandbox, promotion, golden images done; device self-test pending |
 | M2 Engine integration | 🟢 functionally done: engine subsystem, Analyze engine panel, benchmark, device lineup (ADR 0010: Stockfish 19 main, Stockfish 11 for Eco), all run on the reader. Device fine-tuning checks deferred until the app is feature-complete (decision 2026-09-29, see below) |
 | M3 Play, Analysis, Home, session | 🟢 features done: SQLite + `core/storage` (`chess.db` v3), Settings v1, Play mode, Analyze (MultiPV lines, comments, main line / promote / delete, Load PGN), SessionState + Resume (ADR 0011), Home summary; pending: device acceptance run, strength calibration (deferred, see below) |
-| M4–M6 | not started (Home shows them disabled with their milestone) |
+| M4 Tactics trainer, rating, review | 🟢 features done: zstd 1.5.7 decoder, `fetch-lichess.ps1`, `PuzzleImporter` + `build-content.ps1` (50k pack = 6 MB), `core/puzzles` (pack, selector, session, progress/rating/review), Tactics and Review screens, Home rating/due count, Tactics settings; pending: device acceptance (30 puzzles, selection < 50 ms, WAL on the user partition) |
+| M5–M6 | not started (Home shows them disabled with their milestone) |
 
 ## 2026-09-29 — first MSVC build fixes
 
@@ -49,6 +50,28 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
   playing legal moves), `ManualScheduler`; new suites for YAML, descriptors/registry, UciEngine,
   EngineManager and the analysis panel; goldens updated for the new button row, plus
   `analyze-engine-quick` and `analyze-engine-missing`.
+
+## 2026-09-30 — M4: tactics trainer, rating, review
+
+- `libs/zstd`: zstd 1.5.7 decoder as one file (the release's `combine.sh`, ASM off), `Zstd.vcxproj`
+  (desktop tools only). `scripts/fetch-lichess.ps1` downloads `lichess_db_puzzle.csv.zst` (290 MB,
+  6.1 M puzzles) with a `.info` provenance file; `scripts/build-content.ps1` runs the importer.
+- `PuzzleImporter` (desktop, `src/tools`): streams the `.zst`, validates every FEN and move,
+  reservoir-samples `--count`/`--preset` deterministically per `--seed`, theme bitmask (the 64 most
+  frequent), `VACUUM`. Large preset: 50,000 puzzles, 0 rejects, 6.0 MB, 10 min (unoptimized build).
+- `core/puzzles`: `PuzzleImport` (CSV -> pack; the device self-test builds its fixture pack with it),
+  `PuzzlePack` (read-only packs, bounded (rating, rnd) batches with paging), `PuzzleSelector`
+  (±150 -> ±300 -> any, random start, skips seen puzzles), `PuzzleSession` (opponent/user states,
+  retry, hint, solution playback, mate-in-1 exception), `Progress` (`user/progress.db`: rating K=24
+  on first attempts only, history, review 1/3/7/21/60 days).
+- Tactics screen (Train / Review): automatic opponent move, Hint (counts as a miss), Retry,
+  Solution, Next (also hardware Next), Menu (Analyze position, Check my move with engine, Flip).
+  Settings → Tactics (pack, theme, difficulty, opponent move, auto-next) and Advanced (review clock
+  offset for testing the schedule on the device). Home: Tactics/Review enabled, "N due" on Review,
+  "Puzzle rating · review due" summary. The app's random generator follows the injectable clock.
+- Tests: `tests/fixtures/puzzles-sample.csv` (60 Lichess rows, CC0; staged to `selftest/fixtures/`),
+  import/pack/selector/rating/schedule/session suites, Tactics screen flows with a fake clock.
+  Golden: `tactics`. Not done: theme exclusion in Settings (the selector supports it).
 
 ## 2026-09-29 — M3 start: SQLite, storage, Settings
 
@@ -164,11 +187,13 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 
 ## Resume point (next steps, in order)
 
-1. Device, M3 acceptance: deploy; Settings persisted across restarts (log "chess.db open (journal
-   wal|delete)"); a full Play game per strength with Stockfish 19; Analyze the game, Export PGN;
-   resume after sleep and after killing the app (Resume? dialog); Load PGN from `imports/`.
-2. M4 (Tactics trainer, rating, review): `scripts/fetch-lichess.ps1` (the only other script allowed on
-   the network), `PuzzleImporter` (zstd, `puzzles.db`), `progress.db`, the Tactics and Review screens.
+1. Device, M3 + M4 acceptance (deploy with `deploy.ps1 -WithContent` so `content/puzzles/large.db`
+   goes too): Settings persisted across restarts (log "chess.db open (journal wal|delete)"); a Play
+   game per strength; Analyze + Export PGN; resume after sleep and after a kill; Load PGN from
+   `imports/`; 30 puzzles in one session with the rating kept across restarts; the log's
+   "tactics: selection N ms" lines (< 50 ms); Settings → Advanced → Review clock offset +1 day
+   brings failed puzzles to Review.
+2. M5 (historical games): `PgnImporter`, `games.db` packs, the Games browser and study screens.
 3. Windows: F5 → Analyze → Engine (Quick/Deep) and Play with real Stockfish (quick visual check).
 
 Deferred until the app is feature-complete (decided 2026-09-29): strength calibration (M3 item:
