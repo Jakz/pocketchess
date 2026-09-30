@@ -1,6 +1,6 @@
 # Project status — resume point
 
-Last updated: 2026-09-30 (M5 historical games: features done, device acceptance pending). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
+Last updated: 2026-09-30 (M6 features done on desktop: themes, piece sets, Import, Settings v2, key-only navigation, packaging; device runs pending). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
 
 ## Milestone overview
 
@@ -17,7 +17,7 @@ Last updated: 2026-09-30 (M5 historical games: features done, device acceptance 
 | M3 Play, Analysis, Home, session | 🟢 features done: SQLite + `core/storage` (`chess.db` v3), Settings v1, Play mode, Analyze (MultiPV lines, comments, main line / promote / delete, Load PGN), SessionState + Resume (ADR 0011), Home summary; pending: device acceptance run, strength calibration (deferred, see below) |
 | M4 Tactics trainer, rating, review | 🟢 features done: zstd 1.5.7 decoder, `fetch-lichess.ps1`, `PuzzleImporter` + `build-content.ps1` (50k pack = 6 MB), `core/puzzles` (pack, selector, session, progress/rating/review), Tactics and Review screens, Home rating/due count, Tactics settings; pending: device acceptance (30 puzzles, selection < 50 ms, WAL on the user partition) |
 | M5 Historical games | 🟢 features done: `data/openings` (Lichess ECO names, CC0), `core/games` (opening classification, `GameImporter`, `GamePack` filters/pages), `PgnImporter` + `build-content.ps1 -Games` (20k games = 6.5 MB in 27 s), bundled `classics.db`, favorites in `chess.db`, Games browser + study screens, "Analyze from here"; pending: device acceptance (≥ 10k pack, filters < 150 ms, partial page turns) |
-| M6 | not started (Home shows Import/Themes disabled) |
+| M6 Themes, piece sets, import, polish | 🟢 features done: YAML board themes (`ThemeManager`, Walnut + Newsprint), SVG piece sets rasterized on the reader (nanosvg, ADR 0012: Cburnett default, Merida, Chessnut, Bold), Import screen (ADR 0013: installs under `user/`, PGN → game pack), Settings v2 (piece set, page-button swap, debug logging), key-only navigation, portable release zips; pending: device acceptance in color and mono, refresh/resource tuning (deferred), touch-target check on the reader |
 
 ## 2026-09-29 — first MSVC build fixes
 
@@ -51,6 +51,34 @@ Last updated: 2026-09-30 (M5 historical games: features done, device acceptance 
   playing legal moves), `ManualScheduler`; new suites for YAML, descriptors/registry, UciEngine,
   EngineManager and the analysis panel; goldens updated for the new button row, plus
   `analyze-engine-quick` and `analyze-engine-missing`.
+
+## 2026-09-30 — M6: themes, piece sets, import, polish
+
+- Themes: `ui::ThemeManager` + `parseTheme` (design notes §19: `name`, `mode`, colors as quoted
+  `"#rrggbb"` or gray 0..255, `*_gray` aliases, marker patterns, `tint_markers`; unknown keys and bad
+  values rejected with the line). Built-ins stay in code; `data/themes/{walnut,newsprint}.yaml` ship
+  in `assets/themes`. Settings lists every theme of the mode.
+- Piece sets (ADR 0012): nanosvg vendored (`libs/nanosvg`, zlib) and compiled into both builds;
+  `SvgPieceSet` rasterizes each piece at the board's square size on first use (cached).
+  `data/pieces/`: Cburnett (default), Merida (`scale: 0.92`), Chessnut, Bold (Cburnett with 1.8x
+  strokes via `base` + `stroke_scale`, the e-ink high-contrast set), licences per folder. DejaVu
+  glyphs stay as fallback and in golden images. `--pieces <name>` for screenshots. No
+  `AssetConverter`, no PNG decoder.
+- Import (ADR 0013, Home → Import): scans `imports/` when opened or on Rescan; PGN (open in Analyze or
+  make a game pack with the bundled `assets/openings`), FEN (one or a chooser), game/puzzle packs,
+  themes, piece sets, engine folders (binary header must match the CPU). Installs move into
+  `user/{content,themes,pieces,engines}`, which deploys never touch; the app scans bundle + user.
+- Settings v2: Piece set, Page buttons (swap Prev/Next), Debug logging. The "engine binary path"
+  item of the plan is covered by importing an engine folder.
+- Polish: key-only navigation for the reader's Prev/Next/Menu (Back focus above the first row in
+  Settings and Import, "Open a game…" in Games, "Back to the list" in the study menu, Menu leaves
+  Diagnostics); long names ellipsized; Import names the folder as seen over USB. Touch audit: every
+  button ≥ 106 px (9 mm at 300 ppi) except the board screens' button row (104 px, limited by the
+  panel) and the status-bar Back area (5.4 × 22.7 mm, the board is right below it).
+- Packaging: `scripts/zip-folder.ps1` writes '/' entries (Windows PowerShell 5.1 writes '\');
+  the Windows zip now includes `SDL3.dll` and empty `user/ logs/ imports/ exports/`.
+- Tests: themes, piece sets (coverage/contrast, bold vs thin), import scan/install/game pack/keys,
+  page-button swap, key-only Settings/Games. Goldens: `home` (Import button), `settings`, `import`.
 
 ## 2026-09-30 — M5: historical games
 
@@ -201,8 +229,11 @@ Last updated: 2026-09-30 (M5 historical games: features done, device acceptance 
 
 - M2 remainder: the deferred device checks listed under the resume point (refresh rate, idle shutdown, profile
   switch, battery).
-- M6: themes from YAML, piece sets, Settings v2, the Import screen (device `.db`/PGN/engine import);
-  Home still shows Import/Themes disabled. Tactics theme exclusion in Settings (M4 leftover).
+- Tactics theme exclusion in Settings (M4 leftover; the selector supports it).
+- `kMinTouchPx` is a constant 106 px (9 mm at 300 ppi): right for the PB634K3, too large on the
+  lower-ppi `mono-758x1024` profile (rows look sparse). Make it `profile.mm(9)` when another device
+  is targeted.
+- Making a game pack from a large PGN on the reader blocks the UI until done (no progress view).
 - InkView Fast mode uses PartialUpdate (ADR 0002); `post()` polls while background work runs
   (ADR 0003).
 - `--replay` (recorded input logs) not implemented; `--script` covers scripted sessions.
@@ -219,8 +250,12 @@ Last updated: 2026-09-30 (M5 historical games: features done, device acceptance 
    Games → pack "Lichess January 2013" (20k); every filter and page turn under 150 ms in the log
    ("games: count/page N ms"), page turns partial; study view on "Classics" (the Immortal's
    variation 18. Be3), Analyze from here, favorites filter.
-3. M6: themes (YAML), piece sets (nanosvg + `AssetConverter`), Settings v2, Import screen, polish.
-4. Windows: F5 → Analyze → Engine (Quick/Deep) and Play with real Stockfish (quick visual check).
+3. Device, M6 acceptance (= MVP 0.1.0): `build-zig.ps1 -Configuration Release -Package`, deploy;
+   in color and mono: each piece set (log "pieces: set X loaded in N ms"), Walnut/Newsprint, Import
+   of a PGN (open + game pack), a FEN, a theme and a piece set copied over USB; key-only use with
+   Prev/Next/Menu; is the status-bar "‹ Back" easy enough to hit (5.4 mm tall)?
+4. Then the deferred tuning list below, `scripts/verify-all.ps1`, and tag 0.1.0.
+5. Windows: F5 → Analyze → Engine (Quick/Deep) and Play with real Stockfish (quick visual check).
 
 Deferred until the app is feature-complete (decided 2026-09-29): strength calibration (M3 item:
 preset vs preset / fixed-Elo matches on the desktop; first decide whether presets use `nodes`
