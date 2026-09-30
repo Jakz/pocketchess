@@ -21,7 +21,10 @@ On the PB634K3 only Prev, Next and Menu reach the app (Back/Home are taken by th
 3. **Menus** end with "‹ Back to *screen underneath*" and "Close", so the three hardware keys are
    enough everywhere. List screens (Games, Import, Settings) do not move a focus cursor: Prev/Next
    turn pages and the Menu offers "Open a game…", "Choose an item…" or "Change a setting…".
-4. **Words**: "Close" dismisses a dialog; "Back" only leaves a screen; steps are arrows.
+4. **Controls live at the bottom** (one-hand use, decided 2026-10-01): every in-view control group
+   (button bars, filter chips, the Home launcher, the Diagnostics grid) sits at the bottom of the
+   screen, directly above the bottom bar. Only modal dialogs are centered.
+5. **Words**: "Close" dismisses a dialog; "Back" only leaves a screen; steps are arrows.
 
 ## Consequences
 

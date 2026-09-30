@@ -29,9 +29,11 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
     const Layout& l = app_.layout();
     const UiStyle& s = app_.style();
     const int margin = l.screen.w / 10;
-    const int top = l.status.bottom() + s.titlePx * 4;
     const int btnH = std::max(kMinTouchPx, l.screen.h / 12);
     const int gap = s.fontPx / 2;
+    // The launcher sits at the bottom (one-hand use): 5 rows + the tools row end one gap above the
+    // screen edge; title, status line and summary fill the top.
+    const int top = l.screen.h - gap - 6 * (btnH + gap) + gap;
     struct Item {
         int id;
         const char* label;
@@ -67,9 +69,9 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
         b.rect = cells[i];
         buttons_.push_back(b);
     }
-    footer_ = {0, l.screen.h - s.fontPx * 3, l.screen.w, s.fontPx * 3};
-    const int summaryTop = buttons_.back().rect.bottom() + gap * 2;
-    summaryRect_ = {margin, summaryTop, l.screen.w - 2 * margin, footer_.y - summaryTop};
+    footer_ = {0, l.status.bottom() + s.titlePx * 4, l.screen.w, s.fontPx * 2};  // battery · version · engine
+    const int summaryTop = footer_.bottom() + gap;
+    summaryRect_ = {margin, summaryTop, l.screen.w - 2 * margin, top - gap - summaryTop};
     refreshSummary();
     for (size_t i = 0; i < buttons_.size(); ++i)
         if (buttons_[i].id == Analyze) focus_ = static_cast<int>(i);

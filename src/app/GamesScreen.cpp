@@ -45,8 +45,9 @@ void GamesScreen::layout() {
     const UiStyle& s = app_.style();
     const int pad = s.fontPx / 3;
     const int btnH = kMinTouchPx;
-    const Rect chipsRect{pad, l.status.bottom() + pad, l.screen.w - 2 * pad, btnH};
+    // Controls at the bottom (one-hand use): filter chips right above the ◀ ▶ Menu bar.
     const Rect navRect{pad, l.screen.h - pad - btnH, l.screen.w - 2 * pad, btnH};
+    const Rect chipsRect{pad, navRect.y - pad - btnH, l.screen.w - 2 * pad, btnH};
     const char* chipLabels[] = {"Player", "Year", "Result", "Opening", "☆"};
     const auto chipCells = splitRow(chipsRect, 5, pad);
     for (int i = 0; i < 5; ++i) {
@@ -66,7 +67,7 @@ void GamesScreen::layout() {
         b.rect = navCells[static_cast<size_t>(i)];
         nav_.push_back(b);
     }
-    listRect_ = {pad, chipsRect.bottom() + pad, l.screen.w - 2 * pad, navRect.y - pad - chipsRect.bottom() - pad};
+    listRect_ = {pad, l.status.bottom() + pad, l.screen.w - 2 * pad, chipsRect.y - pad - l.status.bottom() - pad};
     // Two text lines per row, never below the minimum touch height.
     rowH_ = std::max(kMinTouchPx, app_.fonts().get(s.fontPx).lineHeight() + app_.fonts().get(s.smallPx).lineHeight() +
                                       s.fontPx / 2);

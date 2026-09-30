@@ -32,8 +32,9 @@ DiagnosticsScreen::DiagnosticsScreen(Application& app) : Screen(app) {
     infoRect_ = {body.x, body.y, body.w, small * 15};
     testRect_ = {body.x, infoRect_.bottom() + pad, body.w, l.square > 0 ? l.square : 100};
     const int btnH = kMinTouchPx;
-    const Rect grid{body.x, testRect_.bottom() + pad, body.w, 2 * btnH + pad};
-    logRect_ = {body.x, grid.bottom() + pad, body.w, body.bottom() - grid.bottom() - pad};
+    // Controls at the bottom (one-hand use); the event log fills the space above them.
+    const Rect grid{body.x, body.bottom() - (2 * btnH + pad), body.w, 2 * btnH + pad};
+    logRect_ = {body.x, testRect_.bottom() + pad, body.w, grid.y - pad - testRect_.bottom() - pad};
 
     const char* labels[] = {"1 square", "12 squares", "Full", "Touch", "Keys", "Engine", "Timing log", "Bench"};
     const auto rows = splitColumn(grid, 2, pad);
