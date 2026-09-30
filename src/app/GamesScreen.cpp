@@ -57,11 +57,12 @@ void GamesScreen::layout() {
         chips_.push_back(b);
     }
     const auto navCells = splitRow(navRect, 3, pad);
-    const char* navLabels[] = {"‹ Prev", "Menu", "Next ›"};
+    const char* navLabels[] = {"◀", "▶", "Menu"};  // ◀ ▶ = the Prev/Next keys
     for (int i = 0; i < 3; ++i) {
         Button b;
         b.id = BtnPrev + i;
         b.label = navLabels[i];
+        if (i < 2) b.hint = "page";
         b.rect = navCells[static_cast<size_t>(i)];
         nav_.push_back(b);
     }
@@ -189,7 +190,7 @@ void GamesScreen::draw(Canvas& c, const Rect& clip) {
     const UiStyle& s = app_.style();
     c.fill(clip, t.background);
     const std::string right = total_ > 0 ? std::to_string(page_ + 1) + "/" + std::to_string(pageCount()) : "";
-    drawStatusBar(app_, c, title_, right, "Home");
+    drawStatusBar(app_, c, *this, title_, right);
     for (const Button& b : chips_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
     for (const Button& b : nav_)
@@ -331,7 +332,7 @@ void GamesScreen::openMenu() {
     }
     labels.push_back("Clear filters");
     actions.push_back(Clear);
-    labels.push_back("Home");
+    labels.push_back(backMenuLabel(app_, *this));
     actions.push_back(Home);
     labels.push_back("Close");
     app_.push(std::make_unique<MessageDialog>(

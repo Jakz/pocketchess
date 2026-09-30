@@ -117,7 +117,7 @@ void DiagnosticsScreen::draw(Canvas& c, const Rect& clip) {
     const BoardTheme& t = app_.theme();
     const UiStyle& s = app_.style();
     c.fill(clip, t.background);
-    drawStatusBar(app_, c, keyCapture_ ? "Diagnostics · keys" : "Diagnostics", batteryText(app_), "Back");
+    drawStatusBar(app_, c, *this, keyCapture_ ? "Diagnostics · keys" : "Diagnostics", batteryText(app_));
     Font& small = app_.fonts().get(s.smallPx);
     if (clip.intersects(infoRect_)) {
         std::vector<std::string> lines = info_;

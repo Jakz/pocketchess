@@ -75,7 +75,7 @@ void Application::rescanEngines() {
 void Application::computeLayout() {
     Layout& l = layout_;
     l.screen = canvas_.bounds();
-    const int statusH = profile_.mm(5.4);
+    const int statusH = profile_.mm(7.5);  // the top bar holds the Back button: close to 9 mm
     const int minPanel = profile_.mm(26);
     int board = std::min(l.screen.w, l.screen.h - statusH - minPanel);
     l.square = board / 8;
@@ -406,6 +406,12 @@ void Application::push(std::unique_ptr<Screen> s) {
     invalidate(b, raw->opaque() || b.area() * 2 > canvas_.bounds().area() ? RefreshHint::Screen : RefreshHint::Content);
     raw->onEnter();
     sessionChanged();
+}
+
+std::string Application::parentTitle(const Screen* s) const {
+    for (size_t i = 1; i < stack_.size(); ++i)
+        if (stack_[i].get() == s) return stack_[i - 1]->title();
+    return {};
 }
 
 void Application::pop() {

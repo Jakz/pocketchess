@@ -52,12 +52,14 @@ void TacticsScreen::layoutPanel() {
     statusRect_ = {p.x + pad * 2, p.y + pad, p.w - pad * 4, statusH};
     buttonsRect_ = {p.x + pad, p.bottom() - pad - btnH, p.w - 2 * pad, btnH};
     infoRect_ = {statusRect_.x, statusRect_.bottom(), statusRect_.w, buttonsRect_.y - pad - statusRect_.bottom()};
-    const char* labels[] = {"Hint", "Retry", "Solution", "Next", "Menu"};
+    const char* labels[] = {"◀", "▶", "Hint", "Solution", "Menu"};
+    const char* hints[] = {"retry", "next", "", "", ""};
     const auto cells = splitRow(buttonsRect_, 5, pad);
     for (int i = 0; i < 5; ++i) {
         Button b;
         b.id = i;
         b.label = labels[i];
+        b.hint = hints[i];
         b.rect = cells[static_cast<size_t>(i)];
         buttons_.push_back(b);
     }
@@ -350,7 +352,7 @@ void TacticsScreen::draw(Canvas& c, const Rect& clip) {
     const std::string title = mode_ == Mode::Review
                                   ? "Review · " + std::to_string(queue_.size() + (session_ ? 1 : 0)) + " left"
                                   : "Tactics · " + std::to_string(rating);
-    drawStatusBar(app_, c, title, batteryText(app_), "Home");
+    drawStatusBar(app_, c, *this, title, batteryText(app_));
     if (clip.intersects(l.board)) board_.draw(c, clip, t, app_.pieces(), app_.fonts());
     if (clip.intersects(statusRect_)) {
         Font& f = app_.fonts().get(s.fontPx, FontStyle::Bold);
@@ -456,7 +458,7 @@ void TacticsScreen::openMenu() {
     }
     labels.push_back("Flip board");
     actions.push_back(Flip);
-    labels.push_back("Home");
+    labels.push_back(backMenuLabel(app_, *this));
     actions.push_back(Home);
     labels.push_back("Close");
     std::weak_ptr<char> alive = alive_;

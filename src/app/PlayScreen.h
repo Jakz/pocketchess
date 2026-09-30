@@ -30,6 +30,7 @@ public:
     PlayScreen(Application& app, PlaySetup setup);
     ~PlayScreen() override;
     const char* name() const override { return "play"; }
+    std::string title() const override { return "Play"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;

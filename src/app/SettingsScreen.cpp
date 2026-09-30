@@ -16,7 +16,7 @@ using namespace ui;
 
 namespace {
 
-enum NavId { NavPrev, NavNext };
+enum NavId { NavPrev, NavNext, NavMenu };
 
 // Index of `value` in `values`, or -1.
 template <class T>
@@ -39,11 +39,13 @@ SettingsScreen::SettingsScreen(Application& app) : Screen(app) {
     footer_ = {pad, l.screen.h - kMinTouchPx - 2 * pad, l.screen.w - 2 * pad, kMinTouchPx + pad};
     body_ = {pad, l.status.bottom() + pad, l.screen.w - 2 * pad, footer_.y - l.status.bottom() - 2 * pad};
     const auto cells = splitRow({footer_.x, footer_.y + pad, footer_.w, kMinTouchPx}, 3, pad);
-    for (int id : {NavPrev, NavNext}) {
+    const char* labels[] = {"◀", "▶", "Menu"};  // ◀ ▶ = the Prev/Next keys
+    for (int id : {NavPrev, NavNext, NavMenu}) {
         Button b;
         b.id = id;
-        b.label = id == NavPrev ? "‹ Prev page" : "Next page ›";
-        b.rect = cells[id == NavPrev ? 0 : 2];
+        b.label = labels[id];
+        if (id != NavMenu) b.hint = "page";
+        b.rect = cells[static_cast<size_t>(id)];
         nav_.push_back(b);
     }
     buildItems();
@@ -223,7 +225,6 @@ void SettingsScreen::setPage(int page) {
     page_ = std::clamp(page, 0, static_cast<int>(pages_.size()) - 1);
     nav_[NavPrev].enabled = page_ > 0;
     nav_[NavNext].enabled = page_ + 1 < static_cast<int>(pages_.size());
-    focus_ = -1;
     app_.invalidateAll(RefreshHint::Content);
 }
 
@@ -232,32 +233,30 @@ std::string SettingsScreen::valueText(const Item& it) const {
     return i >= 0 && i < static_cast<int>(it.choices.size()) ? it.choices[static_cast<size_t>(i)] : "—";
 }
 
-std::string SettingsScreen::focusedLabel() const {
-    if (focus_ < 0) return {};
-    const int item = pages_[static_cast<size_t>(page_)][static_cast<size_t>(focus_)].item;
-    return item >= 0 ? items_[static_cast<size_t>(item)].label : std::string();
-}
-
-Rect SettingsScreen::focusRect() const {
-    if (focus_ == kFocusBack) return statusBackRect(app_);
-    if (focus_ < 0) return {};
-    return pages_[static_cast<size_t>(page_)][static_cast<size_t>(focus_)].rect;
+bool SettingsScreen::open(const std::string& label) {
+    for (size_t p = 0; p < pages_.size(); ++p)
+        for (const Row& row : pages_[p])
+            if (row.item >= 0 && items_[static_cast<size_t>(row.item)].label == label) {
+                if (static_cast<int>(p) != page_) setPage(static_cast<int>(p));
+                activate(row.item);
+                return true;
+            }
+    return false;
 }
 
 void SettingsScreen::draw(Canvas& c, const Rect& clip) {
     const BoardTheme& t = app_.theme();
     const UiStyle& s = app_.style();
     c.fill(clip, t.background);
-    const std::string pageText = std::to_string(page_ + 1) + "/" + std::to_string(pages_.size());
-    drawStatusBar(app_, c, "Settings", pageText, "Back");
-    if (focus_ == kFocusBack) c.frame(statusBackRect(app_), s.stroke, t.frame);
+    const std::string pageText = std::to_string(page_ + 1) + "/" + std::to_string(pages_.size()) +
+                                 (app_.settingsPersisted() ? "" : " · not saved");
+    drawStatusBar(app_, c, *this, "Settings", pageText);
 
     Font& body = app_.fonts().get(s.fontPx);
     Font& bold = app_.fonts().get(s.fontPx, FontStyle::Bold);
     const Rgb dim = blend(t.background, t.ink, 150);
     const auto& rows = pages_[static_cast<size_t>(page_)];
-    for (size_t r = 0; r < rows.size(); ++r) {
-        const Row& row = rows[r];
+    for (const Row& row : rows) {
         if (!row.rect.intersects(clip)) continue;
         if (row.item < 0) {
             bold.draw(c, row.rect.x, row.rect.bottom() - s.fontPx / 3, row.header, t.ink);
@@ -284,24 +283,15 @@ void SettingsScreen::draw(Canvas& c, const Rect& clip) {
             }
         }
         c.fill({row.rect.x, row.rect.bottom() - 1, row.rect.w, 1}, blend(t.background, t.frame, 90));
-        if (static_cast<int>(r) == focus_) c.frame(row.rect, s.stroke, t.frame);
     }
-    if (clip.intersects(footer_)) {
-        for (const Button& b : nav_) drawButton(c, b, t, app_.fonts(), s);
-        if (!app_.settingsPersisted()) {
-            Font& small = app_.fonts().get(s.smallPx);
-            const std::string note = "Not saved (no chess.db)";
-            small.draw(c, footer_.x + (footer_.w - small.measure(note)) / 2, footer_.y + footer_.h / 2 + small.ascent() / 2,
-                       note, dim);
-        }
-    }
+    for (const Button& b : nav_)
+        if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
 }
 
 void SettingsScreen::changed() {
     app_.saveSettings();
     app_.applySettings();  // redraws everything (theme, mono and coordinates may have changed)
 }
-
 void SettingsScreen::activate(int item) {
     Item& it = items_[static_cast<size_t>(item)];
     util::Log::info("settings", "open " + it.label);
@@ -337,36 +327,28 @@ void SettingsScreen::activate(int item) {
     app_.push(std::make_unique<MessageDialog>(app_, it.label, "", buttons, done, true));
 }
 
-void SettingsScreen::moveFocus(int delta) {
-    const auto& rows = pages_[static_cast<size_t>(page_)];
-    int f = focus_ == kFocusBack ? -1 : focus_;
-    for (size_t k = 0; k < rows.size(); ++k) {
-        f += delta;
-        if (f < 0 || f >= static_cast<int>(rows.size())) {
-            // Past the page edge: go to the neighbouring page (focus on its first/last row).
-            const int next = page_ + (delta > 0 ? 1 : -1);
-            if (next < 0) {  // above the first row: "‹ Back" (the reader's Back key never reaches the app)
-                const Rect old = focusRect();
-                focus_ = kFocusBack;
-                if (!old.empty()) app_.invalidate(old, RefreshHint::Selection);
-                app_.invalidate(focusRect().inset(-app_.style().stroke), RefreshHint::Selection);
-                return;
-            }
-            if (next >= static_cast<int>(pages_.size())) return;
-            setPage(next);
-            const auto& nrows = pages_[static_cast<size_t>(page_)];
-            f = delta > 0 ? 0 : static_cast<int>(nrows.size()) - 1;
-            while (f >= 0 && f < static_cast<int>(nrows.size()) && nrows[static_cast<size_t>(f)].item < 0) f += delta > 0 ? 1 : -1;
-            focus_ = f;
-            return;
+// Key-only use (the reader's buttons are Prev, Next and Menu): Prev/Next turn pages, Menu offers
+// the settings of the page, Back and Close.
+void SettingsScreen::openMenu() {
+    std::vector<int> ids;
+    std::vector<std::string> labels;
+    for (const Row& row : pages_[static_cast<size_t>(page_)])
+        if (row.item >= 0) {
+            ids.push_back(row.item);
+            labels.push_back(items_[static_cast<size_t>(row.item)].label + ": " +
+                             valueText(items_[static_cast<size_t>(row.item)]));
         }
-        if (rows[static_cast<size_t>(f)].item >= 0) break;
-    }
-    if (f < 0 || f >= static_cast<int>(rows.size()) || rows[static_cast<size_t>(f)].item < 0) return;
-    const Rect old = focusRect();
-    focus_ = f;
-    if (!old.empty()) app_.invalidate(old, RefreshHint::Selection);
-    app_.invalidate(focusRect(), RefreshHint::Selection);
+    app_.push(std::make_unique<MessageDialog>(
+        app_, "Settings", "", std::vector<std::string>{"Change a setting…", backMenuLabel(app_, *this), "Close"},
+        [this, ids, labels](int i) {
+            if (i == 1) return app_.pop();
+            if (i != 0) return;
+            chooseFromList(app_, "Settings " + std::to_string(page_ + 1) + "/" + std::to_string(pages_.size()), labels,
+                           [this, ids](int k) {
+                               if (k >= 0) activate(ids[static_cast<size_t>(k)]);
+                           });
+        },
+        true));
 }
 
 void SettingsScreen::onGesture(const Gesture& g) {
@@ -378,6 +360,7 @@ void SettingsScreen::onGesture(const Gesture& g) {
     switch (hitTest(nav_, g.start)) {
     case NavPrev: setPage(page_ - 1); return;
     case NavNext: setPage(page_ + 1); return;
+    case NavMenu: openMenu(); return;
     default: break;
     }
     for (const Row& row : pages_[static_cast<size_t>(page_)])
@@ -389,14 +372,9 @@ void SettingsScreen::onGesture(const Gesture& g) {
 
 void SettingsScreen::onKey(const InputEvent& e) {
     switch (e.key) {
-    case KeyCode::Prev: case KeyCode::Up: moveFocus(-1); break;
-    case KeyCode::Next: case KeyCode::Down: moveFocus(1); break;
-    case KeyCode::Left: setPage(page_ - 1); break;
-    case KeyCode::Right: setPage(page_ + 1); break;
-    case KeyCode::Ok: case KeyCode::Menu:
-        if (focus_ == kFocusBack) return app_.pop();
-        if (focus_ >= 0) activate(pages_[static_cast<size_t>(page_)][static_cast<size_t>(focus_)].item);
-        break;
+    case KeyCode::Prev: case KeyCode::Up: case KeyCode::Left: setPage(page_ - 1); break;
+    case KeyCode::Next: case KeyCode::Down: case KeyCode::Right: setPage(page_ + 1); break;
+    case KeyCode::Ok: case KeyCode::Menu: openMenu(); break;
     case KeyCode::Back: case KeyCode::Home: app_.pop(); break;
     default: break;
     }

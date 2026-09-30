@@ -17,6 +17,7 @@ class ImportScreen final : public Screen {
 public:
     explicit ImportScreen(Application& app);
     const char* name() const override { return "import"; }
+    std::string title() const override { return "Import"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;
@@ -29,21 +30,19 @@ public:
     void makeGamePack(size_t index);
 
 private:
-    enum ButtonId { BtnPrev, BtnRescan, BtnNext };
+    enum ButtonId { BtnPrev, BtnNext, BtnRescan, BtnMenu };
 
     void layout();
     void showPage();
     int pageCount() const;
     void openInAnalyze(const ImportItem& item);
-    void moveFocus(int delta);
-    ui::Rect focusRect() const;
+    void turnPage(int delta);
+    void openMenu();
 
     std::vector<ImportItem> items_;
     std::vector<ui::Button> nav_;
     ui::Rect listRect_;
     int rowH_ = 0, rowsPerPage_ = 8, page_ = 0;
-    static constexpr int kFocusBack = -2;  // the status bar's "‹ Back" (Prev above the first item)
-    int focus_ = -1;                       // item index for key use, -1 = none
 };
 
 } // namespace pchess::app

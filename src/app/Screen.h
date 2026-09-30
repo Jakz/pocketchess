@@ -22,6 +22,8 @@ public:
     Screen& operator=(const Screen&) = delete;
 
     virtual const char* name() const = 0;
+    // What the user calls this screen: the top bar of the screen above shows "‹ <title>".
+    virtual std::string title() const { return name(); }
     // Opaque screens cover everything below them; dialogs are not opaque.
     virtual bool opaque() const { return true; }
     virtual ui::Rect bounds() const;

@@ -133,7 +133,7 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
     const UiStyle& s = app_.style();
     const Layout& l = app_.layout();
     c.fill(clip, t.background);
-    drawStatusBar(app_, c, "PocketChess", batteryText(app_), "");
+    drawStatusBar(app_, c, *this, "PocketChess", batteryText(app_));
 
     Font& big = app_.fonts().get(s.titlePx * 2, FontStyle::Bold);
     const int titleY = l.status.bottom() + s.titlePx * 2 + big.ascent() / 2;

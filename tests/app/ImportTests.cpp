@@ -252,21 +252,18 @@ TEST_CASE("import screen: installs go under user/, then show up in the app") {
     fs::remove_all(root, ec);
 }
 
-TEST_CASE("import screen: keys only - Prev/Next walk the items across pages, Menu acts, Back above") {
+TEST_CASE("import screen: keys only - Prev/Next turn pages, Menu chooses an item or goes back") {
     const fs::path root = importRoot("pchess-import-keys");
     ImportHarness h(root);
     h.app->push(std::make_unique<ImportScreen>(*h.app));
     REQUIRE(h.screen() != nullptr);
-    const size_t n = h.screen()->items().size();
-    for (size_t i = 0; i < n; ++i) REQUIRE(runScript(*h.app, "key:next").ok());
-    h.app->flush();
-    // The last item is on page 2: its actions dialog opens with Menu.
-    REQUIRE(runScript(*h.app, "key:menu").ok());
+    REQUIRE(runScript(*h.app, "key:next").ok());  // page 2
+    REQUIRE(runScript(*h.app, "key:menu;key:ok").ok());  // "Choose an item…"
+    REQUIRE(runScript(*h.app, "key:ok").ok());           // the first: broken.yaml, which explains itself
     CHECK_EQ(std::string(h.app->top()->name()), std::string("message"));
-    REQUIRE(runScript(*h.app, "key:menu").ok());  // the last item is wrongfish: OK closes its reason
+    REQUIRE(runScript(*h.app, "key:ok").ok());
     REQUIRE(h.screen() != nullptr);
-    for (size_t i = 0; i < n + 1; ++i) REQUIRE(runScript(*h.app, "key:prev").ok());
-    REQUIRE(runScript(*h.app, "key:menu").ok());  // on "‹ Back"
+    REQUIRE(runScript(*h.app, "key:menu;key:next;key:next;key:ok").ok());  // "‹ Back to Home"
     CHECK_EQ(std::string(h.app->top()->name()), std::string("home"));
     std::error_code ec;
     h.app.reset();

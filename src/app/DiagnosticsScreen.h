@@ -23,6 +23,7 @@ public:
     explicit DiagnosticsScreen(Application& app);
     ~DiagnosticsScreen() override;
     const char* name() const override { return "diagnostics"; }
+    std::string title() const override { return "Diagnostics"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;

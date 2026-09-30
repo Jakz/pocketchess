@@ -61,12 +61,13 @@ void GameStudyScreen::layoutPanel() {
     commentRect_ = {headRect_.x, headRect_.bottom() + pad / 2, headRect_.w, 2 * small};
     buttonsRect_ = {p.x + pad, p.bottom() - pad - btnH, p.w - 2 * pad, btnH};
     movesRect_ = {headRect_.x, commentRect_.bottom() + pad / 2, headRect_.w, buttonsRect_.y - pad - commentRect_.bottom()};
-    const char* labels[] = {"◀ Prev", "Next ▶", "Main", "☆", "Menu"};
+    const char* labels[] = {"◀", "▶", "Main", "☆", "Menu"};
     const auto cells = splitRow(buttonsRect_, 5, pad);
     for (int i = 0; i < 5; ++i) {
         Button b;
         b.id = i;
         b.label = labels[i];
+        if (i < 2) b.hint = "move";  // the Prev/Next keys
         b.rect = cells[static_cast<size_t>(i)];
         buttons_.push_back(b);
     }
@@ -162,7 +163,7 @@ void GameStudyScreen::draw(Canvas& c, const Rect& clip) {
     const UiStyle& s = app_.style();
     const Layout& l = app_.layout();
     c.fill(clip, t.background);
-    drawStatusBar(app_, c, loaded_ && !row_.event.empty() ? row_.event : "Game", batteryText(app_), "Games");
+    drawStatusBar(app_, c, *this, loaded_ && !row_.event.empty() ? row_.event : "Game", batteryText(app_));
     if (clip.intersects(l.board)) board_.draw(c, clip, t, app_.pieces(), app_.fonts());
     Font& small = app_.fonts().get(s.smallPx);
     Font& smallBold = app_.fonts().get(s.smallPx, FontStyle::Bold);
@@ -236,7 +237,7 @@ void GameStudyScreen::openMenu() {
         labels.push_back("Game info");
         actions.push_back(Info);
     }
-    labels.push_back("Back to the list");  // the reader's Back key never reaches the app
+    labels.push_back(backMenuLabel(app_, *this));  // the reader's Back key never reaches the app
     actions.push_back(Back);
     labels.push_back("Close");
     app_.push(std::make_unique<MessageDialog>(

@@ -296,7 +296,7 @@ TextEntryDialog::TextEntryDialog(Application& app, std::string title, std::strin
     rect_ = {screen.x + (screen.w - w) / 2, screen.y + screen.h / 5, w, h};
     field_ = {rect_.x + pad, rect_.y + titleH_ + pad / 2, w - 2 * pad, fieldH};
     const auto cells = splitRow({rect_.x + pad, field_.bottom() + pad, w - 2 * pad, kMinTouchPx}, 3, pad / 2);
-    const char* labels[3] = {"Cancel", "Clear", "OK"};
+    const char* labels[3] = {"Close", "Clear", "OK"};
     for (int i = 0; i < 3; ++i) {
         Button b;
         b.rect = cells[static_cast<size_t>(i)];

@@ -94,7 +94,7 @@ void AnalyzeScreen::layoutPanel() {
     engineRect_ = {statusRect_.x, statusRect_.bottom(), statusRect_.w, engineH};
     movesRect_ = {p.x + pad * 2, engineRect_.bottom(), p.w - pad * 4, avail - engineH};
 
-    const char* labels[] = {"◀ Back", "Next ▶", "Flip", "Engine", "Menu"};
+    const char* labels[] = {"◀", "▶", "Flip", "Engine", "Menu"};
     const auto cells = splitRow(buttonsRect_, 5, pad);
     const bool first = buttons_.empty();
     if (first) {
@@ -102,6 +102,7 @@ void AnalyzeScreen::layoutPanel() {
             Button b;
             b.id = i;
             b.label = labels[i];
+            if (i < 2) b.hint = "move";  // the Prev/Next keys
             buttons_.push_back(b);
         }
     }
@@ -184,7 +185,7 @@ void AnalyzeScreen::draw(Canvas& c, const Rect& clip) {
     const UiStyle& s = app_.style();
     const Layout& l = app_.layout();
     c.fill(clip, t.background);
-    drawStatusBar(app_, c, "Analyze", batteryText(app_), "Home");
+    drawStatusBar(app_, c, *this, "Analyze", batteryText(app_));
     if (clip.intersects(l.board)) board_.draw(c, clip, t, app_.pieces(), app_.fonts());
 
     if (clip.intersects(statusRect_)) {
@@ -314,7 +315,7 @@ void AnalyzeScreen::openMenu() {
                        : engineMode_ == EngineMode::Quick ? "Engine: Deep"
                                                           : "Engine: Off";
     app_.push(std::make_unique<MessageDialog>(
-        app_, "Analyze", "", std::vector<std::string>{"Move…", "Position…", next, "Home", "Close"},
+        app_, "Analyze", "", std::vector<std::string>{"Move…", "Position…", next, backMenuLabel(app_, *this), "Close"},
         [this](int i) {
             switch (i) {
             case 0: openMoveMenu(); break;

@@ -23,6 +23,7 @@ public:
     // `path`: UCI moves from the start to show (session resume); empty = the start position.
     GameStudyScreen(Application& app, int64_t gameId, const std::vector<std::string>& path = {});
     const char* name() const override { return "study"; }
+    std::string title() const override { return "Game"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;

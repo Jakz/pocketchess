@@ -99,6 +99,8 @@ public:
     void replaceTop(std::unique_ptr<Screen> s);
     void popToRoot();
     Screen* top() const { return stack_.empty() ? nullptr : stack_.back().get(); }
+    // Title of the screen under `s` (what its Back returns to); empty for the bottom screen.
+    std::string parentTitle(const Screen* s) const;
     bool wantsText() const { return top() && top()->wantsText(); }
     size_t depth() const { return stack_.size(); }
 

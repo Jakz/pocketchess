@@ -15,6 +15,7 @@ class HomeScreen final : public Screen {
 public:
     explicit HomeScreen(Application& app);
     const char* name() const override { return "home"; }
+    std::string title() const override { return "Home"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;

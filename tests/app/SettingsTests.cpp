@@ -36,11 +36,10 @@ struct SettingsHarness {
         if (!r) MESSAGE(r.error().message());
         REQUIRE(r.ok());
     }
-    // Moves the focus (Next key, across pages) until `label` is focused.
-    void focus(const std::string& label) {
-        for (int i = 0; i < 40 && screen() && screen()->focusedLabel() != label; ++i) run("key:next");
+    // Opens a row as a tap would (toggle, choice dialog or swatches).
+    void open(const std::string& label) {
         REQUIRE(screen() != nullptr);
-        REQUIRE_EQ(screen()->focusedLabel(), label);
+        REQUIRE(screen()->open(label));
     }
 };
 
@@ -84,34 +83,33 @@ TEST_CASE("settings screen: pages, toggles, choice dialog, applied to the engine
     test::checkGolden("settings", h.app->canvas());
 
     // Two-choice rows toggle in place.
-    h.focus("Coordinates");
-    h.run("key:ok");
+    h.open("Coordinates");
     CHECK_FALSE(h.app->settings().coordinates);
     CHECK_FALSE(h.app->theme().coordinates);  // applied at once
-    h.run("key:ok");
+    h.open("Coordinates");
     CHECK(h.app->settings().coordinates);
 
     // Multi-choice rows open a dialog; the engine manager sees the change for its next job.
-    h.focus("Power profile");
-    h.run("key:ok");
+    h.open("Power profile");
     REQUIRE_EQ(std::string(h.app->top()->name()), std::string("message"));
     h.run("key:next;key:next;key:ok");  // Performance, Balanced, [Eco]
     REQUIRE(h.screen() != nullptr);
     CHECK(h.app->settings().powerProfile == engine::PowerProfileId::Eco);
     CHECK(h.app->engines().settings().profile == engine::PowerProfileId::Eco);
 
-    h.focus("Deep analysis stops");
-    h.run("key:ok;key:next;key:next;key:ok");  // Profile default, After 10 s, [After 30 s]
+    h.open("Deep analysis stops");
+    h.run("key:next;key:next;key:ok");  // Profile default, After 10 s, [After 30 s]
     CHECK_EQ(h.app->settings().deepLimitSeconds, 30);
     REQUIRE(h.app->engines().settings().analysisLimit.has_value());
     CHECK_EQ(h.app->engines().settings().analysisLimit->movetimeMs.value_or(0), 30000);
 
     // Back from the dialog changes nothing.
-    h.focus("Analysis lines");
-    h.run("key:ok;key:back");
+    h.open("Analysis lines");
+    h.run("key:back");
     CHECK_EQ(h.app->settings().analysisMultiPv, 1);
 
-    h.focus("Hash");  // the last row is on a later page
+    h.open("Hash");  // the last row is on a later page
+    h.run("key:back");  // closes its dialog
     CHECK(h.screen()->page() > 0);
     h.run("key:back");
     CHECK_EQ(std::string(h.app->top()->name()), std::string("home"));
@@ -124,11 +122,9 @@ TEST_CASE("settings screen: changes are saved in user/chess.db and survive a res
     {
         SettingsHarness h(root);
         REQUIRE(h.app->settingsPersisted());
-        h.focus("Mode");
-        h.run("key:ok");  // Color -> Monochrome
+        h.open("Mode");  // Color -> Monochrome
         CHECK(h.app->settings().mono);
-        h.focus("Evaluation");
-        h.run("key:ok");  // White's view -> Side to move
+        h.open("Evaluation");  // White's view -> Side to move
     }
     CHECK(std::filesystem::exists(root / "user" / "chess.db"));
     {
@@ -140,24 +136,26 @@ TEST_CASE("settings screen: changes are saved in user/chess.db and survive a res
     std::filesystem::remove_all(root, ec);
 }
 
-TEST_CASE("settings screen: keys only - Prev above the first row focuses Back, Menu leaves") {
+TEST_CASE("settings screen: keys only - Prev/Next turn pages, Menu changes a setting or goes back") {
     SettingsHarness h;
     REQUIRE(h.screen() != nullptr);
-    h.run("key:next");  // first row
-    CHECK_EQ(h.screen()->focusedLabel(), std::string("Mode"));
-    h.run("key:prev");  // "‹ Back"
-    CHECK(h.screen()->focusedLabel().empty());
     h.run("key:next");
-    CHECK_EQ(h.screen()->focusedLabel(), std::string("Mode"));
-    h.run("key:prev;key:menu");
-    CHECK(h.screen() == nullptr);  // back on Home
+    CHECK_EQ(h.screen()->page(), 1);
+    h.run("key:prev");
+    CHECK_EQ(h.screen()->page(), 0);
+    h.run("key:menu;key:ok");  // "Change a setting…": the rows of this page
+    h.run("key:ok");           // Mode: Color -> Monochrome
+    CHECK(h.app->settings().mono);
+    h.app->settings().mono = false;
+    h.app->applySettings();
+    h.run("key:menu;key:next;key:ok");  // "‹ Back to Home"
+    CHECK(h.screen() == nullptr);
     CHECK_EQ(std::string(h.app->top()->name()), std::string("home"));
 }
 
 TEST_CASE("settings screen: accent and piece colors are picked from swatches and color the board") {
     SettingsHarness h;
-    h.focus("Accent color");
-    h.run("key:ok");
+    h.open("Accent color");
     REQUIRE_EQ(std::string(h.app->top()->name()), std::string("swatches"));
     for (int i = 0; i < 7; ++i) h.run("key:next");  // Theme, Graphite, Red, Orange, Amber, Green, Teal -> Blue
     h.app->flush();
@@ -166,8 +164,7 @@ TEST_CASE("settings screen: accent and piece colors are picked from swatches and
     CHECK_EQ(h.app->settings().accent, std::string("Blue"));
     CHECK((h.app->theme().accent == *ui::findAccent("Blue")));
 
-    h.focus("Piece colors");
-    h.run("key:ok");
+    h.open("Piece colors");
     for (int i = 0; i < 7; ++i) h.run("key:next");
     h.run("key:ok");
     CHECK_EQ(h.app->settings().pieceColor, std::string("Blue"));

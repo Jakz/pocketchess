@@ -18,6 +18,7 @@ class GamesScreen final : public Screen {
 public:
     explicit GamesScreen(Application& app);
     const char* name() const override { return "games"; }
+    std::string title() const override { return "Games"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;
@@ -35,7 +36,7 @@ public:
     void open(size_t row);
 
 private:
-    enum ButtonId { BtnPlayer, BtnYear, BtnResult, BtnOpening, BtnFavorites, BtnPrev, BtnMenu, BtnNext };
+    enum ButtonId { BtnPlayer, BtnYear, BtnResult, BtnOpening, BtnFavorites, BtnPrev, BtnNext, BtnMenu };
 
     void layout();
     void query();     // count + first page (filters changed)

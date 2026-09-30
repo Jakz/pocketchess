@@ -33,6 +33,7 @@ public:
     AnalyzeScreen(Application& app, chess::GameTree game, const std::vector<chess::Move>& path = {});
     ~AnalyzeScreen() override;
     const char* name() const override { return "analyze"; }
+    std::string title() const override { return "Analyze"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;

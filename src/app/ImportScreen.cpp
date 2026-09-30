@@ -28,12 +28,13 @@ void ImportScreen::layout() {
     const UiStyle& s = app_.style();
     const int pad = s.fontPx / 3;
     const Rect navRect{pad, l.screen.h - pad - kMinTouchPx, l.screen.w - 2 * pad, kMinTouchPx};
-    const auto cells = splitRow(navRect, 3, pad);
-    const char* labels[] = {"‹ Prev", "Rescan", "Next ›"};
-    for (int i = 0; i < 3; ++i) {
+    const auto cells = splitRow(navRect, 4, pad);
+    const char* labels[] = {"◀", "▶", "Rescan", "Menu"};  // ◀ ▶ = the Prev/Next keys
+    for (int i = 0; i < 4; ++i) {
         Button b;
         b.id = i;
         b.label = labels[i];
+        if (i < 2) b.hint = "page";
         b.rect = cells[static_cast<size_t>(i)];
         nav_.push_back(b);
     }
@@ -64,7 +65,6 @@ void ImportScreen::rescan() {
                                                      .count()) +
                                   " ms");
     page_ = std::min(page_, pageCount() - 1);
-    if (focus_ >= static_cast<int>(items_.size())) focus_ = static_cast<int>(items_.size()) - 1;
     showPage();
 }
 
@@ -85,8 +85,7 @@ void ImportScreen::draw(Canvas& c, const Rect& clip) {
     const UiStyle& s = app_.style();
     c.fill(clip, t.background);
     const std::string right = items_.empty() ? "" : std::to_string(page_ + 1) + "/" + std::to_string(pageCount());
-    drawStatusBar(app_, c, "Import", right, "Home");
-    if (focus_ == kFocusBack) c.frame(statusBackRect(app_), s.stroke, t.frame);
+    drawStatusBar(app_, c, *this, "Import", right);
     for (const Button& b : nav_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
     if (!clip.intersects(listRect_)) return;
@@ -131,7 +130,6 @@ void ImportScreen::draw(Canvas& c, const Rect& clip) {
         small.draw(c, row.x + pad, y1 + body.descent() + small.ascent() + pad / 3, fitText(small, line2, row.w - 2 * pad),
                    dim);
         c.fill({row.x, row.bottom() - 1, row.w, 1}, blend(t.background, t.frame, 90));
-        if (static_cast<int>(i) == focus_) c.frame(row, s.stroke, t.frame);
     }
     c.popClip();
 }
@@ -216,7 +214,7 @@ void ImportScreen::choose(size_t index) {
         labels.push_back("Install");
         actions.push_back(2);
     }
-    labels.push_back("Cancel");
+    labels.push_back("Close");
     const std::string text = std::string(toString(it.kind)) + (it.name.empty() ? "" : " “" + it.name + "”") + ": " + it.detail;
     app_.push(std::make_unique<MessageDialog>(
         app_, title, text, labels,
@@ -242,50 +240,59 @@ void ImportScreen::onGesture(const Gesture& g) {
         return;
     }
     switch (hitTest(nav_, g.start)) {
-    case BtnPrev:
-        if (page_ > 0) --page_, showPage();
-        break;
-    case BtnNext:
-        if (page_ + 1 < pageCount()) ++page_, showPage();
-        break;
+    case BtnPrev: turnPage(-1); break;
+    case BtnNext: turnPage(1); break;
     case BtnRescan: rescan(); break;
+    case BtnMenu: openMenu(); break;
     default: break;
     }
 }
 
-Rect ImportScreen::focusRect() const {
-    if (focus_ == kFocusBack) return statusBackRect(app_);
-    if (focus_ < 0 || focus_ / rowsPerPage_ != page_) return {};
-    return {listRect_.x, listRect_.y + (focus_ % rowsPerPage_) * rowH_, listRect_.w, rowH_};
+void ImportScreen::turnPage(int delta) {
+    const int p = std::clamp(page_ + delta, 0, pageCount() - 1);
+    if (p == page_) return;
+    page_ = p;
+    showPage();
 }
 
-// Keys (the reader delivers Prev, Next and Menu): Prev/Next walk the items, pages follow; above
-// the first item is "‹ Back".
-void ImportScreen::moveFocus(int delta) {
-    const int n = static_cast<int>(items_.size());
-    int f = (focus_ < 0 ? -1 : focus_) + delta;  // from "nothing" or "‹ Back", Next goes to the first item
-    if (f >= n) return;
-    if (f < 0) f = kFocusBack;
-    const Rect old = focusRect();
-    focus_ = f;
-    if (focus_ >= 0 && focus_ / rowsPerPage_ != page_) {
-        page_ = focus_ / rowsPerPage_;
-        showPage();
-        return;
+void ImportScreen::openMenu() {
+    std::vector<std::string> labels;
+    enum Action { Choose, Rescan, Back };
+    std::vector<Action> actions;
+    if (!items_.empty()) {  // key-only use: the reader's buttons are Prev, Next and Menu
+        labels.push_back("Choose an item…");
+        actions.push_back(Choose);
     }
-    if (!old.empty()) app_.invalidate(old.inset(-app_.style().stroke), RefreshHint::Selection);
-    if (!focusRect().empty()) app_.invalidate(focusRect().inset(-app_.style().stroke), RefreshHint::Selection);
+    labels.push_back("Rescan imports/");
+    actions.push_back(Rescan);
+    labels.push_back(backMenuLabel(app_, *this));
+    actions.push_back(Back);
+    labels.push_back("Close");
+    app_.push(std::make_unique<MessageDialog>(
+        app_, "Import", "", labels,
+        [this, actions](int i) {
+            if (i < 0 || i >= static_cast<int>(actions.size())) return;
+            switch (actions[static_cast<size_t>(i)]) {
+            case Choose: {
+                std::vector<std::string> names;
+                for (const ImportItem& it : items_) names.push_back(it.path.filename().string());
+                chooseFromList(app_, "Import", names, [this](int k) {
+                    if (k >= 0) choose(static_cast<size_t>(k));
+                }, rowsPerPage_);
+                break;
+            }
+            case Rescan: rescan(); break;
+            case Back: app_.pop(); break;
+            }
+        },
+        true));
 }
 
 void ImportScreen::onKey(const InputEvent& e) {
     switch (e.key) {
-    case KeyCode::Prev: case KeyCode::Left: case KeyCode::Up: moveFocus(-1); break;
-    case KeyCode::Next: case KeyCode::Right: case KeyCode::Down: moveFocus(1); break;
-    case KeyCode::Ok: case KeyCode::Menu:
-        if (focus_ == kFocusBack) return app_.pop();
-        if (focus_ >= 0) return choose(static_cast<size_t>(focus_));
-        moveFocus(1);
-        break;
+    case KeyCode::Prev: case KeyCode::Left: case KeyCode::Up: turnPage(-1); break;
+    case KeyCode::Next: case KeyCode::Right: case KeyCode::Down: turnPage(1); break;
+    case KeyCode::Ok: case KeyCode::Menu: openMenu(); break;
     case KeyCode::Back: case KeyCode::Home: app_.pop(); break;
     default: break;
     }

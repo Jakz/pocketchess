@@ -26,6 +26,7 @@ public:
     TacticsScreen(Application& app, Mode mode, const std::string& puzzleId = "");
     ~TacticsScreen() override;
     const char* name() const override { return "tactics"; }
+    std::string title() const override { return mode_ == Mode::Review ? "Review" : "Tactics"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;
@@ -46,7 +47,7 @@ public:
     const std::vector<ui::Button>& buttons() const { return buttons_; }
 
 private:
-    enum ButtonId { BtnHint, BtnRetry, BtnSolution, BtnNext, BtnMenu };
+    enum ButtonId { BtnRetry, BtnNext, BtnHint, BtnSolution, BtnMenu };  // ◀ ▶ = the Prev/Next keys
 
     void layoutPanel();
     bool load(const std::string& id);  // a specific puzzle

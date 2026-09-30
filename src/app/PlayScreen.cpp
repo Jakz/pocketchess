@@ -71,12 +71,13 @@ void PlayScreen::layoutPanel() {
     statusRect_ = {p.x + pad * 2, p.y + pad, p.w - pad * 4, statusH};
     buttonsRect_ = {p.x + pad, p.bottom() - pad - btnH, p.w - 2 * pad, btnH};
     movesRect_ = {p.x + pad * 2, statusRect_.bottom(), p.w - pad * 4, buttonsRect_.y - pad - statusRect_.bottom()};
-    const char* labels[] = {"Undo", "Flip", "Draw", "Resign", "Menu"};
+    const char* labels[] = {"◀", "Flip", "Draw", "Resign", "Menu"};  // ◀ = the Prev key: undo
     const auto cells = splitRow(buttonsRect_, 5, pad);
     for (int i = 0; i < 5; ++i) {
         Button b;
         b.id = i;
         b.label = labels[i];
+        if (i == 0) b.hint = "undo";
         b.rect = cells[static_cast<size_t>(i)];
         buttons_.push_back(b);
     }
@@ -156,7 +157,7 @@ void PlayScreen::draw(Canvas& c, const Rect& clip) {
     const Layout& l = app_.layout();
     c.fill(clip, t.background);
     const std::string title = "Play · " + capitalized(setup_.strength);
-    drawStatusBar(app_, c, title, batteryText(app_), "Home");
+    drawStatusBar(app_, c, *this, title, batteryText(app_));
     if (clip.intersects(l.board)) board_.draw(c, clip, t, app_.pieces(), app_.fonts());
     if (clip.intersects(statusRect_)) {
         Font& f = app_.fonts().get(s.fontPx, FontStyle::Bold);
@@ -275,7 +276,7 @@ void PlayScreen::showEngineProblem(const std::string& title, const std::string& 
     util::Log::warn("play", title + ": " + text);
     std::weak_ptr<char> alive = alive_;
     app_.push(std::make_unique<MessageDialog>(
-        app_, title, text, std::vector<std::string>{"Retry", "Settings", "Home"}, [this, alive](int i) {
+        app_, title, text, std::vector<std::string>{"Retry", "Settings", backMenuLabel(app_, *this)}, [this, alive](int i) {
             if (alive.expired()) return;
             if (i == 0) {
                 engineBlocked_ = false;
@@ -422,7 +423,7 @@ void PlayScreen::newGame() {
 void PlayScreen::openMenu() {
     std::weak_ptr<char> alive = alive_;
     app_.push(std::make_unique<MessageDialog>(
-        app_, "Game", "", std::vector<std::string>{"New game", "Analyze game", "Home", "Close"},
+        app_, "Game", "", std::vector<std::string>{"New game", "Analyze game", backMenuLabel(app_, *this), "Close"},
         [this, alive](int i) {
             if (alive.expired()) return;
             switch (i) {
