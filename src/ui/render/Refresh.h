@@ -17,7 +17,8 @@ enum class RefreshMode : uint8_t { Fast = 0, Partial = 1, Full = 2 };
 enum class RefreshHint : uint8_t {
     Selection = 0,  // transient marker (selection, pressed button)
     Content = 1,    // a move, new text
-    Screen = 2,     // new screen, theme change, big dialog
+    Page = 2,       // a large content change that stays partial (list page turns, M5)
+    Screen = 3,     // new screen, theme change, big dialog
 };
 
 const char* toString(RefreshMode m);

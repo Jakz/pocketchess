@@ -51,7 +51,10 @@ std::vector<Rect> DirtyRegions::take() {
 }
 
 RefreshMode RefreshPolicy::decide(RefreshHint hint, int64_t dirtyArea, int64_t screenArea) {
-    if (hint == RefreshHint::Screen || (screenArea > 0 && dirtyArea * 2 > screenArea)) {
+    // Large updates flash a full refresh against ghosting, unless the screen asked for a page turn
+    // (a list page is large but should stay partial; the periodic full still cleans up).
+    const bool large = hint != RefreshHint::Page && screenArea > 0 && dirtyArea * 2 > screenArea;
+    if (hint == RefreshHint::Screen || large) {
         contentSinceFull_ = 0;
         return RefreshMode::Full;
     }

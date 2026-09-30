@@ -71,4 +71,16 @@ int drawLines(Canvas& c, const Rect& r, const std::vector<std::string>& lines, F
     return y;
 }
 
+std::string fitText(Font& font, const std::string& text, int width) {
+    if (font.measure(text) <= width) return text;
+    std::string s = text;
+    while (!s.empty()) {
+        s.pop_back();
+        while (!s.empty() && (static_cast<unsigned char>(s.back()) & 0xC0) == 0x80) s.pop_back();  // whole chars
+        while (!s.empty() && s.back() == ' ') s.pop_back();
+        if (font.measure(s + "…") <= width) return s + "…";
+    }
+    return "…";
+}
+
 } // namespace pchess::ui

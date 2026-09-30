@@ -8,6 +8,7 @@
 #include "ui/canvas/PngWriter.h"
 #include "ui/input/Input.h"
 #include "ui/render/Refresh.h"
+#include "ui/widgets/Widgets.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -226,4 +227,29 @@ TEST_CASE("gestures: tap, drag, long press") {
     auto held = g.feed(InputEvent::pointer(T::PointerUp, {51, 50}), t0 + std::chrono::milliseconds(900));
     REQUIRE(held.has_value());
     CHECK(held->type == Gesture::Type::LongPress);
+}
+
+TEST_CASE("refresh policy: a page turn stays partial even when it covers most of the screen") {
+    RefreshPolicy p;
+    p.setFullEvery(3);
+    const int64_t screen = 1000 * 1000;
+    CHECK(p.decide(RefreshHint::Content, 800 * 1000, screen) == RefreshMode::Full);  // large content: full
+    CHECK(p.decide(RefreshHint::Page, 800 * 1000, screen) == RefreshMode::Partial);
+    CHECK(p.decide(RefreshHint::Page, 800 * 1000, screen) == RefreshMode::Partial);
+    CHECK(p.decide(RefreshHint::Page, 800 * 1000, screen) == RefreshMode::Full);  // the periodic full still comes
+}
+
+TEST_CASE("fitText: unchanged when it fits, else shortened with an ellipsis on a character boundary") {
+    FontLibrary fonts;
+    REQUIRE(fonts.load(std::filesystem::path(test::fontDir()) / "DejaVuSans.ttf",
+                       std::filesystem::path(test::fontDir()) / "DejaVuSans-Bold.ttf")
+                .ok());
+    Font& f = fonts.get(26);
+    CHECK_EQ(fitText(f, "Kasparov", 1000), std::string("Kasparov"));
+    const std::string long_ = "José Raúl Capablanca y Graupera – Alexander Alekhine";
+    const std::string fit = fitText(f, long_, 200);
+    CHECK(f.measure(fit) <= 200);
+    CHECK(fit.size() < long_.size());
+    CHECK(fit.rfind("…") == fit.size() - std::string("…").size());
+    CHECK_EQ(fitText(f, "abc", 1), std::string("…"));
 }

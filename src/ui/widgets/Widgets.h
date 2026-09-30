@@ -40,4 +40,7 @@ std::vector<Rect> splitColumn(const Rect& area, int count, int gap);
 // Draws text lines top-aligned inside r, clipped; returns the y after the last line.
 int drawLines(Canvas& c, const Rect& r, const std::vector<std::string>& lines, Font& font, Rgb color);
 
+// `text` shortened with "…" (on a UTF-8 character boundary) to fit `width` pixels.
+std::string fitText(Font& font, const std::string& text, int width);
+
 } // namespace pchess::ui
