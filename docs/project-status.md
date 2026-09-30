@@ -1,6 +1,6 @@
 # Project status — resume point
 
-Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
+Last updated: 2026-09-30 (M5 historical games: features done, device acceptance pending). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
 
 ## Milestone overview
 
@@ -16,7 +16,8 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 | M2 Engine integration | 🟢 functionally done: engine subsystem, Analyze engine panel, benchmark, device lineup (ADR 0010: Stockfish 19 main, Stockfish 11 for Eco), all run on the reader. Device fine-tuning checks deferred until the app is feature-complete (decision 2026-09-29, see below) |
 | M3 Play, Analysis, Home, session | 🟢 features done: SQLite + `core/storage` (`chess.db` v3), Settings v1, Play mode, Analyze (MultiPV lines, comments, main line / promote / delete, Load PGN), SessionState + Resume (ADR 0011), Home summary; pending: device acceptance run, strength calibration (deferred, see below) |
 | M4 Tactics trainer, rating, review | 🟢 features done: zstd 1.5.7 decoder, `fetch-lichess.ps1`, `PuzzleImporter` + `build-content.ps1` (50k pack = 6 MB), `core/puzzles` (pack, selector, session, progress/rating/review), Tactics and Review screens, Home rating/due count, Tactics settings; pending: device acceptance (30 puzzles, selection < 50 ms, WAL on the user partition) |
-| M5–M6 | not started (Home shows them disabled with their milestone) |
+| M5 Historical games | 🟢 features done: `data/openings` (Lichess ECO names, CC0), `core/games` (opening classification, `GameImporter`, `GamePack` filters/pages), `PgnImporter` + `build-content.ps1 -Games` (20k games = 6.5 MB in 27 s), bundled `classics.db`, favorites in `chess.db`, Games browser + study screens, "Analyze from here"; pending: device acceptance (≥ 10k pack, filters < 150 ms, partial page turns) |
+| M6 | not started (Home shows Import/Themes disabled) |
 
 ## 2026-09-29 — first MSVC build fixes
 
@@ -50,6 +51,28 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
   playing legal moves), `ManualScheduler`; new suites for YAML, descriptors/registry, UciEngine,
   EngineManager and the analysis panel; goldens updated for the new button row, plus
   `analyze-engine-quick` and `analyze-engine-missing`.
+
+## 2026-09-30 — M5: historical games
+
+- `data/openings/{a..e}.tsv`: Lichess chess-openings (CC0, pinned commit in the README).
+  `core/games/Openings`: classification by Zobrist key of every position of the main line, the deepest
+  named position wins (transpositions included).
+- `core/games/GamePack`: `players` (normalized names for search) + `games` (year, players, ECO,
+  opening, ply count, moves as a compact blob; the PGN text is kept only for annotated games).
+  `GameFilter` (player / player-vs-opponent, years, event, ECO prefix, opening, result, favorite ids),
+  `count` + `page` (newest first, LIMIT/OFFSET). Favorites per pack in `chess.db`.
+- `PgnImporter` (desktop tool): streams `.pgn`/`.pgn.zst`, `--max`, `--name`.
+  `build-content.ps1 -Games` builds `data/generated/games/lichess-2013-01.db` (20k games, 6.5 MB,
+  27 s). The committed `data/samples/games/classics.db` (Opera, Immortal with a variation and
+  comments, Evergreen) always ships; `stage-bundle.ps1` stages it next to generated packs.
+- Games browser: filter chips (Player via the keyboard, "A - B" for a pairing; Year; Result;
+  Opening; ☆ favorites), 10 two-line rows per page, Prev/Next = page, page turns invalidate with the
+  new `RefreshHint::Page` (partial even though large; the periodic full still cleans up). The log has
+  "games: count N ms" / "games: page N ms" for the < 150 ms acceptance.
+- Study view: board + headline + comment + move list; Prev/Next = ply, tap a move to jump, Main,
+  ☆, Menu (Variations…, Analyze from here, Flip, Game info). Session resume keeps pack/game/path.
+- Tests: importer (moves, comments, variations), filters/pages, browser and study flows.
+  Goldens: `games`, `game-study`. Long names are ellipsized (`ui::fitText`).
 
 ## 2026-09-30 — M4: tactics trainer, rating, review
 
@@ -177,10 +200,9 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
 ## Not working yet
 
 - M2 remainder: the deferred device checks listed under the resume point (refresh rate, idle shutdown, profile
-  switch, battery). The "Engine missing" dialog has no Settings button yet (no Settings screen).
-- No Settings screen yet: power profile / engine per role / MultiPV live in `app::Settings` defaults.
-- No SQLite, settings persistence, session resume (M3), puzzles (M4), games (M5), themes from
-  YAML / PNG piece sets / Import (M6).
+  switch, battery).
+- M6: themes from YAML, piece sets, Settings v2, the Import screen (device `.db`/PGN/engine import);
+  Home still shows Import/Themes disabled. Tactics theme exclusion in Settings (M4 leftover).
 - InkView Fast mode uses PartialUpdate (ADR 0002); `post()` polls while background work runs
   (ADR 0003).
 - `--replay` (recorded input logs) not implemented; `--script` covers scripted sessions.
@@ -193,8 +215,12 @@ Last updated: 2026-09-29 (M2: device runs, engine lineup settled in ADR 0010). P
    `imports/`; 30 puzzles in one session with the rating kept across restarts; the log's
    "tactics: selection N ms" lines (< 50 ms); Settings → Advanced → Review clock offset +1 day
    brings failed puzzles to Review.
-2. M5 (historical games): `PgnImporter`, `games.db` packs, the Games browser and study screens.
-3. Windows: F5 → Analyze → Engine (Quick/Deep) and Play with real Stockfish (quick visual check).
+2. Device, M5 acceptance (`build-content.ps1 -Presets @() -Games` first, then `deploy.ps1 -WithContent`):
+   Games → pack "Lichess January 2013" (20k); every filter and page turn under 150 ms in the log
+   ("games: count/page N ms"), page turns partial; study view on "Classics" (the Immortal's
+   variation 18. Be3), Analyze from here, favorites filter.
+3. M6: themes (YAML), piece sets (nanosvg + `AssetConverter`), Settings v2, Import screen, polish.
+4. Windows: F5 → Analyze → Engine (Quick/Deep) and Play with real Stockfish (quick visual check).
 
 Deferred until the app is feature-complete (decided 2026-09-29): strength calibration (M3 item:
 preset vs preset / fixed-Elo matches on the desktop; first decide whether presets use `nodes`
