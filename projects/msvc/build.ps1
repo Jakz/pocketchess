@@ -39,10 +39,14 @@ if ($Package) {
     $stage = Join-Path $RepoRoot "out\package-windows"
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $stage, $zip
     New-Item -ItemType Directory -Force -Path $stage | Out-Null
-    Copy-Item (Join-Path $outDir 'PocketChess.exe') $stage
+    Copy-Item (Join-Path $outDir 'PocketChess.exe'), (Join-Path $outDir 'SDL3.dll') $stage
     Copy-Item -Recurse (Join-Path $outDir 'pocketchess') $stage
-    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $stage 'pocketchess\user'), (Join-Path $stage 'pocketchess\logs')
-    Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip
+    # Nothing from a development run: user data, logs, imports and exports start empty (AGENTS.md).
+    foreach ($d in 'user', 'logs', 'imports', 'exports') {
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $stage "pocketchess\$d")
+        New-Item -ItemType Directory -Force -Path (Join-Path $stage "pocketchess\$d") | Out-Null
+    }
+    & (Join-Path $RepoRoot 'scripts\zip-folder.ps1') -Folder $stage -Zip $zip
     Write-Host "Package: $zip"
 }
 exit 0
