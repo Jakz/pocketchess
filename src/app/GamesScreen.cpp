@@ -88,7 +88,7 @@ void GamesScreen::query() {
     games::GamePack* pack = app_.gamePack();
     title_ = "Games";
     if (!pack) {
-        message_ = "No game pack installed. Copy packs into content/games/ (made by PgnImporter).";
+        message_ = "No game pack installed. Copy a .pgn or a game pack (.db) into imports/ and open Home → Import.";
     } else {
         const auto meta = pack->meta();
         if (auto it = meta.find("title"); it != meta.end() && !it->second.empty()) title_ = it->second;

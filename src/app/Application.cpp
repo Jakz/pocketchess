@@ -7,11 +7,13 @@
 #include "app/GameStudyScreen.h"
 #include "app/GamesScreen.h"
 #include "app/HomeScreen.h"
+#include "app/ImportScreen.h"
 #include "app/PlayScreen.h"
 #include "app/SettingsScreen.h"
 #include "app/TacticsScreen.h"
 #include "core/storage/ChessDb.h"
 #include "core/util/Clock.h"
+#include "core/util/Files.h"
 #include "core/util/Log.h"
 
 #include <algorithm>
@@ -47,9 +49,25 @@ Application::~Application() {
     engines_.reset();  // after the screens: they cancel their jobs on leave
 }
 
+void Application::scanAssets() {
+    themes_ = ThemeManager();
+    themes_.loadDirectory(paths_.themes());
+    themes_.loadDirectory(paths_.installed("themes"));
+    pieceSets_ = PieceSetLibrary();
+    pieceSets_.scan(paths_.pieces());
+    pieceSets_.scan(paths_.installed("pieces"));
+}
+
+void Application::reloadInstalled() {
+    scanAssets();
+    rescanEngines();
+    pieceSetApplied_.clear();  // a newly installed set may be the one the settings name
+    applySettings();
+}
+
 void Application::rescanEngines() {
     engines_->shutdownEngine();
-    engineRegistry_.scan(paths_.engines());
+    engineRegistry_.scan(std::vector<std::filesystem::path>{paths_.engines(), paths_.installed("engines")});
     for (const auto& d : config_.extraEngines) engineRegistry_.add(d);
 }
 
@@ -82,8 +100,7 @@ void Application::start() {
         glyphSet_ = set;
         pieces_.setPieceSet(set);
     }
-    themes_.loadDirectory(paths_.themes());
-    pieceSets_.scan(paths_.pieces());
+    scanAssets();
 
     if (config_.persistSettings) {
         // Content errors never stop the app (design notes §32): settings then stay in memory.
@@ -202,6 +219,7 @@ std::unique_ptr<Screen> Application::makeScreen(const std::string& name) {
     if (name == "tactics") return std::make_unique<TacticsScreen>(*this, TacticsScreen::Mode::Train);
     if (name == "review") return std::make_unique<TacticsScreen>(*this, TacticsScreen::Mode::Review);
     if (name == "games") return std::make_unique<GamesScreen>(*this);
+    if (name == "import") return std::make_unique<ImportScreen>(*this);
     if (name == "play")
         return std::make_unique<PlayScreen>(*this, PlaySetup{chess::White, settings_.playStrength, config_.fen});
     Log::warn("app", "unknown or not yet available screen '" + name + "', staying on Home");
@@ -256,13 +274,22 @@ void Application::applySettings() {
     if (started_) invalidateAll(RefreshHint::Screen);
 }
 
+// Bundled packs (content/<kind>) and imported ones (user/content/<kind>, ADR 0013).
 std::vector<std::string> Application::packNames(const char* kind) const {
     std::vector<std::string> names;
     std::error_code ec;
-    for (const auto& de : std::filesystem::directory_iterator(paths_.content() / kind, ec))
-        if (de.is_regular_file(ec) && de.path().extension() == ".db") names.push_back(de.path().stem().string());
+    for (const auto& dir : {paths_.content() / kind, paths_.installed("content") / kind})
+        for (const auto& de : std::filesystem::directory_iterator(dir, ec))
+            if (de.is_regular_file(ec) && de.path().extension() == ".db") names.push_back(de.path().stem().string());
     std::sort(names.begin(), names.end());
+    names.erase(std::unique(names.begin(), names.end()), names.end());
     return names;
+}
+
+std::filesystem::path Application::packFile(const char* kind, const std::string& name) const {
+    const std::filesystem::path bundled = paths_.content() / kind / (name + ".db");
+    std::error_code ec;
+    return std::filesystem::exists(bundled, ec) ? bundled : paths_.installed("content") / kind / (name + ".db");
 }
 
 // The wanted pack when installed, else the largest one (by file size: the most content).
@@ -273,7 +300,7 @@ std::string Application::choosePack(const char* kind, const std::string& wanted)
     std::uintmax_t best = 0;
     std::error_code ec;
     for (const auto& n : names) {
-        const auto size = std::filesystem::file_size(paths_.content() / kind / (n + ".db"), ec);
+        const auto size = std::filesystem::file_size(packFile(kind, n), ec);
         if (!ec && size >= best) {
             best = size;
             name = n;
@@ -289,7 +316,7 @@ puzzles::PuzzlePack* Application::puzzlePack() {
     const std::string name = choosePack("puzzles", settings_.tacticsPack);
     if (name.empty()) return nullptr;
     if (pack_ && packName_ == name) return pack_.get();
-    auto pack = puzzles::PuzzlePack::open(paths_.content() / "puzzles" / (name + ".db"));
+    auto pack = puzzles::PuzzlePack::open(packFile("puzzles", name));
     if (!pack) {
         Log::error("app", "puzzle pack " + name + ": " + pack.error().message());
         return nullptr;
@@ -300,11 +327,28 @@ puzzles::PuzzlePack* Application::puzzlePack() {
     return pack_.get();
 }
 
+const games::OpeningBook* Application::openings() {
+    if (openingsTried_) return openings_.get();
+    openingsTried_ = true;
+    auto book = std::make_unique<games::OpeningBook>();
+    for (const char* f : {"a.tsv", "b.tsv", "c.tsv", "d.tsv", "e.tsv"}) {
+        auto text = util::readTextFile(paths_.assets() / "openings" / f, 4u << 20);
+        if (!text) {
+            Log::warn("app", "openings: " + text.error().message() + " - game packs made here have no opening names");
+            return nullptr;
+        }
+        (void)book->addTsv(*text);
+    }
+    Log::info("app", "openings: " + std::to_string(book->size()) + " positions");
+    openings_ = std::move(book);
+    return openings_.get();
+}
+
 games::GamePack* Application::gamePack() {
     const std::string name = choosePack("games", settings_.gamesPack);
     if (name.empty()) return nullptr;
     if (gamePack_ && gamePackName_ == name) return gamePack_.get();
-    auto pack = games::GamePack::open(paths_.content() / "games" / (name + ".db"));
+    auto pack = games::GamePack::open(packFile("games", name));
     if (!pack) {
         Log::error("app", "game pack " + name + ": " + pack.error().message());
         return nullptr;

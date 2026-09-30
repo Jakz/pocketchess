@@ -81,7 +81,7 @@ void TacticsScreen::loadNext() {
     puzzles::PuzzlePack* pack = app_.puzzlePack();
     if (!pack) {
         setStatus("No puzzle pack installed",
-                  "Copy a pack (for example large.db) into content/puzzles/. Packs are made by PuzzleImporter.");
+                  "Copy a puzzle pack (.db, made by PuzzleImporter) into imports/ and open Home → Import.");
         refreshBoard(RefreshHint::Content);
         return;
     }

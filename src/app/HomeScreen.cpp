@@ -5,6 +5,7 @@
 #include "app/Application.h"
 #include "app/Chrome.h"
 #include "app/DiagnosticsScreen.h"
+#include "app/ImportScreen.h"
 #include "app/Dialogs.h"
 #include "app/GamesScreen.h"
 #include "app/PlayScreen.h"
@@ -21,7 +22,7 @@ namespace pchess::app {
 using namespace ui;
 
 namespace {
-enum Id { Play, Tactics, Games, Analyze, Review, SettingsItem, Diagnostics, Exit };
+enum Id { Play, Tactics, Games, Analyze, Review, SettingsItem, Import, Diagnostics, Exit };
 }
 
 HomeScreen::HomeScreen(Application& app) : Screen(app) {
@@ -43,8 +44,6 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
         {Games, "Games", "historical games", true},
         {Analyze, "Analyze", "", true},
         {Review, "Review", "failed puzzles", true},
-        {SettingsItem, "Settings", "", true},
-        {Diagnostics, "Diagnostics", "", true},
     };
     int y = top;
     for (const Item& it : items) {
@@ -56,6 +55,17 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
         b.rect = {margin, y, l.screen.w - 2 * margin, btnH};
         buttons_.push_back(b);
         y += btnH + gap;
+    }
+    // Less frequent destinations share one row.
+    const Item tools[] = {
+        {SettingsItem, "Settings", "", true}, {Import, "Import", "", true}, {Diagnostics, "Diagnostics", "", true}};
+    const auto cells = splitRow({margin, y, l.screen.w - 2 * margin, btnH}, 3, gap);
+    for (size_t i = 0; i < 3; ++i) {
+        Button b;
+        b.id = tools[i].id;
+        b.label = tools[i].label;
+        b.rect = cells[i];
+        buttons_.push_back(b);
     }
     footer_ = {0, l.screen.h - s.fontPx * 3, l.screen.w, s.fontPx * 3};
     const int summaryTop = buttons_.back().rect.bottom() + gap * 2;
@@ -150,7 +160,7 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
     const int pad = s.fontPx;
     small.draw(c, pad, baseline, left, t.ink);
     small.draw(c, l.screen.w - pad - small.measure(right), baseline, right, t.ink);
-    const std::string version = "0.0.1 · M5 preview";
+    const std::string version = "0.0.1 · M6 preview";
     small.draw(c, (l.screen.w - small.measure(version)) / 2, baseline, version, blend(t.background, t.ink, 140));
 }
 
@@ -163,6 +173,7 @@ void HomeScreen::open(int id) {
     case Analyze: app_.push(std::make_unique<AnalyzeScreen>(app_, "")); break;
     case SettingsItem: app_.push(std::make_unique<SettingsScreen>(app_)); break;
     case Diagnostics: app_.push(std::make_unique<DiagnosticsScreen>(app_)); break;
+    case Import: app_.push(std::make_unique<ImportScreen>(app_)); break;
     default: break;
     }
 }

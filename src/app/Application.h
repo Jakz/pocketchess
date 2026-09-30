@@ -113,6 +113,7 @@ public:
     Settings& settings() { return settings_; }
     void applySettings();  // theme/mono/refresh interval/engine settings changed
     void applyPieceSet();  // (re)loads the chosen set when it changed
+    void scanAssets();
     void saveSettings();   // writes Settings to chess.db (no-op when not persisted)
     bool settingsPersisted() const { return userDb_.isOpen(); }
     // SessionState: screens call this after every meaningful change (move, undo); push/pop and
@@ -129,6 +130,8 @@ public:
     std::vector<std::string> puzzlePackNames() const;  // file stems, sorted
     // Historical games (M5): content/games/<pack>.db (Settings -> Games -> Pack, else the largest).
     games::GamePack* gamePack();
+    // assets/openings/*.tsv (Lichess ECO names), loaded on first use; nullptr when missing.
+    const games::OpeningBook* openings();
     std::vector<std::string> gamePackNames() const;
     int64_t now() const;  // unix seconds for reviews: the clock plus Settings clock offset (device tests)
 
@@ -137,6 +140,8 @@ public:
     engine::EngineManager& engines() { return *engines_; }
     util::Scheduler& scheduler() { return scheduler_; }
     void rescanEngines();
+    // After Import (ADR 0013): themes, piece sets and engines from the bundle and user/.
+    void reloadInstalled();
 
     ui::Canvas& canvas() { return canvas_; }
     ui::FontLibrary& fonts() { return fonts_; }
@@ -159,6 +164,7 @@ public:
 private:
     std::unique_ptr<Screen> makeScreen(const std::string& name);
     std::vector<std::string> packNames(const char* kind) const;
+    std::filesystem::path packFile(const char* kind, const std::string& name) const;  // bundled or imported
     std::string choosePack(const char* kind, const std::string& wanted) const;
     void offerResume(std::map<std::string, std::string> session);
     std::unique_ptr<Screen> restoreScreen(const std::map<std::string, std::string>& session);
@@ -179,6 +185,8 @@ private:
     std::unique_ptr<puzzles::PuzzlePack> pack_;
     std::string packName_;  // the name pack_ was opened for
     std::unique_ptr<games::GamePack> gamePack_;
+    std::unique_ptr<games::OpeningBook> openings_;
+    bool openingsTried_ = false;
     std::string gamePackName_;
     util::Random random_;
     bool sessionReady_ = false;  // false until the Resume question is answered (keeps the old session)

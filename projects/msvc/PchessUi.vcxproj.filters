@@ -60,6 +60,12 @@
     <ClCompile Include="..\..\src\app\HomeScreen.cpp">
       <Filter>src\app</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\app\ImportScreen.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\Importer.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\app\MoveList.cpp">
       <Filter>src\app</Filter>
     </ClCompile>
@@ -156,6 +162,12 @@
       <Filter>src\app</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\HomeScreen.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\ImportScreen.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\Importer.h">
       <Filter>src\app</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\MoveList.h">
