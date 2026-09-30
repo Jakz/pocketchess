@@ -11,7 +11,9 @@
 #include "core/util/Clock.h"
 #include "core/util/Log.h"
 
+#include <algorithm>
 #include <chrono>
+#include <filesystem>
 
 namespace pchess::app {
 
@@ -89,6 +91,15 @@ void Application::start() {
                 Log::error("app", "settings: " + s.error().message());
             Log::info("app", "chess.db open (journal " + userDb_.journalMode() + ")");
         }
+        if (auto p = puzzles::Progress::open(paths_.user() / "progress.db"); p)
+            progress_ = std::make_unique<puzzles::Progress>(std::move(*p));
+        else
+            Log::error("app", "progress.db: " + p.error().message() + " - tactics progress will not be saved");
+    }
+    if (!progress_) {  // tests, or progress.db failed: keep tactics working for this session
+        if (auto mem = storage::Database::open({}, storage::Database::Mode::Memory); mem)
+            if (auto p = puzzles::Progress::fromDatabase(std::move(*mem)); p)
+                progress_ = std::make_unique<puzzles::Progress>(std::move(*p));
     }
     // Command-line overrides apply to this session only.
     if (config_.mono) settings_.mono = *config_.mono;
@@ -206,6 +217,49 @@ void Application::applySettings() {
     }
     engines_->setSettings(es);
     if (started_) invalidateAll(RefreshHint::Screen);
+}
+
+std::vector<std::string> Application::puzzlePackNames() const {
+    std::vector<std::string> names;
+    std::error_code ec;
+    for (const auto& de : std::filesystem::directory_iterator(paths_.content() / "puzzles", ec))
+        if (de.is_regular_file(ec) && de.path().extension() == ".db") names.push_back(de.path().stem().string());
+    std::sort(names.begin(), names.end());
+    return names;
+}
+
+puzzles::PuzzlePack* Application::puzzlePack() {
+    // The chosen pack, else the largest installed one (by file size: more puzzles).
+    std::string name = settings_.tacticsPack;
+    const auto names = puzzlePackNames();
+    if (std::find(names.begin(), names.end(), name) == names.end()) {
+        name.clear();
+        std::uintmax_t best = 0;
+        std::error_code ec;
+        for (const auto& n : names) {
+            const auto size = std::filesystem::file_size(paths_.content() / "puzzles" / (n + ".db"), ec);
+            if (!ec && size >= best) {
+                best = size;
+                name = n;
+            }
+        }
+    }
+    if (name.empty()) return nullptr;
+    if (pack_ && packName_ == name) return pack_.get();
+    auto pack = puzzles::PuzzlePack::open(paths_.content() / "puzzles" / (name + ".db"));
+    if (!pack) {
+        Log::error("app", "puzzle pack " + name + ": " + pack.error().message());
+        return nullptr;
+    }
+    pack_ = std::make_unique<puzzles::PuzzlePack>(std::move(*pack));
+    packName_ = name;
+    Log::info("app", "puzzle pack " + name + ": " + std::to_string(pack_->count()) + " puzzles");
+    return pack_.get();
+}
+
+int64_t Application::now() const {
+    const util::Clock& clock = config_.clock ? *config_.clock : util::SystemClock::instance();
+    return clock.unixSeconds() + int64_t(settings_.clockOffsetDays) * 86400;
 }
 
 void Application::saveSettings() {

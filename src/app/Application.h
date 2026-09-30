@@ -5,7 +5,10 @@
 #include "app/Settings.h"
 #include "core/engine/EngineManager.h"
 #include "core/engine/EngineRegistry.h"
+#include "core/puzzles/Progress.h"
+#include "core/puzzles/PuzzlePack.h"
 #include "core/storage/Database.h"
+#include "core/util/Clock.h"
 #include "core/util/Paths.h"
 #include "core/util/Random.h"
 #include "core/util/Scheduler.h"
@@ -42,6 +45,8 @@ struct AppConfig {
     // Load and save Settings in <root>/user/chess.db. Off for tests and headless screenshots, so
     // their output never depends on a previous run.
     bool persistSettings = true;
+    // Time for review scheduling (unix seconds); nullptr = the system clock. Tests use a FakeClock.
+    util::Clock* clock = nullptr;
 };
 
 // util::Scheduler over the platform host (engine subsystem -> UI thread).
@@ -112,6 +117,13 @@ public:
     storage::Database* userDb() { return userDb_.isOpen() ? &userDb_ : nullptr; }
     util::Random& random() { return random_; }  // seeded from the clock at start (tests may reseed)
 
+    // Tactics (M4): progress (user/progress.db, in memory when not persisted) and the puzzle pack
+    // from content/puzzles/ (Settings -> Tactics -> Pack; nullptr when none is installed).
+    puzzles::Progress* progress() { return progress_.get(); }
+    puzzles::PuzzlePack* puzzlePack();
+    std::vector<std::string> puzzlePackNames() const;  // file stems, sorted
+    int64_t now() const;  // unix seconds for reviews: the clock plus Settings clock offset (device tests)
+
     // Engines (M2): registry of engines/*/engine.yaml and the job manager.
     engine::EngineRegistry& engineRegistry() { return engineRegistry_; }
     engine::EngineManager& engines() { return *engines_; }
@@ -151,6 +163,9 @@ private:
     engine::EngineRegistry engineRegistry_;
     std::unique_ptr<engine::EngineManager> engines_;
     storage::Database userDb_;  // user/chess.db (closed when persistence is off or failed)
+    std::unique_ptr<puzzles::Progress> progress_;
+    std::unique_ptr<puzzles::PuzzlePack> pack_;
+    std::string packName_;  // the name pack_ was opened for
     util::Random random_;
     bool sessionReady_ = false;  // false until the Resume question is answered (keeps the old session)
     bool sessionEmpty_ = true;   // what the table holds now (skips redundant clears)

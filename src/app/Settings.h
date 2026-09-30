@@ -30,6 +30,14 @@ struct Settings {
     int deepLimitSeconds = 0;          // Deep analysis auto-stop: 0 = profile, -1 = until stopped
     int analysisMultiPv = 1;           // 1..3
     bool evalFromWhite = true;         // show evaluations from White's point of view
+    // Tactics (M4, design notes §20)
+    std::string tacticsPack;           // pack name (content/puzzles/<name>.db); empty = the largest installed
+    std::string tacticsTheme;          // puzzles must have this theme; empty = any
+    int tacticsDifficulty = 0;         // offset added to the rating when choosing puzzles: -200, 0, +200
+    bool tacticsAutoNext = false;      // next puzzle 1.5 s after a solve
+    bool tacticsAutoOpponent = true;   // the opponent's move plays by itself (else: tap Next)
+    // Advanced
+    int clockOffsetDays = 0;           // shifts "now" for reviews (device test of the schedule)
 
     // key -> value text. Unknown keys and invalid values are ignored by fromMap (defaults stay),
     // so older and newer databases both load.

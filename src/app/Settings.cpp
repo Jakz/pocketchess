@@ -50,6 +50,12 @@ std::map<std::string, std::string> Settings::toMap() const {
         {"engine.deep_limit_s", std::to_string(deepLimitSeconds)},
         {"engine.multipv", std::to_string(analysisMultiPv)},
         {"engine.eval_from_white", boolText(evalFromWhite)},
+        {"tactics.pack", tacticsPack},
+        {"tactics.theme", tacticsTheme},
+        {"tactics.difficulty", std::to_string(tacticsDifficulty)},
+        {"tactics.auto_next", boolText(tacticsAutoNext)},
+        {"tactics.auto_opponent", boolText(tacticsAutoOpponent)},
+        {"advanced.clock_offset_days", std::to_string(clockOffsetDays)},
     };
 }
 
@@ -72,6 +78,12 @@ void Settings::fromMap(const std::map<std::string, std::string>& m) {
     readInt(m, "engine.deep_limit_s", deepLimitSeconds, -1, 3600);
     readInt(m, "engine.multipv", analysisMultiPv, 1, 3);
     readBool(m, "engine.eval_from_white", evalFromWhite);
+    readString(m, "tactics.pack", tacticsPack);
+    readString(m, "tactics.theme", tacticsTheme);
+    readInt(m, "tactics.difficulty", tacticsDifficulty, -400, 400);
+    readBool(m, "tactics.auto_next", tacticsAutoNext);
+    readBool(m, "tactics.auto_opponent", tacticsAutoOpponent);
+    readInt(m, "advanced.clock_offset_days", clockOffsetDays, -3650, 3650);
 }
 
 } // namespace pchess::app
