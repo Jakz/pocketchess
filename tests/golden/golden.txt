@@ -7,7 +7,8 @@ analyze-kiwipete-flipped f550cab77b93e259 1072 1448
 analyze-mono-mate e69b25a5c0cd3b9d 1072 1448
 analyze-multipv 7d9afd20fae5bff3 1072 1448
 analyze-ruy-lopez b5211089e1044d1b 1072 1448
-home 0ecbc02ded24fdf6 1072 1448
+home 78af394f034e2313 1072 1448
 play 4d8a96a764373bdd 1072 1448
 promotion 3c2e38f868b1dd6a 1072 1448
-settings 4e95a1865bbe59b5 1072 1448
+settings 433d22c5458058cc 1072 1448
+tactics 70c813b4866b63b8 1072 1448

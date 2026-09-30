@@ -7,6 +7,7 @@
 #include "app/HomeScreen.h"
 #include "app/PlayScreen.h"
 #include "app/SettingsScreen.h"
+#include "app/TacticsScreen.h"
 #include "core/storage/ChessDb.h"
 #include "core/util/Clock.h"
 #include "core/util/Log.h"
@@ -112,7 +113,9 @@ void Application::start() {
             settings_.boardTheme = t.name;
         }
     }
-    random_.reseed(static_cast<uint64_t>(util::SystemClock::instance().unixSeconds()));
+    // Seeded from the (injectable) clock: real runs vary, tests with a FakeClock are deterministic.
+    random_.reseed(static_cast<uint64_t>(config_.clock ? config_.clock->unixSeconds()
+                                                       : util::SystemClock::instance().unixSeconds()));
     rescanEngines();
     applySettings();
 
@@ -158,6 +161,7 @@ std::unique_ptr<Screen> Application::restoreScreen(const std::map<std::string, s
     if (it == session.end()) return nullptr;
     if (it->second == "play") return PlayScreen::restore(*this, session);
     if (it->second == "analyze") return AnalyzeScreen::restore(*this, session);
+    if (it->second == "tactics") return TacticsScreen::restore(*this, session);
     return nullptr;
 }
 
@@ -187,6 +191,8 @@ std::unique_ptr<Screen> Application::makeScreen(const std::string& name) {
     if (name == "analyze") return std::make_unique<AnalyzeScreen>(*this, config_.fen);
     if (name == "diagnostics") return std::make_unique<DiagnosticsScreen>(*this);
     if (name == "settings") return std::make_unique<SettingsScreen>(*this);
+    if (name == "tactics") return std::make_unique<TacticsScreen>(*this, TacticsScreen::Mode::Train);
+    if (name == "review") return std::make_unique<TacticsScreen>(*this, TacticsScreen::Mode::Review);
     if (name == "play")
         return std::make_unique<PlayScreen>(*this, PlaySetup{chess::White, settings_.playStrength, config_.fen});
     Log::warn("app", "unknown or not yet available screen '" + name + "', staying on Home");

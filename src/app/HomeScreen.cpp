@@ -8,6 +8,7 @@
 #include "app/Dialogs.h"
 #include "app/PlayScreen.h"
 #include "app/SettingsScreen.h"
+#include "app/TacticsScreen.h"
 #include "core/engine/EngineDescriptor.h"
 #include "core/storage/ChessDb.h"
 #include "core/util/Clock.h"
@@ -37,10 +38,10 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
     };
     const Item items[] = {
         {Play, "Play", "vs engine", true},
-        {Tactics, "Tactics", "puzzles · M4", false},
+        {Tactics, "Tactics", "puzzles", true},
         {Games, "Games", "historical games · M5", false},
         {Analyze, "Analyze", "", true},
-        {Review, "Review", "failed puzzles · M4", false},
+        {Review, "Review", "failed puzzles", true},
         {SettingsItem, "Settings", "", true},
         {Diagnostics, "Diagnostics", "", true},
     };
@@ -74,6 +75,16 @@ void HomeScreen::refreshSummary() {
     const engine::EngineDescriptor* e = app_.engines().engineFor(engine::Role::Analysis);
     engineName_ = e ? e->name : "none";
     summary_.clear();
+    // Tactics (design notes §6.1): rating and due reviews, from cheap indexed queries.
+    if (puzzles::Progress* pr = app_.progress()) {
+        const auto dueResult = pr->dueCount(app_.now());
+        const int due = dueResult ? *dueResult : 0;
+        for (Button& b : buttons_)
+            if (b.id == Review) b.hint = due > 0 ? std::to_string(due) + " due" : "failed puzzles";
+        auto hist = pr->history(1);
+        if (hist && !hist->empty())
+            summary_.push_back("Puzzle rating " + std::to_string(pr->rating()) + " · review due: " + std::to_string(due));
+    }
     storage::Database* db = app_.userDb();
     if (!db) return;
     auto recent = storage::recentPlayedGames(*db, 1);
@@ -138,13 +149,15 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
     const int pad = s.fontPx;
     small.draw(c, pad, baseline, left, t.ink);
     small.draw(c, l.screen.w - pad - small.measure(right), baseline, right, t.ink);
-    const std::string version = "0.0.1 · M3 preview";
+    const std::string version = "0.0.1 · M4 preview";
     small.draw(c, (l.screen.w - small.measure(version)) / 2, baseline, version, blend(t.background, t.ink, 140));
 }
 
 void HomeScreen::open(int id) {
     switch (id) {
     case Play: startPlay(); break;
+    case Tactics: app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Train)); break;
+    case Review: app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Review)); break;
     case Analyze: app_.push(std::make_unique<AnalyzeScreen>(app_, "")); break;
     case SettingsItem: app_.push(std::make_unique<SettingsScreen>(app_)); break;
     case Diagnostics: app_.push(std::make_unique<DiagnosticsScreen>(app_)); break;

@@ -112,6 +112,35 @@ void SettingsScreen::buildItems() {
     addBool("Engine", "Evaluation", st.evalFromWhite, "White's view", "Side to move");
     addInts("Engine", "Threads", st.threads, {0, 1, 2, 4}, {"Profile default", "1", "2", "4"});
     addInts("Engine", "Hash", st.hashMb, {0, 16, 32, 64}, {"Profile default", "16 MB", "32 MB", "64 MB"});
+
+    // Tactics (design notes §20)
+    std::vector<std::string> packs{""}, packTexts{"Largest installed"};
+    for (const auto& n : app_.puzzlePackNames()) {
+        packs.push_back(n);
+        packTexts.push_back(n);
+    }
+    add("Tactics", "Puzzle pack", packTexts, [&st, packs] { return indexOf(packs, st.tacticsPack); },
+        [&st, packs](int i) { st.tacticsPack = packs[static_cast<size_t>(i)]; });
+    std::vector<std::string> themes{""}, themeTexts{"Any"};
+    if (puzzles::PuzzlePack* pack = app_.puzzlePack()) {
+        std::vector<std::string> themeList;
+        for (const auto& t : pack->themeNames())
+            if (!t.empty()) themeList.push_back(t);
+        std::sort(themeList.begin(), themeList.end());
+        for (const auto& t : themeList) {
+            themes.push_back(t);
+            themeTexts.push_back(t);
+        }
+    }
+    add("Tactics", "Theme", themeTexts, [&st, themes] { return indexOf(themes, st.tacticsTheme); },
+        [&st, themes](int i) { st.tacticsTheme = themes[static_cast<size_t>(i)]; });
+    addInts("Tactics", "Difficulty", st.tacticsDifficulty, {-200, 0, 200}, {"Easier", "Normal", "Harder"});
+    addBool("Tactics", "Opponent's move", st.tacticsAutoOpponent, "Automatic", "Tap Next");
+    addBool("Tactics", "Next puzzle after a solve", st.tacticsAutoNext, "Automatic", "Tap Next");
+
+    // Advanced
+    addInts("Advanced", "Review clock offset", st.clockOffsetDays, {0, 1, 3, 7, 30},
+            {"None", "+1 day", "+3 days", "+7 days", "+30 days"});
 }
 
 void SettingsScreen::paginate() {
@@ -224,16 +253,15 @@ void SettingsScreen::activate(int item) {
     const int cur = it.current();
     for (size_t i = 0; i < it.choices.size(); ++i)
         buttons.push_back((static_cast<int>(i) == cur ? "✓ " : "") + it.choices[i]);
-    app_.push(std::make_unique<MessageDialog>(
-        app_, it.label, "", buttons,
-        [this, item](int i) {
-            if (i < 0) return;
-            Item& chosen = items_[static_cast<size_t>(item)];
-            chosen.set(i);
-            util::Log::info("settings", chosen.label + " = " + valueText(chosen));
-            changed();
-        },
-        true));
+    auto done = [this, item](int i) {
+        if (i < 0) return;
+        Item& chosen = items_[static_cast<size_t>(item)];
+        chosen.set(i);
+        util::Log::info("settings", chosen.label + " = " + valueText(chosen));
+        changed();
+    };
+    if (buttons.size() > 7) return chooseFromList(app_, it.label, buttons, done);  // long lists page
+    app_.push(std::make_unique<MessageDialog>(app_, it.label, "", buttons, done, true));
 }
 
 void SettingsScreen::moveFocus(int delta) {

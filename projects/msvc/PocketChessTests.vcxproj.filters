@@ -30,6 +30,9 @@
     <ClCompile Include="..\..\tests\core\EngineBenchmarkTests.cpp">
       <Filter>tests\core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\tests\app\TacticsTests.cpp">
+      <Filter>tests\app</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\tests\app\SessionTests.cpp">
       <Filter>tests\app</Filter>
     </ClCompile>

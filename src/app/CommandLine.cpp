@@ -45,7 +45,7 @@ const char* CommandLine::usage() {
            "  --scale <f>            window scale (desktop; default fits the screen)\n"
            "  --profile <name>       verse-pro-color | mono-758x1024 | mono-1072x1448 | era-1264x1680\n"
            "  --root <dir>           data root (default <exe dir>/pocketchess or %POCKETCHESS_ROOT%)\n"
-           "  --screen <name>        home | play | analyze | settings | diagnostics\n"
+           "  --screen <name>        home | play | tactics | review | analyze | settings | diagnostics\n"
            "  --fen \"<fen>\"          start the Analyze or Play screen on this position\n"
            "  --mono | --color       display mode\n"
            "  --theme <name>         Paper | Slate | ClassicMono | HighContrastMono\n"
