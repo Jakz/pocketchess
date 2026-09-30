@@ -26,6 +26,9 @@ public:
     std::filesystem::path exports() const { return root_ / "exports"; }
     std::filesystem::path user() const { return root_ / "user"; }
     std::filesystem::path logs() const { return root_ / "logs"; }
+    // What Import installs (ADR 0013): under user/, which deploys never touch, next to the bundled
+    // folders of the same kind. `kind` is "pieces", "themes", "engines" or "content".
+    std::filesystem::path installed(const char* kind) const { return root_ / "user" / kind; }
 
     // Creates user/, logs/, imports/, exports/ if missing. Never touches existing files.
     void ensureWritableDirs() const;

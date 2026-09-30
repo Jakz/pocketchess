@@ -21,6 +21,8 @@ public:
 
     // Rescans `enginesDir` (missing folder = no engines). Entries are sorted by id.
     void scan(const std::filesystem::path& enginesDir, const std::string& platform = currentPlatformKey());
+    // Several folders (bundled engines, then user/engines); a later duplicate id is ignored.
+    void scan(const std::vector<std::filesystem::path>& dirs, const std::string& platform = currentPlatformKey());
     // Adds or replaces one engine directly (tests, user-configured engines). Checks the binary.
     void add(EngineDescriptor d, const std::string& platform = currentPlatformKey());
 
@@ -34,6 +36,7 @@ public:
 
 private:
     Entry check(EngineDescriptor d) const;
+    void scanOne(const std::filesystem::path& enginesDir);
     std::vector<Entry> entries_;
     std::string platform_ = currentPlatformKey();
 };

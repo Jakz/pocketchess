@@ -31,8 +31,21 @@ EngineRegistry::Entry EngineRegistry::check(EngineDescriptor d) const {
 }
 
 void EngineRegistry::scan(const std::filesystem::path& enginesDir, const std::string& platform) {
+    scan(std::vector<std::filesystem::path>{enginesDir}, platform);
+}
+
+void EngineRegistry::scan(const std::vector<std::filesystem::path>& dirs, const std::string& platform) {
     platform_ = platform;
     entries_.clear();
+    for (const auto& dir : dirs) scanOne(dir);
+    std::sort(entries_.begin(), entries_.end(),
+              [](const Entry& a, const Entry& b) { return a.descriptor.id < b.descriptor.id; });
+    for (const auto& e : entries_)
+        util::Log::info("engine", e.descriptor.id + (e.available ? ": available (" + e.descriptor.name + ")"
+                                                                 : ": disabled - " + e.problem));
+}
+
+void EngineRegistry::scanOne(const std::filesystem::path& enginesDir) {
     std::error_code ec;
     if (!std::filesystem::is_directory(enginesDir, ec)) {
         util::Log::info("engine", "no engines folder: " + enginesDir.string());
@@ -58,11 +71,6 @@ void EngineRegistry::scan(const std::filesystem::path& enginesDir, const std::st
         }
         entries_.push_back(check(std::move(*d)));
     }
-    std::sort(entries_.begin(), entries_.end(),
-              [](const Entry& a, const Entry& b) { return a.descriptor.id < b.descriptor.id; });
-    for (const auto& e : entries_)
-        util::Log::info("engine", e.descriptor.id + (e.available ? ": available (" + e.descriptor.name + ")"
-                                                                 : ": disabled - " + e.problem));
 }
 
 void EngineRegistry::add(EngineDescriptor d, const std::string& platform) {
