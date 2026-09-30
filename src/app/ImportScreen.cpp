@@ -94,8 +94,10 @@ void ImportScreen::draw(Canvas& c, const Rect& clip) {
     Font& small = app_.fonts().get(s.smallPx);
     const Rgb dim = blend(t.background, t.ink, 160);
     if (items_.empty()) {
-        const std::string text = "Nothing to import. Copy files into " + app_.paths().imports().string() +
-                                 " over USB, then tap Rescan:\n"
+        // "<root folder>/imports" as seen over USB (the full path has no break points to wrap at).
+        const std::string folder = app_.paths().imports().parent_path().filename().string() + "/imports";
+        const std::string text = "Nothing to import. Copy files into the " + folder +
+                                 " folder over USB, then tap Rescan:\n"
                                  "• .pgn games (open in Analyze, or make a game pack)\n"
                                  "• .fen positions\n"
                                  "• .db game or puzzle packs\n"
