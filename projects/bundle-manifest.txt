@@ -12,3 +12,4 @@ data/themes/*.yaml => assets/themes
 [windows] data/simulator/kaleido3.yaml => simulator/kaleido3.yaml
 [pocketbook] tests/golden/golden.txt => selftest/golden.txt
 [pocketbook] tests/fixtures/* => selftest/fixtures/
+[pocketbook] data/samples/pgn/* => selftest/fixtures/

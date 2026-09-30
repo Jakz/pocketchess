@@ -24,6 +24,8 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/engine/UciEngine.cpp
     ${REPO_ROOT}/src/core/engine/UciParser.cpp
     ${REPO_ROOT}/src/core/engine/UciProbe.cpp
+    ${REPO_ROOT}/src/core/games/GamePack.cpp
+    ${REPO_ROOT}/src/core/games/Openings.cpp
     ${REPO_ROOT}/src/core/puzzles/Progress.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzleImport.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzlePack.cpp
@@ -86,6 +88,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/core/EngineDescriptorTests.cpp
     ${REPO_ROOT}/tests/core/EngineIntegrationTests.cpp
     ${REPO_ROOT}/tests/core/EngineManagerTests.cpp
+    ${REPO_ROOT}/tests/core/GameTests.cpp
     ${REPO_ROOT}/tests/core/EngineTests.cpp
     ${REPO_ROOT}/tests/core/PerftTests.cpp
     ${REPO_ROOT}/tests/core/PuzzleTests.cpp
