@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Board theme (design notes §19). Saturated enough to read as color on Kaleido 3.
+name: Lavender
+mode: color
+light: "#ece6f4"
+dark: "#8f78b8"
+accent: "#6a3fa0"
+coord_light: "#8f78b8"
+coord_dark: "#ece6f4"

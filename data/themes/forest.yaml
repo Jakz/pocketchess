@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Board theme (design notes §19). Saturated enough to read as color on Kaleido 3.
+name: Forest
+mode: color
+light: "#e6efd8"
+dark: "#5d9b54"
+accent: "#2e7d32"
+coord_light: "#5d9b54"
+coord_dark: "#e6efd8"

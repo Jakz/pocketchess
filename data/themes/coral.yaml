@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Board theme (design notes §19). Saturated enough to read as color on Kaleido 3.
+name: Coral
+mode: color
+light: "#f6e4dc"
+dark: "#d0715e"
+accent: "#b3261e"
+coord_light: "#d0715e"
+coord_dark: "#f6e4dc"

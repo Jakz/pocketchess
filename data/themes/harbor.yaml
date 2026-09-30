@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Board theme (design notes §19). Saturated enough to read as color on Kaleido 3.
+name: Harbor
+mode: color
+light: "#dfe9f0"
+dark: "#4f7fa8"
+accent: "#1565c0"
+coord_light: "#4f7fa8"
+coord_dark: "#dfe9f0"

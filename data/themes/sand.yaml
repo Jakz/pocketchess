@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Board theme (design notes §19). Saturated enough to read as color on Kaleido 3.
+name: Sand
+mode: color
+light: "#f3e7c4"
+dark: "#c9a25c"
+accent: "#9a5b00"
+coord_light: "#c9a25c"
+coord_dark: "#f3e7c4"
