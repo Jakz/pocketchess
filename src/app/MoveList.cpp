@@ -3,6 +3,7 @@
 
 #include "app/Application.h"
 #include "core/chess/San.h"
+#include "ui/theme/Palette.h"
 
 #include <algorithm>
 #include <vector>
@@ -79,8 +80,8 @@ void drawMoveList(Application& app, Canvas& c, const Rect& rect, const GameTree&
             Font& ff = tk.current ? fb : f;
             const int w = ff.measure(tk.text);
             if (tk.current) {
-                c.fill({px - space / 2, y, w + space, lh}, t.ink);
-                ff.draw(c, px, y + ff.ascent(), tk.text, t.background);
+                c.fill({px - space / 2, y, w + space, lh}, t.accent);
+                ff.draw(c, px, y + ff.ascent(), tk.text, textOn(t, t.accent));
             } else {
                 ff.draw(c, px, y + ff.ascent(), tk.text, tk.future ? blend(t.background, t.ink, 130) : t.ink);
             }

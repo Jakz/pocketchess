@@ -334,7 +334,7 @@ TEST_CASE("themes: the manager adds a folder's themes and skips broken or duplic
 
 TEST_CASE("themes: the bundled theme files load") {
     ThemeManager m;
-    CHECK_EQ(m.loadDirectory(std::filesystem::path(test::fontDir()).parent_path() / "themes"), 2);
+    CHECK_EQ(m.loadDirectory(std::filesystem::path(test::fontDir()).parent_path() / "themes"), 7);
     CHECK(m.problems().empty());
     REQUIRE(m.find("Walnut") != nullptr);
     CHECK(m.find("Newsprint") != nullptr && m.find("Newsprint")->mono);

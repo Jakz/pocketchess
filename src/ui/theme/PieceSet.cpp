@@ -2,6 +2,7 @@
 #include "ui/theme/PieceSet.h"
 
 #include "ui/canvas/Rasterizer.h"
+#include "ui/theme/Palette.h"
 
 #include <algorithm>
 #include <cmath>
@@ -104,6 +105,11 @@ const Bitmap& PieceCache::get(chess::Piece piece, int px) {
     const int i = static_cast<int>(piece);
     if (!have[static_cast<size_t>(i)]) {
         slot[static_cast<size_t>(i)] = set_ ? set_->render(piece, px) : Bitmap(px, px);
+        if (tint_) {
+            Bitmap& b = slot[static_cast<size_t>(i)];
+            b = chess::colorOf(piece) == chess::White ? recolor(b, tint_->outline, tint_->white)
+                                                      : recolor(b, tint_->black, tint_->white);
+        }
         have[static_cast<size_t>(i)] = true;
     }
     return slot[static_cast<size_t>(i)];

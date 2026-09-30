@@ -8,6 +8,7 @@
 #include <array>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace pchess::ui {
@@ -45,11 +46,24 @@ public:
         cache_.clear();
     }
     const PieceSet* pieceSet() const { return set_.get(); }
+    // Piece colors (BoardTheme::tintPieces): white pieces `white` with an `outline`, black pieces
+    // `black` with `white` details. nullopt = the set's own colors.
+    struct Tint {
+        Rgb outline, white, black;
+        bool operator==(const Tint&) const = default;
+    };
+    void setTint(std::optional<Tint> tint) {
+        if (tint == tint_) return;
+        tint_ = tint;
+        cache_.clear();
+        have_.clear();
+    }
     const Bitmap& get(chess::Piece piece, int squarePx);
     size_t bytes() const;
 
 private:
     std::shared_ptr<const PieceSet> set_;
+    std::optional<Tint> tint_;
     std::map<int, std::array<Bitmap, 12>> cache_;
     std::map<int, std::array<bool, 12>> have_;
 };

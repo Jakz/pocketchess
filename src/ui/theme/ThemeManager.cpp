@@ -20,7 +20,7 @@ constexpr ColorKey kColors[] = {
     {"selected", &BoardTheme::selected},     {"last_move", &BoardTheme::lastMove},
     {"check", &BoardTheme::check},           {"marker", &BoardTheme::marker},
     {"coord_light", &BoardTheme::coordOnLight}, {"coord_dark", &BoardTheme::coordOnDark},
-    {"background", &BoardTheme::background}, {"ink", &BoardTheme::ink},
+    {"background", &BoardTheme::background}, {"ink", &BoardTheme::ink}, {"accent", &BoardTheme::accent},
     {"frame", &BoardTheme::frame},
 };
 
@@ -113,6 +113,11 @@ Result<BoardTheme> parseTheme(const util::YamlNode& doc) {
             continue;
         }
         return bad(value, "unknown key '" + key + "'");
+    }
+    if (!doc.has("accent")) t.accent = t.ink;  // themes without an accent stay neutral
+    if (doc.has("accent") && !t.mono) {        // markers follow the accent unless given
+        if (!doc.has("selected")) t.selected = blend(t.light, t.accent, 150);
+        if (!doc.has("last_move")) t.lastMove = blend(t.light, t.accent, 90);
     }
     return t;
 }

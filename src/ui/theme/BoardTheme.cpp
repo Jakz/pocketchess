@@ -18,6 +18,7 @@ BoardTheme BoardTheme::paper() {
     t.background = Rgb::hex(0xFAF8F2);
     t.ink = Rgb::hex(0x1E1E1A);
     t.frame = Rgb::hex(0x3A3A32);
+    t.accent = t.ink;
     return t;
 }
 
@@ -49,6 +50,7 @@ BoardTheme BoardTheme::classicMono() {
     t.background = Rgb::gray(255);
     t.ink = Rgb::gray(0);
     t.frame = Rgb::gray(0);
+    t.accent = t.ink;
     t.selectedStyle = MarkerStyle::Hatch;
     t.lastMoveStyle = MarkerStyle::Dots;
     t.checkStyle = MarkerStyle::DoubleBorder;

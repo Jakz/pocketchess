@@ -65,6 +65,7 @@
     <ClCompile Include="..\..\src\ui\render\Refresh.cpp" />
     <ClCompile Include="..\..\src\ui\theme\BoardTheme.cpp" />
     <ClCompile Include="..\..\src\ui\theme\NanoSvg.cpp" />
+    <ClCompile Include="..\..\src\ui\theme\Palette.cpp" />
     <ClCompile Include="..\..\src\ui\theme\PieceSet.cpp" />
     <ClCompile Include="..\..\src\ui\theme\SvgPieceSet.cpp" />
     <ClCompile Include="..\..\src\ui\theme\ThemeManager.cpp" />
@@ -102,6 +103,7 @@
     <ClInclude Include="..\..\src\ui\input\Input.h" />
     <ClInclude Include="..\..\src\ui\render\Refresh.h" />
     <ClInclude Include="..\..\src\ui\theme\BoardTheme.h" />
+    <ClInclude Include="..\..\src\ui\theme\Palette.h" />
     <ClInclude Include="..\..\src\ui\theme\PieceSet.h" />
     <ClInclude Include="..\..\src\ui\theme\SvgPieceSet.h" />
     <ClInclude Include="..\..\src\ui\theme\ThemeManager.h" />

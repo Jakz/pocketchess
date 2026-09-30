@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "ui/widgets/Widgets.h"
 
+#include "ui/theme/Palette.h"
+
 namespace pchess::ui {
 
 void drawButton(Canvas& c, const Button& b, const BoardTheme& t, FontLibrary& fonts, const UiStyle& s) {
     c.pushClip(b.rect);
-    const Rgb bg = b.primary ? t.ink : t.background;
-    const Rgb fg = !b.enabled ? blend(t.background, t.ink, 110) : (b.primary ? t.background : t.ink);
+    const Rgb bg = b.primary ? t.accent : t.background;
+    const Rgb fg = !b.enabled ? blend(t.background, t.ink, 110) : (b.primary ? textOn(t, t.accent) : t.ink);
     c.fill(b.rect, bg);
     c.frame(b.rect, b.enabled ? s.stroke : std::max(1, s.stroke - 1), b.enabled ? t.frame : fg);
     const FontStyle style = b.primary ? FontStyle::Bold : FontStyle::Regular;

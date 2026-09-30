@@ -120,6 +120,9 @@
     <ClCompile Include="..\..\src\ui\theme\NanoSvg.cpp">
       <Filter>src\ui\theme</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\ui\theme\Palette.cpp">
+      <Filter>src\ui\theme</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\ui\theme\PieceSet.cpp">
       <Filter>src\ui\theme</Filter>
     </ClCompile>
@@ -225,6 +228,9 @@
       <Filter>src\ui\render</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ui\theme\BoardTheme.h">
+      <Filter>src\ui\theme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\theme\Palette.h">
       <Filter>src\ui\theme</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ui\theme\PieceSet.h">

@@ -27,6 +27,13 @@ struct BoardTheme {
     Rgb background;    // UI background around the board
     Rgb ink;           // UI text
     Rgb frame;         // UI lines/buttons
+    Rgb accent;        // primary buttons, current move; ink unless a theme or the user sets one
+
+    // Piece colors (color mode): off = the set's own black and white. On: white pieces are drawn in
+    // `whitePiece` with a near-black outline, black pieces in `blackPiece` with `whitePiece` details.
+    bool tintPieces = false;
+    Rgb whitePiece = Rgb::gray(255);
+    Rgb blackPiece = Rgb::gray(0);
 
     MarkerStyle selectedStyle = MarkerStyle::Outline;
     MarkerStyle lastMoveStyle = MarkerStyle::Dots;
