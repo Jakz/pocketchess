@@ -29,6 +29,8 @@ public:
     void setFilter(games::GameFilter f, bool favoritesOnly = false);
     int page() const { return page_; }
     int pageCount() const;
+    bool capped() const;       // the filtered count reached GamePack::kCountCap
+    bool hasNextPage() const;
     int total() const { return total_; }
     const std::vector<games::GameRow>& rows() const { return rows_; }
     void nextPage();

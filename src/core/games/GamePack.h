@@ -15,6 +15,7 @@
 #include <span>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace pchess::games {
@@ -30,6 +31,7 @@ struct ImportStats {
     uint64_t skipped = 0;   // no moves
     uint64_t annotated = 0; // stored with their PGN text (comments, NAGs or variations)
     uint64_t players = 0;
+    uint64_t duplicates = 0;  // the same game seen before in this import
 };
 
 // Writes games into an empty pack database. Call add() for every parsed game, then finish().
@@ -45,9 +47,13 @@ public:
 
 private:
     Result<int64_t> playerId(const std::string& name);
+    Result<int64_t> lookupId(std::unordered_map<std::string, int64_t>& ids, storage::Statement& insert,
+                             const std::string& key, const std::string& second);
     storage::Database& db_;
     const OpeningBook* openings_;
-    std::optional<storage::Statement> insertGame_, insertPlayer_;
+    std::optional<storage::Statement> insertGame_, insertPlayer_, insertEvent_, insertSite_, insertOpening_;
+    std::unordered_map<std::string, int64_t> eventIds_, siteIds_, openingIds_;
+    std::unordered_set<size_t> seen_;  // hashes of (players, date, moves): duplicates are skipped
     std::unordered_map<std::string, int64_t> players_;
     ImportStats stats_;
 };
@@ -72,6 +78,9 @@ struct GameRow {
 
 class GamePack {
 public:
+    // Filtered counts stop here (shown as "10,000+"): a filter matching most of a multi-million pack
+    // must not scan it all. The unfiltered total is exact (meta).
+    static constexpr int kCountCap = 10000;
     static Result<GamePack> open(const std::filesystem::path& file);  // read-only
     static Result<GamePack> fromDatabase(storage::Database db, std::string name);
 

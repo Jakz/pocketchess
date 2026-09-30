@@ -5,6 +5,8 @@
 #include "core/chess/MoveCodec.h"
 
 #include <charconv>
+#include <cstdio>
+#include <functional>
 
 namespace pchess::games {
 
@@ -42,7 +44,66 @@ CREATE INDEX idx_games_black ON games(black_id, year);
 CREATE INDEX idx_games_year ON games(year, id);
 CREATE INDEX idx_games_eco ON games(eco);
 )sql"},
+    // v2 (packs for millions of games): repeated text in lookup tables, dates and results as
+    // numbers, moves one byte each (MoveCodec indexes), an index per filter in list order.
+    {2, R"sql(
+DROP TABLE games;
+CREATE TABLE events(id INTEGER PRIMARY KEY, name TEXT NOT NULL);  -- unique by construction (the importer)
+CREATE TABLE sites(id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+CREATE TABLE openings(id INTEGER PRIMARY KEY, eco TEXT NOT NULL, name TEXT NOT NULL);
+CREATE TABLE games(
+    id         INTEGER PRIMARY KEY,
+    event_id   INTEGER REFERENCES events(id),
+    site_id    INTEGER REFERENCES sites(id),
+    date       INTEGER NOT NULL,     -- yyyymmdd, 00 for unknown parts, 0 when unknown
+    round      TEXT,
+    year       INTEGER NOT NULL,     -- 0 when unknown (sorts last)
+    white_id   INTEGER NOT NULL REFERENCES players(id),
+    black_id   INTEGER NOT NULL REFERENCES players(id),
+    white_elo  INTEGER, black_elo INTEGER,
+    result     INTEGER NOT NULL,     -- 1 = 1-0, 2 = 0-1, 3 = 1/2-1/2, 0 = unknown
+    opening_id INTEGER REFERENCES openings(id),
+    ply_count  INTEGER NOT NULL,
+    fen        TEXT,                 -- start position when not the standard one
+    moves      BLOB NOT NULL,        -- main line, one byte per move (encodeMoveIndexes)
+    pgn        TEXT                  -- full movetext, only for real annotations
+);
+CREATE INDEX idx_games_year ON games(year);
+CREATE INDEX idx_games_white ON games(white_id, year);
+CREATE INDEX idx_games_black ON games(black_id, year);
+CREATE INDEX idx_games_opening ON games(opening_id, year);
+CREATE INDEX idx_games_event ON games(event_id, year);
+)sql"},
 };
+
+constexpr int kFormat = 2;
+
+int resultCode(const std::string& r) { return r == "1-0" ? 1 : r == "0-1" ? 2 : r == "1/2-1/2" ? 3 : 0; }
+std::string resultText(int c) { return c == 1 ? "1-0" : c == 2 ? "0-1" : c == 3 ? "1/2-1/2" : "*"; }
+
+// "1851.06.21" -> 18510621, "1851.??.??" -> 18510000.
+int dateCode(const std::string& d) {
+    auto part = [&](size_t pos, size_t len) {
+        if (d.size() < pos + len) return 0;
+        int v = 0;
+        for (size_t i = pos; i < pos + len; ++i) {
+            if (d[i] < '0' || d[i] > '9') return 0;
+            v = v * 10 + (d[i] - '0');
+        }
+        return v;
+    };
+    return part(0, 4) * 10000 + part(5, 2) * 100 + part(8, 2);
+}
+std::string dateText(int c) {
+    if (c <= 0) return {};
+    char buf[16];
+    const int y = c / 10000, m = c / 100 % 100, d = c % 100;
+    std::snprintf(buf, sizeof buf, "%04d.", y);
+    std::string s = buf;
+    s += m ? (std::snprintf(buf, sizeof buf, "%02d.", m), std::string(buf)) : std::string("??.");
+    s += d ? (std::snprintf(buf, sizeof buf, "%02d", d), std::string(buf)) : std::string("??");
+    return s;
+}
 
 int toInt(const std::string& s) {
     int v = 0;
@@ -144,21 +205,22 @@ Where buildWhere(const GameFilter& f) {
         w.sql += " AND g.year <= ?";
         w.addInt(f.yearTo);
     }
+    // Text filters match the small lookup tables; the games index on the id does the rest.
     if (!f.event.empty()) {
-        w.sql += " AND g.event LIKE ?";
+        w.sql += " AND g.event_id IN (SELECT id FROM events WHERE name LIKE ?)";
         w.addText("%" + f.event + "%");
     }
     if (!f.eco.empty()) {
-        w.sql += " AND g.eco LIKE ?";
+        w.sql += " AND g.opening_id IN (SELECT id FROM openings WHERE eco LIKE ?)";
         w.addText(f.eco + "%");
     }
     if (!f.opening.empty()) {
-        w.sql += " AND g.opening LIKE ?";
+        w.sql += " AND g.opening_id IN (SELECT id FROM openings WHERE name LIKE ?)";
         w.addText("%" + f.opening + "%");
     }
     if (!f.result.empty()) {
         w.sql += " AND g.result = ?";
-        w.addText(f.result);
+        w.addInt(resultCode(f.result));
     }
     if (f.ids) {
         w.sql += " AND g.id IN (";
@@ -172,8 +234,10 @@ Where buildWhere(const GameFilter& f) {
 }
 
 constexpr const char* kRowSelect =
-    "SELECT g.id, pw.name, pb.name, g.event, g.site, g.date, g.round, g.result, g.eco, g.opening, g.white_elo, "
-    "g.black_elo, g.ply_count FROM games g JOIN players pw ON pw.id = g.white_id JOIN players pb ON pb.id = g.black_id";
+    "SELECT g.id, pw.name, pb.name, e.name, st.name, g.date, g.round, g.result, o.eco, o.name, g.white_elo, "
+    "g.black_elo, g.ply_count FROM games g JOIN players pw ON pw.id = g.white_id JOIN players pb ON pb.id = g.black_id "
+    "LEFT JOIN events e ON e.id = g.event_id LEFT JOIN sites st ON st.id = g.site_id "
+    "LEFT JOIN openings o ON o.id = g.opening_id";
 
 GameRow readRow(const storage::Statement& s) {
     GameRow r;
@@ -182,9 +246,9 @@ GameRow readRow(const storage::Statement& s) {
     r.black = s.text(2);
     r.event = s.text(3);
     r.site = s.text(4);
-    r.date = s.text(5);
+    r.date = dateText(s.integer(5));
     r.round = s.text(6);
-    r.result = s.text(7);
+    r.result = resultText(s.integer(7));
     r.eco = s.text(8);
     r.opening = s.text(9);
     r.whiteElo = s.integer(10);
@@ -224,15 +288,35 @@ GameImporter::GameImporter(storage::Database& db, const OpeningBook* openings) :
 Result<void> GameImporter::begin() {
     if (auto r = storage::migrate(db_, gamePackMigrations()); !r) return r;
     if (auto r = db_.exec("BEGIN"); !r) return r;
-    auto g = db_.prepare("INSERT INTO games(event, site, date, round, year, white_id, black_id, white_elo, black_elo, "
-                         "result, eco, opening, ply_count, fen, moves, pgn) "
-                         "VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)");
+    auto g = db_.prepare("INSERT INTO games(event_id, site_id, date, round, year, white_id, black_id, white_elo, "
+                         "black_elo, result, opening_id, ply_count, fen, moves, pgn) "
+                         "VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)");
     if (!g) return g.error();
     insertGame_ = std::move(*g);
     auto p = db_.prepare("INSERT INTO players(name, normalized) VALUES(?1, ?2)");
     if (!p) return p.error();
     insertPlayer_ = std::move(*p);
+    for (const char* table : {"events", "sites"}) {
+        auto s = db_.prepare(std::string("INSERT INTO ") + table + "(name) VALUES(?1)");
+        if (!s) return s.error();
+        (table[0] == 'e' ? insertEvent_ : insertSite_) = std::move(*s);
+    }
+    auto o = db_.prepare("INSERT INTO openings(eco, name) VALUES(?1, ?2)");
+    if (!o) return o.error();
+    insertOpening_ = std::move(*o);
     return {};
+}
+
+// Id of a text in a lookup table (events, sites, "eco\topening"), inserted on first use.
+Result<int64_t> GameImporter::lookupId(std::unordered_map<std::string, int64_t>& ids, storage::Statement& insert,
+                                       const std::string& key, const std::string& second) {
+    if (auto it = ids.find(key); it != ids.end()) return it->second;
+    if (second.empty()) insert.bind(1, key);
+    else insert.bind(1, key.substr(0, key.find('\t'))).bind(2, second);
+    if (auto r = insert.run(); !r) return r.error();
+    const int64_t id = db_.lastInsertId();
+    ids.emplace(key, id);
+    return id;
 }
 
 Result<int64_t> GameImporter::playerId(const std::string& name) {
@@ -252,52 +336,75 @@ Result<bool> GameImporter::add(PgnGame& game) {
         ++stats_.skipped;
         return false;
     }
+    const chess::Position& start = game.tree.startPosition();
+    const bool standard = chess::toFen(start) == chess::toFen(chess::Position::startPosition());
+    auto blob = chess::encodeMoveIndexes(start, moves);
+    if (!blob) return blob.error();
+    std::string date = game.header("Date");
+    if (date.empty() || date.rfind("????", 0) == 0) date = game.header("UTCDate");  // Lichess exports
+    const int dcode = dateCode(date);
+
+    // The same game from two collections (a player file of each side, an event file) is stored once.
+    std::string key = game.header("White") + '\n' + game.header("Black") + '\n' + std::to_string(dcode) + '\n' +
+                      (standard ? std::string() : chess::toFen(start)) + '\n';
+    key.append(blob->begin(), blob->end());
+    if (!seen_.insert(std::hash<std::string>{}(key)).second) {
+        ++stats_.duplicates;
+        return false;
+    }
+
     auto white = playerId(game.header("White"));
     if (!white) return white.error();
     auto black = playerId(game.header("Black"));
     if (!black) return black.error();
-
-    const chess::Position& start = game.tree.startPosition();
-    const bool standard = chess::toFen(start) == chess::toFen(chess::Position::startPosition());
     std::string eco = game.header("ECO"), opening = game.header("Opening");
     if (openings_ && standard)
         if (auto o = openings_->classify(start, moves)) {
             eco = o->eco;
             opening = o->name;
         }
-    std::string date = game.header("Date");
-    if (date.empty() || date.rfind("????", 0) == 0) date = game.header("UTCDate");  // Lichess exports
-    const int year = toInt(date.substr(0, 4));
     stripCommands(game.tree.root());
     const bool keepPgn = annotated(game.tree.root());
     if (keepPgn) ++stats_.annotated;
 
     storage::Statement& s = *insertGame_;
-    auto textOrNull = [&](int i, const std::string& v) {
-        if (v.empty() || v == "?") s.bindNull(i);
-        else s.bind(i, v);
+    auto idOrNull = [&](int i, std::unordered_map<std::string, int64_t>& ids, storage::Statement& insert,
+                        const std::string& v, const std::string& second = {}) -> Result<void> {
+        if (v.empty() || v == "?" || v == "\t") {
+            s.bindNull(i);
+            return {};
+        }
+        auto id = lookupId(ids, insert, v, second);
+        if (!id) return id.error();
+        s.bind(i, *id);
+        return {};
     };
-    textOrNull(1, game.header("Event"));
-    textOrNull(2, game.header("Site"));
-    textOrNull(3, date);
-    textOrNull(4, game.header("Round"));
-    if (year > 0) s.bind(5, year);
-    else s.bindNull(5);
+    if (auto r = idOrNull(1, eventIds_, *insertEvent_, game.header("Event")); !r) return r.error();
+    // A URL (Lichess, broadcasts) is a link to the source, not a place: one per game, not kept.
+    const std::string site = game.header("Site");
+    if (auto r = idOrNull(2, siteIds_, *insertSite_, site.rfind("http", 0) == 0 ? std::string() : site); !r)
+        return r.error();
+    s.bind(3, dcode);
+    const std::string round = game.header("Round");
+    if (round.empty() || round == "?" || round == "-") s.bindNull(4);
+    else s.bind(4, round);
+    s.bind(5, dcode / 10000);
     s.bind(6, *white).bind(7, *black);
     const int we = toInt(game.header("WhiteElo")), be = toInt(game.header("BlackElo"));
     if (we > 0) s.bind(8, we);
     else s.bindNull(8);
     if (be > 0) s.bind(9, be);
     else s.bindNull(9);
-    s.bind(10, game.result.empty() ? std::string("*") : game.result);
-    textOrNull(11, eco);
-    textOrNull(12, opening);
-    s.bind(13, static_cast<int64_t>(moves.size()));
-    if (standard) s.bindNull(14);
-    else s.bind(14, chess::toFen(start));
-    s.bindBlob(15, chess::encodeMoves(moves));
-    if (keepPgn) s.bind(16, chess::writeMovetext(game.tree));
-    else s.bindNull(16);
+    s.bind(10, resultCode(game.result));
+    if (eco.empty() && opening.empty()) s.bindNull(11);
+    else if (auto r = idOrNull(11, openingIds_, *insertOpening_, eco + '\t' + opening, opening.empty() ? "?" : opening); !r)
+        return r.error();
+    s.bind(12, static_cast<int64_t>(moves.size()));
+    if (standard) s.bindNull(13);
+    else s.bind(13, chess::toFen(start));
+    s.bindBlob(14, *blob);
+    if (keepPgn) s.bind(15, chess::writeMovetext(game.tree));
+    else s.bindNull(15);
     if (auto r = s.run(); !r) return r.error();
     ++stats_.games;
     return true;
@@ -309,12 +416,17 @@ Result<void> GameImporter::finish(const std::map<std::string, std::string>& meta
     std::map<std::string, std::string> all = meta;
     all["count"] = std::to_string(stats_.games);
     all["players"] = std::to_string(stats_.players);
+    all["duplicates"] = std::to_string(stats_.duplicates);
+    all["format"] = std::to_string(kFormat);
     for (const auto& [k, v] : all) {
         m->bind(1, k).bind(2, v);
         if (auto r = m->run(); !r) return r;
     }
     insertGame_.reset();
     insertPlayer_.reset();
+    insertEvent_.reset();
+    insertSite_.reset();
+    insertOpening_.reset();
     if (auto r = db_.exec("COMMIT"); !r) return r;
     return db_.exec("ANALYZE");
 }
@@ -328,18 +440,30 @@ Result<GamePack> GamePack::open(const std::filesystem::path& file) {
 }
 
 Result<GamePack> GamePack::fromDatabase(storage::Database db, std::string name) {
+    if (const int v = db.userVersion(); v != kFormat)
+        return makeError(ErrorCode::Unsupported, name + ": game pack format " + std::to_string(v) + ", this app reads " +
+                                                     std::to_string(kFormat) + " (rebuild it with PgnImporter)");
     GamePack p;
     p.db_ = std::move(db);
     p.name_ = std::move(name);
-    auto c = p.count(GameFilter{});
-    if (!c) return c.error();
-    p.count_ = *c;
+    // The exact total, without counting millions of rows: meta, else a count.
+    const auto m = p.meta();
+    if (auto it = m.find("count"); it != m.end()) p.count_ = toInt(it->second);
+    else {
+        auto s = p.db_.prepare("SELECT count(*) FROM games");
+        if (!s) return s.error();
+        if (auto r = s->step(); !r) return r.error();
+        p.count_ = s->integer(0);
+    }
     return p;
 }
 
 Result<int> GamePack::count(const GameFilter& f) {
     const Where w = buildWhere(f);
-    auto s = db_.prepare("SELECT count(*) FROM games g" + w.sql);
+    if (w.sql == " WHERE 1") return count_;
+    // Capped: a filter matching most of a multi-million pack must not scan it all.
+    auto s = db_.prepare("SELECT count(*) FROM (SELECT 1 FROM games g" + w.sql + " LIMIT " +
+                         std::to_string(kCountCap + 1) + ")");
     if (!s) return s.error();
     w.bind(*s);
     auto row = s->step();
@@ -350,7 +474,7 @@ Result<int> GamePack::count(const GameFilter& f) {
 Result<std::vector<GameRow>> GamePack::page(const GameFilter& f, int offset, int limit) {
     const Where w = buildWhere(f);
     auto s = db_.prepare(std::string(kRowSelect) + w.sql +
-                         " ORDER BY g.year IS NULL, g.year DESC, g.id DESC LIMIT ? OFFSET ?");
+                         " ORDER BY g.year DESC, g.id DESC LIMIT ? OFFSET ?");
     if (!s) return s.error();
     w.bind(*s);
     const int n = static_cast<int>(w.kinds.size());
@@ -419,7 +543,7 @@ Result<PgnGame> GamePack::load(int64_t id) {
     auto start = fen.empty() ? Result<chess::Position>(chess::Position::startPosition()) : chess::parseFen(fen);
     if (!start) return start.error();
     const auto blob = s->blob(1);
-    auto moves = chess::decodeMoves(start.value(), blob);
+    auto moves = chess::decodeMoveIndexes(start.value(), blob);
     if (!moves) return makeError(ErrorCode::CorruptData, name_ + ": game " + std::to_string(id) + ": bad moves");
     auto parsed = chess::parsePgnGame(headers + "\n" + g.result + "\n");  // headers only
     if (!parsed) return parsed.error();

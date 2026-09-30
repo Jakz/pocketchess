@@ -151,10 +151,12 @@ int main(int argc, char** argv) {
     db->close();
     const auto& s = importer.stats();
     const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-    std::printf("%s: %llu games (%llu annotated, %llu players, %llu skipped, %llu rejected) in %.1f s, %.1f MB\n",
+    std::printf("%s: %llu games (%llu annotated, %llu players, %llu duplicates, %llu skipped, %llu rejected) in "
+                "%.1f s, %.1f MB\n",
                 output.string().c_str(), static_cast<unsigned long long>(s.games),
                 static_cast<unsigned long long>(s.annotated), static_cast<unsigned long long>(s.players),
-                static_cast<unsigned long long>(s.skipped), static_cast<unsigned long long>(rejected), secs,
+                static_cast<unsigned long long>(s.duplicates), static_cast<unsigned long long>(s.skipped),
+                static_cast<unsigned long long>(rejected), secs,
                 static_cast<double>(std::filesystem::file_size(output, ec)) / (1024.0 * 1024.0));
     for (const auto& r : firstRejects) std::printf("  rejected %s\n", r.c_str());
     return 0;

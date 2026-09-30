@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include "core/chess/MoveCodec.h"
 #include "core/chess/Pgn.h"
 #include "core/chess/San.h"
 #include "core/games/GamePack.h"
@@ -113,14 +114,16 @@ TEST_CASE("game pack: import keeps moves, and comments/variations for annotated 
     REQUIRE(rows.ok());
     int checked = 0;
     for (const auto& g : games) {
+        // Lichess sites are URLs, which packs do not keep: find the game by players and moves.
         for (const auto& r : *rows) {
-            if (r.site != g->header("Site")) continue;
+            if (r.white != g->header("White") || r.black != g->header("Black")) continue;
             auto back = pack.load(r.id);
             REQUIRE(back.ok());
-            CHECK(back->tree.mainLine() == g->tree.mainLine());
+            if (back->tree.mainLine() != g->tree.mainLine()) continue;
             CHECK_EQ(back->result, g->result);
-            CHECK_EQ(back->header("White"), g->header("White"));
+            CHECK(r.site.empty());
             ++checked;
+            break;
         }
     }
     CHECK_EQ(checked, 39);
@@ -218,4 +221,25 @@ TEST_CASE("game pack: filters, counts and pages") {
         for (const auto& r : *p) seen.insert(r.id);
     CHECK_EQ(seen.size(), size_t(42));
     CHECK(p3->back().date.rfind("18", 0) == 0);  // the 1850s games come last
+}
+
+TEST_CASE("move codec: one byte per move round-trips whole games and rejects bad blobs") {
+    int games = 0;
+    size_t plies = 0;
+    for (const auto& g : chess::parsePgn(repoText("games-sample.pgn"))) {
+        REQUIRE(g.ok());
+        const auto moves = g->tree.mainLine();
+        auto blob = chess::encodeMoveIndexes(g->tree.startPosition(), moves);
+        REQUIRE(blob.ok());
+        CHECK_EQ(blob->size(), moves.size());
+        auto back = chess::decodeMoveIndexes(g->tree.startPosition(), *blob);
+        REQUIRE(back.ok());
+        CHECK((*back == moves));
+        ++games;
+        plies += moves.size();
+    }
+    CHECK_EQ(games, 39);
+    MESSAGE("move codec: " + std::to_string(plies) + " plies, 1 byte each");
+    const std::vector<uint8_t> bad{250};
+    CHECK_FALSE(chess::decodeMoveIndexes(chess::Position::startPosition(), bad).ok());
 }

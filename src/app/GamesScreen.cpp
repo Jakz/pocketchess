@@ -76,6 +76,12 @@ void GamesScreen::layout() {
 
 int GamesScreen::pageCount() const { return std::max(1, (total_ + rowsPerPage_ - 1) / rowsPerPage_); }
 
+// Filtered totals stop at GamePack::kCountCap: beyond it, turn pages while they come back full.
+bool GamesScreen::capped() const { return total_ > games::GamePack::kCountCap; }
+bool GamesScreen::hasNextPage() const {
+    return capped() ? static_cast<int>(rows_.size()) == rowsPerPage_ : page_ + 1 < pageCount();
+}
+
 void GamesScreen::setFilter(games::GameFilter f, bool favoritesOnly) {
     filter_ = std::move(f);
     favoritesOnly_ = favoritesOnly;
@@ -133,7 +139,7 @@ void GamesScreen::loadPage() {
     }
     for (Button& b : nav_) {
         if (b.id == BtnPrev) b.enabled = page_ > 0;
-        if (b.id == BtnNext) b.enabled = page_ + 1 < pageCount();
+        if (b.id == BtnNext) b.enabled = hasNextPage();
     }
     // A page turn repaints the list and the page counter only (partial refresh, M5 acceptance).
     app_.invalidate(listRect_, RefreshHint::Page);
@@ -142,7 +148,7 @@ void GamesScreen::loadPage() {
 }
 
 void GamesScreen::nextPage() {
-    if (page_ + 1 >= pageCount()) return;
+    if (!hasNextPage()) return;
     ++page_;
     loadPage();
 }
@@ -190,7 +196,9 @@ void GamesScreen::draw(Canvas& c, const Rect& clip) {
     const BoardTheme& t = app_.theme();
     const UiStyle& s = app_.style();
     c.fill(clip, t.background);
-    const std::string right = total_ > 0 ? std::to_string(page_ + 1) + "/" + std::to_string(pageCount()) : "";
+    const std::string right = total_ <= 0 ? ""
+                              : std::to_string(page_ + 1) + "/" + std::to_string(pageCount() - (capped() ? 1 : 0)) +
+                                    (capped() ? "+" : "");
     drawStatusBar(app_, c, *this, title_, right);
     for (const Button& b : chips_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
