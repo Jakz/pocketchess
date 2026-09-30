@@ -111,7 +111,13 @@
     <ClCompile Include="..\..\src\ui\theme\BoardTheme.cpp">
       <Filter>src\ui\theme</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\ui\theme\NanoSvg.cpp">
+      <Filter>src\ui\theme</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\ui\theme\PieceSet.cpp">
+      <Filter>src\ui\theme</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui\theme\SvgPieceSet.cpp">
       <Filter>src\ui\theme</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\ui\theme\ThemeManager.cpp">
@@ -210,6 +216,9 @@
       <Filter>src\ui\theme</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ui\theme\PieceSet.h">
+      <Filter>src\ui\theme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\ui\theme\SvgPieceSet.h">
       <Filter>src\ui\theme</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\ui\theme\ThemeManager.h">

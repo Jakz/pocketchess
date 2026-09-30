@@ -8,6 +8,7 @@
 #include "ui/canvas/PngWriter.h"
 #include "ui/input/Input.h"
 #include "ui/render/Refresh.h"
+#include "ui/theme/SvgPieceSet.h"
 #include "ui/theme/ThemeManager.h"
 #include "ui/widgets/Widgets.h"
 
@@ -337,4 +338,93 @@ TEST_CASE("themes: the bundled theme files load") {
     CHECK(m.problems().empty());
     REQUIRE(m.find("Walnut") != nullptr);
     CHECK(m.find("Newsprint") != nullptr && m.find("Newsprint")->mono);
+}
+
+// --- Piece sets (M6, ADR 0012) -----------------------------------------------------------------------
+
+namespace {
+
+std::filesystem::path bundledPieces() { return std::filesystem::path(test::fontDir()).parent_path() / "pieces"; }
+
+struct Ink {
+    int covered = 0;  // alpha > 128
+    int dark = 0;     // covered and luma < 80
+    int light = 0;    // covered and luma > 200
+};
+
+Ink inkOf(const Bitmap& b) {
+    Ink ink;
+    for (int y = 0; y < b.height; ++y)
+        for (int x = 0; x < b.width; ++x) {
+            const uint8_t* p = b.px(x, y);
+            if (p[3] <= 128) continue;
+            ++ink.covered;
+            const int luma = Rgb{p[0], p[1], p[2]}.luma();
+            if (luma < 80) ++ink.dark;
+            if (luma > 200) ++ink.light;
+        }
+    return ink;
+}
+
+} // namespace
+
+TEST_CASE("pieces: the bundled SVG sets load and draw white and black pieces") {
+    PieceSetLibrary lib;
+    CHECK_EQ(lib.scan(bundledPieces()), 4);
+    CHECK(lib.problems().empty());
+    for (const char* name : {"Cburnett", "Merida", "Chessnut", "Bold"}) {
+        const PieceSetInfo* info = lib.find(name);
+        REQUIRE(info != nullptr);
+        CHECK(!info->license.empty());
+        auto set = SvgPieceSet::load(info->dir);
+        REQUIRE(set.ok());
+        for (int px : {60, 134}) {
+            const Bitmap wk = (*set)->render(chess::WKing, px);
+            const Bitmap bp = (*set)->render(chess::BPawn, px);
+            REQUIRE(wk.width == px);
+            const Ink w = inkOf(wk), b = inkOf(bp);
+            MESSAGE(std::string(name) + " " + std::to_string(px) + "px: white king " + std::to_string(w.covered) +
+                    " covered, black pawn " + std::to_string(b.covered));
+            CHECK(w.covered > px * px / 8);
+            CHECK(w.light > w.covered / 4);  // a white piece is mostly light, with an outline
+            CHECK(b.covered > px * px / 20);
+            CHECK(b.dark > b.covered / 2);
+        }
+    }
+    // The bold variant is the same shapes with wider strokes: more dark ink on a white piece.
+    auto thin = SvgPieceSet::load(lib.find("Cburnett")->dir);
+    auto bold = SvgPieceSet::load(lib.find("Bold")->dir);
+    REQUIRE((thin.ok() && bold.ok()));
+    CHECK(inkOf((*bold)->render(chess::WQueen, 134)).dark > inkOf((*thin)->render(chess::WQueen, 134)).dark * 5 / 4);
+}
+
+TEST_CASE("pieces: bad manifests and missing SVGs are rejected with the reason") {
+    const std::filesystem::path root = std::filesystem::temp_directory_path() / "pchess-pieces-test";
+    std::filesystem::remove_all(root);
+    auto make = [&](const std::string& id, const std::string& manifest) {
+        std::filesystem::create_directories(root / id);
+        std::ofstream(root / id / "pieceset.yaml", std::ios::binary) << manifest;
+        return root / id;
+    };
+    auto err = [](const std::filesystem::path& dir) {
+        auto s = SvgPieceSet::load(dir);
+        return s ? std::string() : s.error().context;
+    };
+    CHECK(err(make("noname", "license: MIT\n")).find("name missing") != std::string::npos);
+    CHECK(err(make("nolicense", "name: X\n")).find("license missing") != std::string::npos);
+    CHECK(err(make("scale", "name: X\nlicense: MIT\nscale: 3\n")).find("0.5 to 1.2") != std::string::npos);
+    CHECK(err(make("typo", "name: X\nlicense: MIT\nsacle: 1\n")).find("unknown key 'sacle'") != std::string::npos);
+    CHECK(err(make("escape", "name: X\nlicense: MIT\nbase: ../x\n")).find("sibling") != std::string::npos);
+    CHECK(err(make("empty", "name: Empty\nlicense: MIT\n")).find("wP.svg") != std::string::npos);
+    // A set built on a sibling's SVGs.
+    const auto cb = bundledPieces() / "cburnett";
+    std::filesystem::create_directories(root / "cburnett");
+    for (const auto& e : std::filesystem::directory_iterator(cb))
+        std::filesystem::copy_file(e.path(), root / "cburnett" / e.path().filename());
+    CHECK(SvgPieceSet::load(make("derived", "name: Derived\nlicense: GPL-2.0-or-later\nbase: cburnett\nscale: 0.9\n")).ok());
+
+    PieceSetLibrary lib;
+    CHECK_EQ(lib.scan(root), 3);  // empty, cburnett, derived (manifests only; SVGs load on use)
+    CHECK_EQ(lib.problems().size(), size_t(5));
+    std::filesystem::remove_all(root);
 }

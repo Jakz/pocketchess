@@ -69,6 +69,7 @@ target_include_directories(pchess-core PUBLIC "${REPO_ROOT}/src")
 target_link_libraries(pchess-core PUBLIC Threads::Threads pchess-sqlite)
 
 add_library(pchess-ui STATIC ${PCHESS_UI_SOURCES})
+target_include_directories(pchess-ui PRIVATE "${REPO_ROOT}/libs/nanosvg")  # SVG piece sets (ADR 0012)
 target_link_libraries(pchess-ui PUBLIC pchess-core)
 
 # OBJECT library: core's engine code calls Process::spawn (PosixProcess.cpp), so these objects
