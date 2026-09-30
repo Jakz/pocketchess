@@ -4,6 +4,7 @@
 #include "core/chess/San.h"
 #include "core/puzzles/PuzzleImport.h"
 #include "core/puzzles/PuzzlePack.h"
+#include "core/puzzles/PuzzleSession.h"
 #include "core/puzzles/Progress.h"
 #include "core/util/Files.h"
 #include "support/Test.h"
@@ -305,4 +306,91 @@ TEST_CASE("progress: rated attempts move the rating; failures come back for revi
     REQUIRE(hist.ok());
     CHECK_EQ(hist->size(), size_t(2));  // only rated attempts
     CHECK_EQ((*hist)[0].rating, before);
+}
+
+namespace {
+
+Puzzle handMade(const std::string& fen, std::initializer_list<const char*> ucis) {
+    Puzzle p;
+    p.id = "hand";
+    p.fen = fen;
+    chess::Position pos = chess::parseFen(fen).value();
+    for (const char* u : ucis) {
+        const chess::Move m = chess::parseUci(pos, u).value();
+        p.moves.push_back(m);
+        pos.makeMove(m);
+    }
+    return p;
+}
+
+chess::Move uci(const PuzzleSession& s, const char* text) { return chess::parseUci(s.position(), text).value(); }
+
+} // namespace
+
+TEST_CASE("puzzle session: the stored line, wrong moves, retry, hint and giving up") {
+    PuzzlePack pack = samplePack();
+    auto p = pack.byId("00008");  // f2g3 e6e7 b2b1 b3c1 b1c1 h6c1 (user plays White)
+    REQUIRE(p.ok());
+    PuzzleSession s(**p);
+    REQUIRE(s.valid());
+    CHECK(s.userColor() == chess::White);
+    CHECK_EQ(s.userMovesTotal(), 3);
+    CHECK(s.state() == PuzzleSession::State::OpponentToMove);
+    CHECK(s.tryMove(chess::Move::none()) == PuzzleSession::Verdict::NotYourTurn);
+    CHECK_EQ(chess::toUci(s.pendingOpponentMove()), std::string("f2g3"));
+    s.playOpponentMove();
+    CHECK(s.state() == PuzzleSession::State::AwaitUser);
+
+    // A legal but wrong move is not played; retry returns to the same position.
+    const std::string before = chess::toFen(s.position());
+    CHECK(s.tryMove(uci(s, "h6h7")) == PuzzleSession::Verdict::Wrong);
+    CHECK(s.state() == PuzzleSession::State::Wrong);
+    CHECK_EQ(chess::toFen(s.position()), before);
+    s.retry();
+    CHECK(s.tryMove(uci(s, "e6e7")) == PuzzleSession::Verdict::Correct);
+    CHECK_EQ(s.userMovesDone(), 1);
+    s.playOpponentMove();
+    CHECK(s.tryMove(uci(s, "b3c1")) == PuzzleSession::Verdict::Correct);
+    s.playOpponentMove();
+    CHECK(s.tryMove(uci(s, "h6c1")) == PuzzleSession::Verdict::Solved);
+    CHECK(s.finished());
+    CHECK_FALSE(s.solvedClean());  // one wrong move: counts as failed for the rating
+    CHECK_EQ(s.played().size(), size_t(6));
+
+    PuzzleSession h(**p);
+    h.playOpponentMove();
+    CHECK_EQ(chess::toUci(h.hint()), std::string("e6e7"));
+    CHECK(h.hintUsed());
+    CHECK(h.tryMove(uci(h, "e6e7")) == PuzzleSession::Verdict::Correct);
+
+    PuzzleSession g(**p);
+    g.playOpponentMove();
+    g.giveUp();
+    CHECK(g.state() == PuzzleSession::State::Failed);
+    int shown = 0;
+    while (g.nextSolutionMove()) ++shown;
+    CHECK_EQ(shown, 5);  // the rest of the line after f2g3
+    CHECK_EQ(g.played().size(), size_t(6));
+}
+
+TEST_CASE("puzzle session: any checkmating move solves (mate-in-1 exception); invalid lines are refused") {
+    // After ...b6, both Re8# (the stored move) and Ra8# mate.
+    Puzzle p = handMade("6k1/1p3ppp/8/8/8/8/5PPP/R3R1K1 b - - 0 1", {"b7b6", "e1e8"});
+    PuzzleSession clean(p);
+    REQUIRE(clean.valid());
+    clean.playOpponentMove();
+    CHECK(clean.tryMove(uci(clean, "a1a8")) == PuzzleSession::Verdict::Solved);
+    CHECK(clean.solvedClean());
+    CHECK_FALSE(clean.nextSolutionMove());  // the stored line no longer applies
+
+    PuzzleSession other(p);
+    other.playOpponentMove();
+    CHECK(other.tryMove(uci(other, "a1a7")) == PuzzleSession::Verdict::Wrong);  // no mate
+
+    Puzzle broken = p;
+    broken.moves = {p.moves[1], p.moves[0]};  // White cannot move first here
+    CHECK_FALSE(PuzzleSession(broken).valid());
+    Puzzle badFen = p;
+    badFen.fen = "not a fen";
+    CHECK_FALSE(PuzzleSession(badFen).valid());
 }

@@ -56,6 +56,7 @@
     <ClCompile Include="..\..\src\core\puzzles\Progress.cpp" />
     <ClCompile Include="..\..\src\core\puzzles\PuzzleImport.cpp" />
     <ClCompile Include="..\..\src\core\puzzles\PuzzlePack.cpp" />
+    <ClCompile Include="..\..\src\core\puzzles\PuzzleSession.cpp" />
     <ClCompile Include="..\..\src\core\storage\ChessDb.cpp" />
     <ClCompile Include="..\..\src\core\storage\Database.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineBenchmark.cpp" />
@@ -93,6 +94,7 @@
     <ClInclude Include="..\..\src\core\puzzles\Puzzle.h" />
     <ClInclude Include="..\..\src\core\puzzles\PuzzleImport.h" />
     <ClInclude Include="..\..\src\core\puzzles\PuzzlePack.h" />
+    <ClInclude Include="..\..\src\core\puzzles\PuzzleSession.h" />
     <ClInclude Include="..\..\src\core\storage\ChessDb.h" />
     <ClInclude Include="..\..\src\core\storage\Database.h" />
     <ClInclude Include="..\..\src\core\engine\EngineBenchmark.h" />

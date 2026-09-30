@@ -27,6 +27,7 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/puzzles/Progress.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzleImport.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzlePack.cpp
+    ${REPO_ROOT}/src/core/puzzles/PuzzleSession.cpp
     ${REPO_ROOT}/src/core/storage/ChessDb.cpp
     ${REPO_ROOT}/src/core/storage/Database.cpp
     ${REPO_ROOT}/src/core/util/Clock.cpp
