@@ -43,6 +43,11 @@ struct PlayedGame {
 Result<int64_t> addPlayedGame(Database& db, const PlayedGame& game);  // returns the new id
 Result<std::vector<PlayedGame>> recentPlayedGames(Database& db, int limit);
 
+// favorites(pack, game_id): games starred in the Games screens (design notes §13.3).
+Result<void> setFavorite(Database& db, const std::string& pack, int64_t gameId, bool on, int64_t now);
+Result<bool> isFavorite(Database& db, const std::string& pack, int64_t gameId);
+Result<std::vector<int64_t>> favoriteIds(Database& db, const std::string& pack);
+
 // Totals from the user's side (games with a known side and a result), for Home.
 struct PlayStats {
     int games = 0, won = 0, drawn = 0, lost = 0;

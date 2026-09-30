@@ -133,6 +133,38 @@ Result<std::vector<PlayedGame>> recentPlayedGames(Database& db, int limit) {
     return out;
 }
 
+Result<void> setFavorite(Database& db, const std::string& pack, int64_t gameId, bool on, int64_t now) {
+    auto s = db.prepare(on ? "INSERT OR REPLACE INTO favorites(pack, game_id, added) VALUES(?1, ?2, ?3)"
+                           : "DELETE FROM favorites WHERE pack = ?1 AND game_id = ?2");
+    if (!s) return s.error();
+    s->bind(1, pack).bind(2, gameId);
+    if (on) s->bind(3, now);
+    return s->run();
+}
+
+Result<bool> isFavorite(Database& db, const std::string& pack, int64_t gameId) {
+    auto s = db.prepare("SELECT 1 FROM favorites WHERE pack = ?1 AND game_id = ?2");
+    if (!s) return s.error();
+    s->bind(1, pack).bind(2, gameId);
+    auto row = s->step();
+    if (!row) return row.error();
+    return *row;
+}
+
+Result<std::vector<int64_t>> favoriteIds(Database& db, const std::string& pack) {
+    auto s = db.prepare("SELECT game_id FROM favorites WHERE pack = ?1 ORDER BY added DESC");
+    if (!s) return s.error();
+    s->bind(1, pack);
+    std::vector<int64_t> out;
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        out.push_back(s->int64(0));
+    }
+    return out;
+}
+
 Result<PlayStats> playStats(Database& db) {
     auto s = db.prepare(R"sql(
 SELECT count(*),

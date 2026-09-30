@@ -278,3 +278,21 @@ TEST_CASE("storage: play statistics count results from the user's side") {
     REQUIRE(recent.ok());
     CHECK((*recent)[0].human.empty());
 }
+
+TEST_CASE("storage: favorites per pack") {
+    auto db = Database::open({}, Database::Mode::Memory);
+    REQUIRE(db.ok());
+    REQUIRE(migrate(*db, chessDbMigrations()).ok());
+    REQUIRE(setFavorite(*db, "classics", 2, true, 10).ok());
+    REQUIRE(setFavorite(*db, "classics", 1, true, 20).ok());
+    REQUIRE(setFavorite(*db, "other", 1, true, 30).ok());
+    REQUIRE(setFavorite(*db, "classics", 2, true, 40).ok());  // again: newest
+    CHECK(isFavorite(*db, "classics", 1).value());
+    CHECK_FALSE(isFavorite(*db, "classics", 3).value());
+    auto ids = favoriteIds(*db, "classics");
+    REQUIRE(ids.ok());
+    CHECK((*ids == std::vector<int64_t>{2, 1}));
+    REQUIRE(setFavorite(*db, "classics", 2, false, 50).ok());
+    CHECK((favoriteIds(*db, "classics").value() == std::vector<int64_t>{1}));
+    CHECK((favoriteIds(*db, "other").value() == std::vector<int64_t>{1}));
+}
