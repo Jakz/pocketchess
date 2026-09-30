@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "core/chess/Fen.h"
 #include "core/chess/MoveCodec.h"
+#include "core/chess/San.h"
 #include "core/puzzles/PuzzleImport.h"
+#include "core/puzzles/PuzzlePack.h"
 #include "core/util/Files.h"
 #include "support/Test.h"
 
+#include <cstdlib>
 #include <set>
 #include <string>
 #include <vector>
@@ -135,4 +138,86 @@ TEST_CASE("puzzle import: malformed rows are rejected with line numbers, the res
     REQUIRE_EQ(imp.stats().firstRejects.size(), size_t(3));
     CHECK(imp.stats().firstRejects[0].rfind("line 2: bad1", 0) == 0);
     CHECK(imp.stats().firstRejects[2].find("fields") != std::string::npos);
+}
+
+namespace {
+
+PuzzlePack samplePack() {
+    ImportFilter f;
+    f.count = 1000;
+    auto pack = PuzzlePack::fromDatabase(importPack(f), "sample");
+    REQUIRE(pack.ok());
+    return std::move(*pack);
+}
+
+} // namespace
+
+TEST_CASE("puzzle pack: count, themes and lookup by id") {
+    PuzzlePack pack = samplePack();
+    CHECK_EQ(pack.count(), 60);
+    CHECK_EQ(pack.name(), std::string("sample"));
+    const uint64_t endgame = pack.themeMask({"endgame", "noSuchTheme"});
+    REQUIRE(endgame != 0);
+    CHECK(pack.themesOf(endgame) == std::vector<std::string>{"endgame"});
+
+    auto p = pack.byId("00008");
+    REQUIRE(p.ok());
+    REQUIRE(p->has_value());
+    CHECK_EQ((*p)->rating, 1797);
+    CHECK_EQ((*p)->moves.size(), size_t(6));
+    CHECK_EQ(chess::toUci((*p)->moves[0]), std::string("f2g3"));
+    auto none = pack.byId("zzzzz");
+    REQUIRE(none.ok());
+    CHECK_FALSE(none->has_value());
+}
+
+TEST_CASE("puzzle selector: deterministic per seed, near the rating, widening, skipping and themes") {
+    PuzzlePack pack = samplePack();
+    auto sequence = [&](uint64_t seed) {
+        util::Random rnd(seed);
+        PuzzleSelector sel(pack, rnd);
+        std::vector<std::string> out;
+        for (int i = 0; i < 5; ++i) {
+            auto p = sel.next({1500});
+            REQUIRE(p.ok());
+            REQUIRE(p->has_value());
+            out.push_back((*p)->id);
+        }
+        return out;
+    };
+    CHECK(sequence(42) == sequence(42));
+
+    util::Random rnd(3);
+    PuzzleSelector sel(pack, rnd);
+    for (int i = 0; i < 20; ++i) {  // the sample has puzzles within ±150 of 1500
+        auto p = sel.next({1500});
+        REQUIRE(p.ok());
+        REQUIRE(p->has_value());
+        CHECK(std::abs((*p)->rating - 1500) <= 150);
+    }
+
+    auto far = sel.next({3900});  // nothing near: the window widens to any rating
+    REQUIRE(far.ok());
+    CHECK(far->has_value());
+
+    // Skip everything except one puzzle: it is found wherever it is.
+    auto only = sel.next({1500, 0, 0, [](const std::string& id) { return id != "00008"; }});
+    REQUIRE(only.ok());
+    REQUIRE(only->has_value());
+    CHECK_EQ((*only)->id, std::string("00008"));
+    auto nothing = sel.next({1500, 0, 0, [](const std::string&) { return true; }});
+    REQUIRE(nothing.ok());
+    CHECK_FALSE(nothing->has_value());
+
+    const uint64_t endgame = pack.themeMask({"endgame"});
+    for (int i = 0; i < 10; ++i) {
+        auto p = sel.next({1500, endgame, 0, {}});
+        REQUIRE(p.ok());
+        REQUIRE(p->has_value());
+        CHECK(((*p)->themes & endgame) != 0);
+        auto q = sel.next({1500, 0, endgame, {}});
+        REQUIRE(q.ok());
+        REQUIRE(q->has_value());
+        CHECK(((*q)->themes & endgame) == 0);
+    }
 }

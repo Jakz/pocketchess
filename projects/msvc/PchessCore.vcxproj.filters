@@ -63,6 +63,9 @@
     <ClCompile Include="..\..\src\core\puzzles\PuzzleImport.cpp">
       <Filter>src\core\puzzles</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\puzzles\PuzzlePack.cpp">
+      <Filter>src\core\puzzles</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\storage\ChessDb.cpp">
       <Filter>src\core\storage</Filter>
     </ClCompile>
@@ -162,6 +165,9 @@
       <Filter>src\core\puzzles</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\puzzles\PuzzleImport.h">
+      <Filter>src\core\puzzles</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\puzzles\PuzzlePack.h">
       <Filter>src\core\puzzles</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\storage\ChessDb.h">
