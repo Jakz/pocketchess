@@ -138,15 +138,24 @@ bool computerComment(const std::string& c) {
     return c.size() > tail.size() && c.compare(c.size() - tail.size(), tail.size(), tail) == 0;
 }
 
-void stripCommands(GameNode* n) {
+void cleanComments(GameNode* n) {
     if (n->comment.find("[%") != std::string::npos) n->comment = withoutCommands(n->comment);
     if (n->preComment.find("[%") != std::string::npos) n->preComment = withoutCommands(n->preComment);
-    if (computerComment(n->comment)) {
-        n->comment.clear();
-        n->nags.clear();
-        if (n->parent && n->parent->children.size() > 1 && n->parent->children.front().get() == n)
-            n->parent->children.resize(1);  // the engine's suggestion
+}
+
+void stripCommands(GameNode* n) {
+    // Handled from the parent, before walking its children: the suggestion is a sibling of the
+    // commented move, so removing it from inside the child's visit would change the list being walked.
+    if (!n->children.empty()) {
+        GameNode* played = n->children.front().get();
+        cleanComments(played);
+        if (computerComment(played->comment)) {
+            played->comment.clear();
+            played->nags.clear();
+            n->children.resize(1);  // the engine's suggestion
+        }
     }
+    cleanComments(n);
     for (const auto& c : n->children) stripCommands(c.get());
 }
 
