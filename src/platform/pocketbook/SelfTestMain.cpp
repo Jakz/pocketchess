@@ -91,6 +91,9 @@ void runAll() {
 
 int handler(int type, int, int) {
     switch (type) {
+    case EVT_INIT:
+        SetPanelType(PANEL_DISABLED);  // full screen, no framebuffer offset (as the app)
+        return 1;
     case EVT_SHOW:
         if (!g_ran) {
             g_ran = true;

@@ -281,6 +281,9 @@ InfoList InkViewPresenter::info() const {
         info.emplace_back("InkView canvas", std::to_string(c->width) + "x" + std::to_string(c->height) + ", depth " +
                                                 std::to_string(c->depth) + ", scanline " + std::to_string(c->scanline));
     }
+    info.emplace_back("System panel", "type " + std::to_string(GetPanelType()) + ", height " +
+                                          std::to_string(PanelHeight()) + ", fb offset " +
+                                          std::to_string(PanelHeightFBOffset()));
     info.emplace_back("Update calls", "fast/partial: PartialUpdate, full: FullUpdate (blit: Stretch IMAGE_RGB)");
     char ms[32];
     std::snprintf(ms, sizeof ms, "%.1f ms", lastMs_);
@@ -332,6 +335,12 @@ int runInkViewApp(int argc, char** argv) {
     struct Init {
         static int handler(int type, int p1, int p2) {
             if (type == EVT_INIT && !g_app) {
+                // Full screen: with the system panel on (the 6.x default) the framebuffer is offset by
+                // the panel height and the whole frame shows shifted and wrapped (device photo 2026-10-01).
+                util::Log::info("inkview", "panel type " + std::to_string(GetPanelType()) + ", height " +
+                                               std::to_string(PanelHeight()) + ", fb offset " +
+                                               std::to_string(PanelHeightFBOffset()) + " -> disabled");
+                SetPanelType(PANEL_DISABLED);
                 g_presenter = std::make_unique<InkViewPresenter>();
                 g_app = std::make_unique<app::Application>(*g_host, *g_presenter, g_config);
                 g_host->attach(g_app.get());
