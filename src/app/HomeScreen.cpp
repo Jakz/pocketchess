@@ -6,6 +6,7 @@
 #include "app/Chrome.h"
 #include "app/DiagnosticsScreen.h"
 #include "app/Dialogs.h"
+#include "app/GamesScreen.h"
 #include "app/PlayScreen.h"
 #include "app/SettingsScreen.h"
 #include "app/TacticsScreen.h"
@@ -39,7 +40,7 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
     const Item items[] = {
         {Play, "Play", "vs engine", true},
         {Tactics, "Tactics", "puzzles", true},
-        {Games, "Games", "historical games · M5", false},
+        {Games, "Games", "historical games", true},
         {Analyze, "Analyze", "", true},
         {Review, "Review", "failed puzzles", true},
         {SettingsItem, "Settings", "", true},
@@ -149,7 +150,7 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
     const int pad = s.fontPx;
     small.draw(c, pad, baseline, left, t.ink);
     small.draw(c, l.screen.w - pad - small.measure(right), baseline, right, t.ink);
-    const std::string version = "0.0.1 · M4 preview";
+    const std::string version = "0.0.1 · M5 preview";
     small.draw(c, (l.screen.w - small.measure(version)) / 2, baseline, version, blend(t.background, t.ink, 140));
 }
 
@@ -157,6 +158,7 @@ void HomeScreen::open(int id) {
     switch (id) {
     case Play: startPlay(); break;
     case Tactics: app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Train)); break;
+    case Games: app_.push(std::make_unique<GamesScreen>(app_)); break;
     case Review: app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Review)); break;
     case Analyze: app_.push(std::make_unique<AnalyzeScreen>(app_, "")); break;
     case SettingsItem: app_.push(std::make_unique<SettingsScreen>(app_)); break;

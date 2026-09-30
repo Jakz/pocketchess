@@ -48,6 +48,8 @@ set(PCHESS_UI_SOURCES
     ${REPO_ROOT}/src/app/CommandLine.cpp
     ${REPO_ROOT}/src/app/DiagnosticsScreen.cpp
     ${REPO_ROOT}/src/app/Dialogs.cpp
+    ${REPO_ROOT}/src/app/GameStudyScreen.cpp
+    ${REPO_ROOT}/src/app/GamesScreen.cpp
     ${REPO_ROOT}/src/app/HeadlessHost.cpp
     ${REPO_ROOT}/src/app/HomeScreen.cpp
     ${REPO_ROOT}/src/app/MoveList.cpp
@@ -79,6 +81,7 @@ set(PCHESS_PLATFORM_PB_SOURCES
 set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/AnalysisPanelTests.cpp
     ${REPO_ROOT}/tests/app/AppTests.cpp
+    ${REPO_ROOT}/tests/app/GamesTests.cpp
     ${REPO_ROOT}/tests/app/PlayTests.cpp
     ${REPO_ROOT}/tests/app/SessionTests.cpp
     ${REPO_ROOT}/tests/app/SettingsTests.cpp

@@ -4,6 +4,8 @@
 #include "app/AnalyzeScreen.h"
 #include "app/DiagnosticsScreen.h"
 #include "app/Dialogs.h"
+#include "app/GameStudyScreen.h"
+#include "app/GamesScreen.h"
 #include "app/HomeScreen.h"
 #include "app/PlayScreen.h"
 #include "app/SettingsScreen.h"
@@ -162,6 +164,7 @@ std::unique_ptr<Screen> Application::restoreScreen(const std::map<std::string, s
     if (it->second == "play") return PlayScreen::restore(*this, session);
     if (it->second == "analyze") return AnalyzeScreen::restore(*this, session);
     if (it->second == "tactics") return TacticsScreen::restore(*this, session);
+    if (it->second == "study") return GameStudyScreen::restore(*this, session);
     return nullptr;
 }
 
@@ -193,6 +196,7 @@ std::unique_ptr<Screen> Application::makeScreen(const std::string& name) {
     if (name == "settings") return std::make_unique<SettingsScreen>(*this);
     if (name == "tactics") return std::make_unique<TacticsScreen>(*this, TacticsScreen::Mode::Train);
     if (name == "review") return std::make_unique<TacticsScreen>(*this, TacticsScreen::Mode::Review);
+    if (name == "games") return std::make_unique<GamesScreen>(*this);
     if (name == "play")
         return std::make_unique<PlayScreen>(*this, PlaySetup{chess::White, settings_.playStrength, config_.fen});
     Log::warn("app", "unknown or not yet available screen '" + name + "', staying on Home");

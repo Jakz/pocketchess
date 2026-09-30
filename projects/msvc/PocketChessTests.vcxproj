@@ -60,6 +60,7 @@
     <ClCompile Include="..\..\tests\core\PuzzleTests.cpp" />
     <ClCompile Include="..\..\tests\core\StorageTests.cpp" />
     <ClCompile Include="..\..\tests\app\SettingsTests.cpp" />
+    <ClCompile Include="..\..\tests\app\GamesTests.cpp" />
     <ClCompile Include="..\..\tests\app\PlayTests.cpp" />
     <ClCompile Include="..\..\tests\app\SessionTests.cpp" />
     <ClCompile Include="..\..\tests\app\TacticsTests.cpp" />
