@@ -35,6 +35,7 @@ std::map<std::string, std::string> Settings::toMap() const {
     return {
         {"display.board_theme", boardTheme},
         {"display.mono_theme", monoTheme},
+        {"display.piece_set", pieceSet},
         {"display.mono", boolText(mono)},
         {"display.coordinates", boolText(coordinates)},
         {"display.full_refresh_every", std::to_string(fullRefreshEvery)},
@@ -63,6 +64,7 @@ std::map<std::string, std::string> Settings::toMap() const {
 void Settings::fromMap(const std::map<std::string, std::string>& m) {
     readString(m, "display.board_theme", boardTheme);
     readString(m, "display.mono_theme", monoTheme);
+    readString(m, "display.piece_set", pieceSet);
     readBool(m, "display.mono", mono);
     readBool(m, "display.coordinates", coordinates);
     readInt(m, "display.full_refresh_every", fullRefreshEvery, 1, 1000);

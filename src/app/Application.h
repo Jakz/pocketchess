@@ -20,6 +20,7 @@
 #include "ui/render/Refresh.h"
 #include "ui/theme/BoardTheme.h"
 #include "ui/theme/PieceSet.h"
+#include "ui/theme/SvgPieceSet.h"
 #include "ui/theme/ThemeManager.h"
 #include "ui/widgets/Widgets.h"
 
@@ -38,6 +39,7 @@ struct AppConfig {
     std::string fen;                  // start position for analyze
     std::optional<bool> mono;         // override Settings::mono
     std::string theme;                // override board theme by name
+    std::string pieceSet;             // override the piece set by name
     std::filesystem::path fontDir;    // default: <root>/assets/fonts
     bool logToFile = true;
     // Tests and scripted sessions: engines added to the scanned engines/ folder, and how engine
@@ -110,6 +112,7 @@ public:
     const AppConfig& config() const { return config_; }
     Settings& settings() { return settings_; }
     void applySettings();  // theme/mono/refresh interval/engine settings changed
+    void applyPieceSet();  // (re)loads the chosen set when it changed
     void saveSettings();   // writes Settings to chess.db (no-op when not persisted)
     bool settingsPersisted() const { return userDb_.isOpen(); }
     // SessionState: screens call this after every meaningful change (move, undo); push/pop and
@@ -139,6 +142,7 @@ public:
     ui::FontLibrary& fonts() { return fonts_; }
     ui::PieceCache& pieces() { return pieces_; }
     const ui::ThemeManager& themes() const { return themes_; }
+    const ui::PieceSetLibrary& pieceSets() const { return pieceSets_; }
     const ui::BoardTheme& theme() const { return theme_; }
     const ui::UiStyle& style() const { return style_; }
     const Layout& layout() const { return layout_; }
@@ -184,6 +188,9 @@ private:
     ui::FontLibrary fonts_;
     ui::PieceCache pieces_;
     ui::ThemeManager themes_;
+    ui::PieceSetLibrary pieceSets_;
+    std::shared_ptr<const ui::PieceSet> glyphSet_;  // always available (design notes §32)
+    std::string pieceSetApplied_;
     ui::BoardTheme theme_;
     ui::UiStyle style_;
     Layout layout_;

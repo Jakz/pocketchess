@@ -79,6 +79,15 @@ void SettingsScreen::buildItems() {
         [&st, colorThemes](int i) { st.boardTheme = colorThemes[static_cast<size_t>(i)]; });
     add("Display", "Monochrome theme", monoThemes, [&st, monoThemes] { return indexOf(monoThemes, st.monoTheme); },
         [&st, monoThemes](int i) { st.monoTheme = monoThemes[static_cast<size_t>(i)]; });
+    std::vector<std::string> pieceSets;
+    for (const PieceSetInfo& s : app_.pieceSets().sets()) pieceSets.push_back(s.name);
+    pieceSets.push_back("DejaVu");  // the built-in font glyphs
+    add("Display", "Piece set", pieceSets,
+        [&st, pieceSets] {  // a set that is not installed falls back to the glyphs (Application::applyPieceSet)
+            const int i = indexOf(pieceSets, st.pieceSet);
+            return i >= 0 ? i : static_cast<int>(pieceSets.size()) - 1;
+        },
+        [&st, pieceSets](int i) { st.pieceSet = pieceSets[static_cast<size_t>(i)]; });
     addBool("Display", "Coordinates", st.coordinates);
     addInts("Display", "Full refresh every", st.fullRefreshEvery, {6, 12, 20, 30, 50},
             {"6 updates", "12 updates", "20 updates", "30 updates", "50 updates"});

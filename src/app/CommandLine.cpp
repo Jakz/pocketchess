@@ -27,6 +27,7 @@ CommandLine CommandLine::parse(int argc, char** argv) {
         else if (a == "--mono") cl.app.mono = true;
         else if (a == "--color") cl.app.mono = false;
         else if (a == "--theme") cl.app.theme = value();
+        else if (a == "--pieces") cl.app.pieceSet = value();
         else if (a == "--screenshot") cl.screenshot = value();
         else if (a == "--script") cl.script = value();
         else if (a == "--timing") cl.timing = true;
@@ -48,7 +49,8 @@ const char* CommandLine::usage() {
            "  --screen <name>        home | play | tactics | review | games | analyze | settings | diagnostics\n"
            "  --fen \"<fen>\"          start the Analyze or Play screen on this position\n"
            "  --mono | --color       display mode\n"
-           "  --theme <name>         Paper | Slate | ClassicMono | HighContrastMono\n"
+           "  --theme <name>         Paper | Slate | ClassicMono | HighContrastMono | assets/themes/*.yaml\n"
+           "  --pieces <name>        Cburnett | Merida | Chessnut | Bold | DejaVu (built-in glyphs)\n"
            "  --script \"<cmds>\"      scripted input, e.g. \"tap:e2;tap:e4;key:prev\"\n"
            "  --screenshot <out.png> render one frame (after --script) and exit\n"
            "  --timing               log present timings\n";

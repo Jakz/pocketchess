@@ -79,9 +79,11 @@ void Application::start() {
     if (fonts_.loaded()) {
         auto set = std::make_shared<GlyphPieceSet>(fonts_.face(), "DejaVu");
         if (!set->complete()) Log::warn("app", "piece glyphs incomplete in the bundled font");
+        glyphSet_ = set;
         pieces_.setPieceSet(set);
     }
     themes_.loadDirectory(paths_.themes());
+    pieceSets_.scan(paths_.pieces());
 
     if (config_.persistSettings) {
         // Content errors never stop the app (design notes §32): settings then stay in memory.
@@ -117,6 +119,7 @@ void Application::start() {
             settings_.boardTheme = t.name;
         }
     }
+    if (!config_.pieceSet.empty()) settings_.pieceSet = config_.pieceSet;
     // Seeded from the (injectable) clock: real runs vary, tests with a FakeClock are deterministic.
     random_.reseed(static_cast<uint64_t>(config_.clock ? config_.clock->unixSeconds()
                                                        : util::SystemClock::instance().unixSeconds()));
@@ -205,10 +208,33 @@ std::unique_ptr<Screen> Application::makeScreen(const std::string& name) {
     return nullptr;
 }
 
+void Application::applyPieceSet() {
+    if (settings_.pieceSet == pieceSetApplied_) return;
+    pieceSetApplied_ = settings_.pieceSet;
+    std::shared_ptr<const PieceSet> set = glyphSet_;
+    if (const PieceSetInfo* info = pieceSets_.find(settings_.pieceSet)) {
+        const auto t0 = std::chrono::steady_clock::now();
+        if (auto svg = SvgPieceSet::load(info->dir); svg) {
+            set = *svg;
+            Log::info("pieces", "set " + info->name + " loaded in " +
+                                    std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                       std::chrono::steady_clock::now() - t0)
+                                                       .count()) +
+                                    " ms");
+        } else {
+            Log::warn("pieces", svg.error().message() + " - using the built-in glyphs");
+        }
+    } else if (settings_.pieceSet != "DejaVu") {
+        Log::warn("pieces", "no piece set '" + settings_.pieceSet + "' installed - using the built-in glyphs");
+    }
+    if (set) pieces_.setPieceSet(set);
+}
+
 void Application::applySettings() {
     theme_ = themes_.resolve(settings_.mono ? settings_.monoTheme : settings_.boardTheme, settings_.mono);
     theme_.coordinates = settings_.coordinates;
     policy_.setFullEvery(settings_.fullRefreshEvery);
+    applyPieceSet();
 
     engine::EngineSettings es = engines_->settings();
     es.profile = settings_.powerProfile;
