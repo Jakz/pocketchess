@@ -52,6 +52,24 @@ Last updated: 2026-09-30 (M6 features done on desktop: themes, piece sets, Impor
   EngineManager and the analysis panel; goldens updated for the new button row, plus
   `analyze-engine-quick` and `analyze-engine-missing`.
 
+## 2026-09-30 — after the first M6 device review: rendering, color, navigation
+
+- Rendering: buttons looked cropped at the top. Causes fixed: the analysis panel's engine lines ran
+  into the button row (the headline now sits on the status row, extra MultiPV lines that do not fit
+  are dropped: 2 of 3 on the reader); text leaked anti-aliased pixels past its area that later
+  partial updates never cleared (each invalidation now repaints a small margin; board squares stay
+  exact); e-ink regions are widened to an 8-px grid (Kaleido 3 color phase; to confirm on the
+  reader). `tests/app/RedrawTests.cpp`: partial redraws must equal a full redraw.
+- Color: Settings → Display → Color theme / Accent color / Piece colors open a grid of colored
+  rectangles (`SwatchDialog`). 11 saturated hues; the accent drives primary buttons, the current
+  move and the selected/last-move squares; piece colors tint white pieces pale and black pieces deep
+  (`ui::Palette`, `PieceCache::setTint`). New palettes Harbor, Forest, Coral, Lavender, Sand. Mono
+  mode ignores both.
+- Navigation (ADR 0014): framed "‹ *parent*" button in a 7.5 mm top bar; bottom bar ◀ ▶ (= Prev/Next,
+  captioned) at the left and Menu at the right on every screen; menus end with "‹ Back to …" and
+  "Close"; Settings and Import turn pages with Prev/Next and choose through the Menu (no focus
+  cursor). The board is now 131 px per square on the reader (was 134).
+
 ## 2026-09-30 — M6: themes, piece sets, import, polish
 
 - Themes: `ui::ThemeManager` + `parseTheme` (design notes §19: `name`, `mode`, colors as quoted
