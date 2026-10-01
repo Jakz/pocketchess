@@ -16,7 +16,7 @@ using namespace ui;
 
 namespace {
 
-enum NavId { NavPrev, NavNext, NavMenu };
+enum NavId { NavPrev, NavNext };
 
 // Index of `value` in `values`, or -1.
 template <class T>
@@ -38,14 +38,16 @@ SettingsScreen::SettingsScreen(Application& app) : Screen(app) {
     const int pad = s.fontPx / 2;
     footer_ = {pad, l.screen.h - kMinTouchPx - 2 * pad, l.screen.w - 2 * pad, kMinTouchPx + pad};
     body_ = {pad, l.status.bottom() + pad, l.screen.w - 2 * pad, footer_.y - l.status.bottom() - 2 * pad};
-    const auto cells = splitRow({footer_.x, footer_.y + pad, footer_.w, kMinTouchPx}, 4, pad);  // [‹] ◀ ▶ Menu
+    // [←] ◀ ▶: rows are tapped directly, so no Menu button (the Menu key lists the page's settings for
+    // key-only use, with Back and Close).
+    const auto cells = splitRow({footer_.x, footer_.y + pad, footer_.w, kMinTouchPx}, 3, pad);
     backRect_ = cells[0];
-    const char* labels[] = {"◀", "▶", "Menu"};  // ◀ ▶ = the Prev/Next keys
-    for (int id : {NavPrev, NavNext, NavMenu}) {
+    const char* labels[] = {"◀", "▶"};  // ◀ ▶ = the Prev/Next keys
+    for (int id : {NavPrev, NavNext}) {
         Button b;
         b.id = id;
         b.label = labels[id];
-        if (id != NavMenu) b.hint = "page";
+        b.hint = "page";
         b.rect = cells[static_cast<size_t>(id) + 1];
         nav_.push_back(b);
     }
@@ -358,7 +360,6 @@ void SettingsScreen::onGesture(const Gesture& g) {
     switch (hitTest(nav_, g.start)) {
     case NavPrev: setPage(page_ - 1); return;
     case NavNext: setPage(page_ + 1); return;
-    case NavMenu: openMenu(); return;
     default: break;
     }
     for (const Row& row : pages_[static_cast<size_t>(page_)])
