@@ -32,6 +32,7 @@ struct ImportStats {
     uint64_t annotated = 0; // stored with their PGN text (comments, NAGs or variations)
     uint64_t players = 0;
     uint64_t duplicates = 0;  // the same game seen before in this import
+    uint64_t bookMoves = 0;   // rows of opening statistics written
 };
 
 // Writes games into an empty pack database. Call add() for every parsed game, then finish().
@@ -54,6 +55,21 @@ private:
     std::optional<storage::Statement> insertGame_, insertPlayer_, insertEvent_, insertSite_, insertOpening_;
     std::unordered_map<std::string, int64_t> eventIds_, siteIds_, openingIds_;
     std::unordered_set<size_t> seen_;  // hashes of (players, date, moves): duplicates are skipped
+    // Opening statistics (book table): (position key, move) -> results, for the first kBookPlies.
+    struct BookKey {
+        uint64_t key;
+        uint16_t move;
+        bool operator==(const BookKey&) const = default;
+    };
+    struct BookKeyHash {
+        size_t operator()(const BookKey& k) const {
+            return static_cast<size_t>(k.key ^ (uint64_t(k.move) * 0x9E3779B97F4A7C15ull));
+        }
+    };
+    struct BookCount {
+        uint32_t games = 0, white = 0, draws = 0, black = 0;
+    };
+    std::unordered_map<BookKey, BookCount, BookKeyHash> book_;
     std::unordered_map<std::string, int64_t> players_;
     ImportStats stats_;
 };
@@ -68,6 +84,12 @@ struct GameFilter {
     std::string opening;   // substring of the opening name
     std::string result;    // "1-0", "0-1", "1/2-1/2"
     std::optional<std::vector<int64_t>> ids;  // only these games (favorites)
+};
+
+// One move of the opening statistics at a position: how often it was played and how those games ended.
+struct BookMove {
+    chess::Move move;
+    int games = 0, white = 0, draws = 0, black = 0;
 };
 
 struct GameRow {
@@ -93,6 +115,8 @@ public:
     // The full game: headers, moves, and comments/NAGs/variations when the pack kept them.
     Result<chess::PgnGame> load(int64_t id);
     std::map<std::string, std::string> meta();
+    // The opening statistics of `pos`, most played first (empty when the pack has none).
+    Result<std::vector<BookMove>> bookMoves(const chess::Position& pos);
 
 private:
     storage::Database db_;

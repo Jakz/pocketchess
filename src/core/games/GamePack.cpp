@@ -3,6 +3,7 @@
 
 #include "core/chess/Fen.h"
 #include "core/chess/MoveCodec.h"
+#include "core/chess/MoveGen.h"
 
 #include <charconv>
 #include <cstdio>
@@ -73,10 +74,18 @@ CREATE INDEX idx_games_white ON games(white_id, year);
 CREATE INDEX idx_games_black ON games(black_id, year);
 CREATE INDEX idx_games_opening ON games(opening_id, year);
 CREATE INDEX idx_games_event ON games(event_id, year);
+-- Opening statistics: moves played from each position of the first plies (main lines), with results.
+CREATE TABLE book(
+    key   INTEGER NOT NULL,          -- Zobrist key of the position
+    move  INTEGER NOT NULL,          -- 16-bit Move
+    games INTEGER NOT NULL, white INTEGER NOT NULL, draws INTEGER NOT NULL, black INTEGER NOT NULL,
+    PRIMARY KEY(key, move)
+) WITHOUT ROWID;
 )sql"},
 };
 
 constexpr int kFormat = 2;
+constexpr int kBookPlies = 20;  // opening statistics depth (half-moves)
 
 int resultCode(const std::string& r) { return r == "1-0" ? 1 : r == "0-1" ? 2 : r == "1/2-1/2" ? 3 : 0; }
 std::string resultText(int c) { return c == 1 ? "1-0" : c == 2 ? "0-1" : c == 3 ? "1/2-1/2" : "*"; }
@@ -372,6 +381,19 @@ Result<bool> GameImporter::add(PgnGame& game) {
             eco = o->eco;
             opening = o->name;
         }
+    // Opening statistics: every position of the first kBookPlies of a standard game.
+    if (standard) {
+        const int code = resultCode(game.result);
+        chess::Position pos = start;
+        for (size_t i = 0; i < moves.size() && i < static_cast<size_t>(kBookPlies); ++i) {
+            BookCount& c = book_[BookKey{pos.key(), moves[i].raw()}];
+            ++c.games;
+            c.white += code == 1;
+            c.black += code == 2;
+            c.draws += code == 3;
+            pos.makeMove(moves[i]);
+        }
+    }
     stripCommands(game.tree.root());
     const bool keepPgn = annotated(game.tree.root());
     if (keepPgn) ++stats_.annotated;
@@ -420,12 +442,31 @@ Result<bool> GameImporter::add(PgnGame& game) {
 }
 
 Result<void> GameImporter::finish(const std::map<std::string, std::string>& meta) {
+    // Large packs keep only moves played in a few games (the rest is noise and size).
+    const uint32_t minGames = stats_.games >= 10000 ? 3 : 1;
+    {
+        auto b = db_.prepare("INSERT INTO book(key, move, games, white, draws, black) VALUES(?1, ?2, ?3, ?4, ?5, ?6)");
+        if (!b) return b.error();
+        uint64_t rows = 0;
+        for (const auto& [k, c] : book_) {
+            if (c.games < minGames) continue;
+            b->bind(1, static_cast<int64_t>(k.key)).bind(2, static_cast<int64_t>(k.move));
+            b->bind(3, static_cast<int64_t>(c.games));
+            b->bind(4, static_cast<int64_t>(c.white)).bind(5, static_cast<int64_t>(c.draws));
+            b->bind(6, static_cast<int64_t>(c.black));
+            if (auto r = b->run(); !r) return r;
+            ++rows;
+        }
+        stats_.bookMoves = rows;
+        book_.clear();
+    }
     auto m = db_.prepare("INSERT OR REPLACE INTO meta(key, value) VALUES(?1, ?2)");
     if (!m) return m.error();
     std::map<std::string, std::string> all = meta;
     all["count"] = std::to_string(stats_.games);
     all["players"] = std::to_string(stats_.players);
     all["duplicates"] = std::to_string(stats_.duplicates);
+    all["book_moves"] = std::to_string(stats_.bookMoves);
     all["format"] = std::to_string(kFormat);
     for (const auto& [k, v] : all) {
         m->bind(1, k).bind(2, v);
@@ -565,6 +606,24 @@ Result<PgnGame> GamePack::load(int64_t id) {
     for (chess::Move m : *moves) n = game.tree.addMove(n, m);
     game.result = g.result;
     return game;
+}
+
+Result<std::vector<BookMove>> GamePack::bookMoves(const chess::Position& pos) {
+    std::vector<BookMove> out;
+    auto s = db_.prepare("SELECT move, games, white, draws, black FROM book WHERE key = ?1 ORDER BY games DESC");
+    if (!s) return out;  // a pack without statistics
+    s->bind(1, static_cast<int64_t>(pos.key()));
+    chess::MoveList legal;
+    chess::generateLegalMoves(pos, legal);
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        const chess::Move m = chess::Move::fromRaw(static_cast<uint16_t>(s->int64(0)));
+        if (!legal.contains(m)) continue;  // a key collision: not this position's move
+        out.push_back({m, s->integer(1), s->integer(2), s->integer(3), s->integer(4)});
+    }
+    return out;
 }
 
 std::map<std::string, std::string> GamePack::meta() {

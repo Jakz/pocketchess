@@ -131,6 +131,19 @@ void AnalyzeScreen::setNode(GameNode* node) {
         std::reverse(path.begin(), path.end());
         if (auto o = book->classify(tree_.startPosition(), path)) openingName_ = o->eco + " " + o->name;
     }
+    // What the game pack's players chose here (opening statistics), most played first.
+    bookLine_.clear();
+    if (games::GamePack* pack = app_.gamePack())
+        if (auto moves = pack->bookMoves(pos_); moves && !moves->empty()) {
+            int total = 0;
+            for (const auto& b : *moves) total += b.games;
+            bookLine_ = "Book (" + std::to_string(total) + "):";
+            for (size_t i = 0; i < moves->size() && i < 5; ++i) {
+                const auto& b = (*moves)[i];
+                bookLine_ += " " + toSan(pos_, b.move) + " " +
+                             std::to_string((b.games * 100 + total / 2) / total) + "%";
+            }
+        }
     selected_ = NoSquare;
     refreshBoard(RefreshHint::Content);
     refreshPanel();
@@ -215,6 +228,16 @@ void AnalyzeScreen::draw(Canvas& c, const Rect& clip) {
 
 void AnalyzeScreen::drawMoves(Canvas& c) {
     Rect list = movesRect_;
+    if (!bookLine_.empty()) {  // the opening statistics of the game pack, one small line
+        const BoardTheme& t = app_.theme();
+        Font& small = app_.fonts().get(app_.style().smallPx);
+        c.pushClip(list);
+        small.draw(c, list.x, list.y + small.ascent(), fitText(small, bookLine_, list.w),
+                   blend(t.background, t.ink, 170));
+        c.popClip();
+        list.y += small.lineHeight();
+        list.h -= small.lineHeight();
+    }
     if (node_ && !node_->comment.empty()) {
         // The current move's comment first (one line, cut at the panel width), then the moves.
         const BoardTheme& t = app_.theme();

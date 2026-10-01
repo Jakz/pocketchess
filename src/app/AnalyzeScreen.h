@@ -96,6 +96,7 @@ private:
     void reset(const chess::Position& start);
     std::string statusText() const;
     std::string openingName_;  // "B90 Sicilian Defense: Najdorf Variation" for the current path
+    std::string bookLine_;     // "Book (1200): e4 41% d4 33% ..." from the game pack, or empty
     void drawMoves(ui::Canvas& c);
     void drawEngine(ui::Canvas& c);
 

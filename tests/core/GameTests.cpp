@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include "core/chess/Fen.h"
 #include "core/chess/MoveCodec.h"
 #include "core/chess/Pgn.h"
 #include "core/chess/San.h"
@@ -242,4 +243,25 @@ TEST_CASE("move codec: one byte per move round-trips whole games and rejects bad
     MESSAGE("move codec: " + std::to_string(plies) + " plies, 1 byte each");
     const std::vector<uint8_t> bad{250};
     CHECK_FALSE(chess::decodeMoveIndexes(chess::Position::startPosition(), bad).ok());
+}
+
+TEST_CASE("game pack: opening statistics count the moves played from each early position") {
+    ImportStats st;
+    GamePack pack = samplePack(&st);
+    CHECK(st.bookMoves > 0);
+    auto start = pack.bookMoves(chess::Position::startPosition());
+    REQUIRE(start.ok());
+    REQUIRE_FALSE(start->empty());
+    int games = 0, results = 0;
+    for (const auto& b : *start) {
+        games += b.games;
+        results += b.white + b.draws + b.black;
+    }
+    CHECK_EQ(games, 42);  // every game starts from the standard position
+    CHECK(results <= games);
+    for (size_t i = 1; i < start->size(); ++i) CHECK((*start)[i - 1].games >= (*start)[i].games);  // most played first
+    // A position nobody reached has no statistics.
+    auto none = pack.bookMoves(*chess::parseFen("8/8/8/4k3/8/8/4P3/4K3 w - - 0 1"));
+    REQUIRE(none.ok());
+    CHECK(none->empty());
 }
