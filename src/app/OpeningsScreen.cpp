@@ -120,6 +120,21 @@ void OpeningsScreen::search(const std::string& text) {
 }
 
 void OpeningsScreen::showPage() {
+    // Games of the game pack that reached each visible line (its opening statistics), once per row.
+    if (games::GamePack* pack = app_.gamePack()) {
+        const size_t first = static_cast<size_t>(page_ * rowsPerPage_);
+        for (size_t i = first; i < items_.size() && i < first + static_cast<size_t>(rowsPerPage_); ++i) {
+            Item& it = items_[i];
+            if (!it.line || it.counted) continue;
+            it.counted = true;
+            chess::Position p = chess::Position::startPosition();
+            for (chess::Move m : it.line->moves) p.makeMove(m);
+            int games = 0;
+            if (auto moves = pack->bookMoves(p); moves)
+                for (const auto& b : *moves) games += b.games;
+            if (games > 0) it.detail += " · " + std::to_string(games) + (games == 1 ? " game" : " games");
+        }
+    }
     for (Button& b : nav_) {
         if (b.id == BtnPrev) b.enabled = page_ > 0;
         if (b.id == BtnNext) b.enabled = page_ + 1 < pageCount();

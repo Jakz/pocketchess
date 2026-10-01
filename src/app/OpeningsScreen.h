@@ -30,6 +30,7 @@ public:
         std::string title, detail;
         std::string family;                       // a family row: its name
         const games::OpeningLine* line = nullptr;  // a line row
+        bool counted = false;                      // games added to `detail`
     };
     const std::vector<Item>& items() const { return items_; }
     void showFamilies();
