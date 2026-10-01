@@ -6,6 +6,7 @@
 #include "core/chess/MoveCodec.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 namespace pchess::puzzles {
 
@@ -57,10 +58,16 @@ Result<PuzzlePack> PuzzlePack::fromDatabase(storage::Database db, std::string na
 }
 
 Result<void> PuzzlePack::load() {
-    auto c = db_.prepare("SELECT count(*) FROM puzzles");
-    if (!c) return c.error();
-    if (auto row = c->step(); !row) return row.error();
-    count_ = c->integer(0);
+    // The count from meta: counting 6 million rows would stall the reader on every pack switch.
+    count_ = -1;
+    if (auto m = db_.prepare("SELECT value FROM meta WHERE key = 'count'"); m)
+        if (auto row = m->step(); row && *row) count_ = std::atoi(m->text(0).c_str());
+    if (count_ < 0) {
+        auto c = db_.prepare("SELECT count(*) FROM puzzles");
+        if (!c) return c.error();
+        if (auto row = c->step(); !row) return row.error();
+        count_ = c->integer(0);
+    }
     themes_.assign(64, std::string());
     auto t = db_.prepare("SELECT bit, name FROM themes");
     if (!t) return t.error();
@@ -87,6 +94,14 @@ std::vector<std::string> PuzzlePack::themesOf(uint64_t mask) const {
     for (size_t b = 0; b < themes_.size(); ++b)
         if ((mask >> b) & 1 && !themes_[b].empty()) out.push_back(themes_[b]);
     return out;
+}
+
+bool PuzzlePack::has(const std::string& id) {
+    auto s = db_.prepare("SELECT 1 FROM puzzles WHERE id = ?1");
+    if (!s) return false;
+    s->bind(1, id);
+    auto row = s->step();
+    return row && *row;
 }
 
 Result<std::optional<Puzzle>> PuzzlePack::byId(const std::string& id) {

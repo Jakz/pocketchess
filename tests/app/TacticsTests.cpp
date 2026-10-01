@@ -213,3 +213,40 @@ TEST_CASE("tactics: Settings -> Tactics -> Skip theme keeps that theme out of th
     std::error_code ec;
     std::filesystem::remove_all(root, ec);
 }
+
+TEST_CASE("tactics: reviews of puzzles missing from the active pack wait, and come back with their pack") {
+    const auto root = packRoot("pchess-tactics-packs");
+    // A second pack without one puzzle (as a smaller nested pack would be).
+    std::error_code ec;
+    std::filesystem::copy_file(root / "content" / "puzzles" / "sample.db", root / "content" / "puzzles" / "other.db", ec);
+    TacticsHarness h(root);
+    h.app->settings().tacticsPack = "sample";
+    REQUIRE(h.open(TacticsScreen::Mode::Train) != nullptr);
+    const std::string id = h.session().puzzle().id;
+    REQUIRE(h.tactics()->playUci(h.wrongMove()));
+    h.tactics()->showSolution();
+    for (int i = 0; i < 10; ++i) h.pump(700ms);
+    h.app->pop();
+    {
+        auto other = storage::Database::open(root / "content" / "puzzles" / "other.db", storage::Database::Mode::ReadWrite);
+        REQUIRE(other.ok());
+        auto del = other->prepare("DELETE FROM puzzles WHERE id = ?1");
+        REQUIRE(del.ok());
+        del->bind(1, id);
+        REQUIRE(del->run().ok());
+    }
+    h.clock.setUnixSeconds(h.clock.unixSeconds() + kDay + 60);
+
+    h.app->settings().tacticsPack = "other";
+    CHECK(h.app->dueInPack().empty());  // Home shows no reviews for this pack
+    REQUIRE(h.open(TacticsScreen::Mode::Review) != nullptr);
+    CHECK_EQ(h.tactics()->status(), std::string("No reviews due"));
+    h.app->pop();
+
+    h.app->settings().tacticsPack = "sample";  // the larger pack again: the review is still there
+    REQUIRE_EQ(h.app->dueInPack().size(), size_t(1));
+    REQUIRE(h.open(TacticsScreen::Mode::Review) != nullptr);
+    CHECK_EQ(h.session().puzzle().id, id);
+    h.app.reset();
+    std::filesystem::remove_all(root, ec);
+}

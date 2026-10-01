@@ -34,7 +34,7 @@ TacticsScreen::TacticsScreen(Application& app, Mode mode, const std::string& puz
     if (puzzles::Progress* pr = app_.progress()) {
         if (auto seen = pr->seenIds(); seen) seen_ = std::move(*seen);
         if (mode_ == Mode::Review)
-            if (auto due = pr->dueIds(app_.now(), 500); due) queue_ = std::move(*due);
+            queue_ = app_.dueInPack(500);  // reviews of this pack (other packs' reviews wait)
     }
     if (!puzzleId.empty() && load(puzzleId)) return;
     loadNext();

@@ -92,8 +92,8 @@ void HomeScreen::refreshSummary() {
     summary_.clear();
     // Tactics (design notes §6.1): rating and due reviews, from cheap indexed queries.
     if (puzzles::Progress* pr = app_.progress()) {
-        const auto dueResult = pr->dueCount(app_.now());
-        const int due = dueResult ? *dueResult : 0;
+        // Only reviews of the active pack: the others wait until their pack is chosen again.
+        const int due = static_cast<int>(app_.dueInPack(100000).size());
         for (Button& b : buttons_)
             if (b.id == Review) b.hint = due > 0 ? std::to_string(due) + " due" : "failed puzzles";
         auto hist = pr->history(1);

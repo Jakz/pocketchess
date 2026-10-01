@@ -131,6 +131,8 @@ public:
     // from content/puzzles/ (Settings -> Tactics -> Pack; nullptr when none is installed).
     puzzles::Progress* progress() { return progress_.get(); }
     puzzles::PuzzlePack* puzzlePack();
+    // Reviews due now among the puzzles of the active pack (the others wait for their pack), oldest first.
+    std::vector<std::string> dueInPack(size_t limit = 500);
     std::vector<std::string> puzzlePackNames() const;  // file stems, sorted
     // Historical games (M5): content/games/<pack>.db (Settings -> Games -> Pack, else the largest).
     games::GamePack* gamePack();

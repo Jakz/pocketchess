@@ -323,6 +323,21 @@ std::string Application::choosePack(const char* kind, const std::string& wanted)
 std::vector<std::string> Application::puzzlePackNames() const { return packNames("puzzles"); }
 std::vector<std::string> Application::gamePackNames() const { return packNames("games"); }
 
+std::vector<std::string> Application::dueInPack(size_t limit) {
+    std::vector<std::string> out;
+    puzzles::PuzzlePack* pack = puzzlePack();
+    if (!pack || !progress_) return out;
+    // All due ids (a few hundred at most in practice), then those this pack holds.
+    auto due = progress_->dueIds(now(), 100000);
+    if (!due) return out;
+    for (const std::string& id : *due) {
+        if (!pack->has(id)) continue;
+        out.push_back(id);
+        if (out.size() >= limit) break;
+    }
+    return out;
+}
+
 puzzles::PuzzlePack* Application::puzzlePack() {
     const std::string name = choosePack("puzzles", settings_.tacticsPack);
     if (name.empty()) return nullptr;

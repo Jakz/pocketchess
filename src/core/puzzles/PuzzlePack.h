@@ -30,6 +30,7 @@ public:
     std::vector<std::string> themesOf(uint64_t mask) const;
 
     Result<std::optional<Puzzle>> byId(const std::string& id);
+    bool has(const std::string& id);  // the puzzle is in this pack (reviews of other packs wait)
     // Up to `limit` puzzles with rating in [lo, hi], in (rating, rnd) order, whose themes contain
     // all of `include` and none of `exclude`. Index-bounded (idx_puzzles_rating_rnd).
     // `after` continues a previous batch: only puzzles after that (rating, rnd).
