@@ -206,14 +206,42 @@ void PuzzleImporter::addLine(std::string_view line) {
     else reservoir_[slot] = std::move(row);
 }
 
-Result<size_t> PuzzleImporter::write(storage::Database& db, const std::map<std::string, std::string>& extraMeta) {
+// Quality ranking for nested packs: popularity tier first (Lichess -100..100), then a seeded hash of the
+// id, so the order is random within a tier and the same on every run and platform (FNV-1a).
+void PuzzleImporter::rank() {
+    if (ranked_.size() == reservoir_.size()) return;
+    auto tier = [](int popularity) { return popularity >= 90 ? 0 : popularity >= 75 ? 1 : popularity >= 50 ? 2 : 3; };
+    auto hash = [this](const std::string& id) {
+        uint64_t h = 14695981039346656037ull ^ filter_.seed;
+        for (unsigned char c : id) h = (h ^ c) * 1099511628211ull;
+        return h;
+    };
+    std::vector<std::pair<uint64_t, size_t>> keys;
+    keys.reserve(reservoir_.size());
+    for (size_t i = 0; i < reservoir_.size(); ++i)
+        keys.push_back({(uint64_t(tier(reservoir_[i].popularity)) << 62) | (hash(reservoir_[i].id) >> 2), i});
+    std::sort(keys.begin(), keys.end());
+    ranked_.clear();
+    for (const auto& k : keys) ranked_.push_back(k.second);
+}
+
+Result<size_t> PuzzleImporter::write(storage::Database& db, const std::map<std::string, std::string>& extraMeta,
+                                     size_t limit) {
     if (auto r = storage::migrate(db, puzzlePackMigrations()); !r) return r.error();
+
+    // The first `limit` puzzles of the ranking, stored by rating.
+    rank();
+    std::vector<const Row*> rows;
+    for (size_t i = 0; i < ranked_.size() && i < limit; ++i) rows.push_back(&reservoir_[ranked_[i]]);
+    std::sort(rows.begin(), rows.end(), [](const Row* a, const Row* b) {
+        return a->rating != b->rating ? a->rating < b->rating : a->id < b->id;
+    });
 
     // Theme bits by frequency in the pack (most frequent first); at most 64.
     std::vector<uint64_t> freq(themeNames_.size(), 0);
-    for (const Row& r : reservoir_)
+    for (const Row* rp : rows)
         for (size_t t = 0; t < themeNames_.size() && t < 128; ++t)
-            if ((r.themes[t / 64] >> (t % 64)) & 1) ++freq[t];
+            if ((rp->themes[t / 64] >> (t % 64)) & 1) ++freq[t];
     std::vector<size_t> order(themeNames_.size());
     for (size_t i = 0; i < order.size(); ++i) order[i] = i;
     std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) { return freq[a] > freq[b]; });
@@ -224,10 +252,6 @@ Result<size_t> PuzzleImporter::write(storage::Database& db, const std::map<std::
     size_t dropped = 0;
     for (size_t t = 0; t < freq.size(); ++t) dropped += freq[t] > 0 && bit[t] < 0;
 
-    std::sort(reservoir_.begin(), reservoir_.end(), [](const Row& a, const Row& b) {
-        return a.rating != b.rating ? a.rating < b.rating : a.id < b.id;
-    });
-
     auto r = db.transaction([&]() -> Result<void> {
         auto th = db.prepare("INSERT INTO themes(bit, name) VALUES(?1, ?2)");
         if (!th) return th.error();
@@ -237,8 +261,8 @@ Result<size_t> PuzzleImporter::write(storage::Database& db, const std::map<std::
             if (auto e = th->run(); !e) return e;
         }
         std::vector<char> openingUsed(openingTags_.size(), 0);
-        for (const Row& row : reservoir_)
-            if (row.opening >= 0) openingUsed[static_cast<size_t>(row.opening)] = 1;
+        for (const Row* row : rows)
+            if (row->opening >= 0) openingUsed[static_cast<size_t>(row->opening)] = 1;
         auto op = db.prepare("INSERT INTO openings(id, tags) VALUES(?1, ?2)");
         if (!op) return op.error();
         for (size_t o = 0; o < openingTags_.size(); ++o) {
@@ -249,7 +273,8 @@ Result<size_t> PuzzleImporter::write(storage::Database& db, const std::map<std::
         auto ins = db.prepare("INSERT INTO puzzles(id, pos, moves, rating, popularity, themes, opening_id, rnd) "
                               "VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)");
         if (!ins) return ins.error();
-        for (const Row& row : reservoir_) {
+        for (const Row* rp : rows) {
+            const Row& row = *rp;
             uint64_t mask = 0;
             for (size_t t = 0; t < themeNames_.size() && t < 128; ++t)
                 if ((row.themes[t / 64] >> (t % 64)) & 1 && bit[t] >= 0) mask |= uint64_t(1) << bit[t];
@@ -267,7 +292,8 @@ Result<size_t> PuzzleImporter::write(storage::Database& db, const std::map<std::
         if (!meta) return meta.error();
         std::map<std::string, std::string> m = {
             {"source", "lichess puzzles (CC0)"},
-            {"count", std::to_string(reservoir_.size())},
+            {"count", std::to_string(rows.size())},
+            {"ranking", "popularity tier, then FNV-1a(id, seed): packs from one import with growing sizes are nested"},
             {"rows_read", std::to_string(stats_.rows)},
             {"rows_rejected", std::to_string(stats_.rejected)},
             {"candidates", std::to_string(stats_.candidates)},
@@ -287,7 +313,7 @@ Result<size_t> PuzzleImporter::write(storage::Database& db, const std::map<std::
     });
     if (!r) return r.error();
     if (auto a = db.exec("ANALYZE"); !a) return a.error();
-    return reservoir_.size();
+    return rows.size();
 }
 
 } // namespace pchess::puzzles

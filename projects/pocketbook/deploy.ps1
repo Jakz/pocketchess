@@ -12,6 +12,9 @@ param(
     [string]$Drive = '',
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
     [switch]$WithContent,
+    # Extra puzzle packs from data/generated/puzzle-packs (build-content.ps1 -PuzzlePacks), e.g. 500k.
+    # They go to user\content\puzzles\ like an Import, so later deploys never remove them.
+    [string[]]$Puzzles = @(),
     [switch]$NoSelfTest,
     [switch]$Eject
 )
@@ -41,6 +44,14 @@ if (-not $WithContent) { $exclude += 'content' }
 robocopy $src $dst /MIR /XD @exclude /NFL /NDL /NJH /NP | Out-Host
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed ($LASTEXITCODE)" }
 foreach ($d in 'user', 'logs', 'imports', 'exports') { New-Item -ItemType Directory -Force -Path (Join-Path $dst $d) | Out-Null }
+foreach ($size in $Puzzles) {
+    $pack = Join-Path $RepoRoot "data\generated\puzzle-packs\puzzles-$size.db"
+    if (-not (Test-Path $pack)) { throw "No puzzle pack $pack (scripts/build-content.ps1 -PuzzlePacks)" }
+    $target = Join-Path $dst 'user\content\puzzles'
+    New-Item -ItemType Directory -Force -Path $target | Out-Null
+    Write-Host ("Puzzle pack {0} ({1:N0} MB) -> {2}" -f $size, ((Get-Item $pack).Length / 1MB), $target)
+    Copy-Item -Force $pack $target
+}
 
 # Sizes against the budget (architecture doc sec. 13).
 $size = (Get-ChildItem -Recurse -File $src | Measure-Object -Property Length -Sum).Sum + (Get-Item (Join-Path $bundle 'pocketchess.app')).Length

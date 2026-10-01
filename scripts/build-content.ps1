@@ -9,6 +9,7 @@
   scripts/build-content.ps1                       # content/puzzles/large.db (50k puzzles)
   scripts/build-content.ps1 -Presets starter,large
   scripts/build-content.ps1 -Presets all        # every Lichess puzzle (~6.1 million, ~450 MB)
+  scripts/build-content.ps1 -Presets @() -PuzzlePacks   # nested 50k / 100k / 500k / 1m / all (the app ships 50k)
   scripts/build-content.ps1 -Presets @() -Games   # content/games/lichess-2013-01.db (20k games)
   scripts/build-content.ps1 -Presets @() -Historical                 # content/games/historical.db (fetch-historical.ps1)
   scripts/build-content.ps1 -Presets @() -Historical -ToYear 1999 -MinElo 2300
@@ -16,6 +17,10 @@
 [CmdletBinding()]
 param(
     [ValidateSet('starter', 'standard', 'large', 'huge', 'all')][string[]]$Presets = @('large'),
+    # Nested packs 50k, 100k, 500k, 1m and all in data/generated/puzzle-packs/ (one pass); the 50k one
+    # also goes to data/generated/puzzles/, the folder the app bundle ships. Others: deploy.ps1 -Puzzles.
+    [switch]$PuzzlePacks,
+    [string]$PuzzleSizes = '50k,100k,500k,1m,all',
     [switch]$Games,
     [int]$MaxGames = 20000,
     [switch]$Historical,          # over-the-board games from scripts/fetch-historical.ps1
@@ -50,6 +55,22 @@ if ($Presets.Count -gt 0) {
     }
 }
 
+if ($PuzzlePacks) {
+    $importer = Tool 'PuzzleImporter'
+    $source = Join-Path $downloads 'lichess_db_puzzle.csv.zst'
+    if (-not (Test-Path $source)) { throw "No puzzle download: $source (run scripts/fetch-lichess.ps1)" }
+    $packs = Join-Path $RepoRoot 'data/generated/puzzle-packs'
+    Write-Host "== puzzle packs $PuzzleSizes -> $packs"
+    & $importer $source $packs --sizes $PuzzleSizes --seed $Seed
+    if ($LASTEXITCODE) { throw 'PuzzleImporter failed' }
+    $shipped = Join-Path $RepoRoot 'data/generated/puzzles'
+    New-Item -ItemType Directory -Force -Path $shipped | Out-Null
+    Get-ChildItem $shipped -Filter *.db | Remove-Item
+    $smallest = ($PuzzleSizes -split ',')[0]
+    Copy-Item (Join-Path $packs "puzzles-$smallest.db") $shipped
+    Write-Host "== shipped with the app: puzzles-$smallest.db"
+}
+
 if ($Games) {
     # A CC0 Lichess month (scripts/fetch-lichess.ps1 -Url https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst).
     $importer = Tool 'PgnImporter'
@@ -63,10 +84,12 @@ if ($Games) {
 
 if ($Historical) {
     $importer = Tool 'PgnImporter'
-    $sources = @(
+    # @(...) around the pipeline: with one folder left, Where-Object returns a plain string, and
+    # splatting a string passes one character per argument.
+    $sources = @(@(
         (Join-Path $downloads 'pgnmentor/pgn'),
         (Join-Path $downloads 'lumbra/pgn')
-    ) | Where-Object { Test-Path $_ }
+    ) | Where-Object { Test-Path $_ })
     if (-not $sources) { throw 'No historical games: run scripts/fetch-historical.ps1 first' }
     $db = Join-Path $RepoRoot 'data/generated/games/historical.db'
     Write-Host "== historical games: $($sources -join ', ') -> $db"

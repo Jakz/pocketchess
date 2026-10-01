@@ -50,7 +50,11 @@ public:
     // Creates the schema in an empty database and inserts the sampled puzzles sorted by rating,
     // plus meta (source, date, filter, counts, `extraMeta`). Runs ANALYZE; VACUUM is left to the
     // caller (the database must not be inside a transaction).
-    Result<size_t> write(storage::Database& db, const std::map<std::string, std::string>& extraMeta = {});
+    // `limit`: only the first `limit` puzzles of the quality ranking (popularity tier, then a seeded
+    // hash of the id). Packs written from one import with growing limits are nested: every puzzle of
+    // the 50k pack is in the 100k pack, and so on, so progress carries over when switching up.
+    Result<size_t> write(storage::Database& db, const std::map<std::string, std::string>& extraMeta = {},
+                         size_t limit = SIZE_MAX);
 
 private:
     struct Parsed {
@@ -70,11 +74,13 @@ private:
     bool accepted(const Parsed& r) const;
     bool pack(Parsed& in, Row& out, std::string& why);
     void reject(const std::string& why);
+    void rank();
 
     ImportFilter filter_;
     ImportStats stats_;
     util::Random random_;
     std::vector<Row> reservoir_;
+    std::vector<size_t> ranked_;  // reservoir_ indexes, best first (rank())
     std::vector<std::string> themeNames_, openingTags_;
     std::unordered_map<std::string, int> themeIndex_, openingIndex_;
     uint64_t line_ = 0;

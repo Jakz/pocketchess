@@ -413,3 +413,41 @@ TEST_CASE("fen codec: packed positions round-trip and are less than half the siz
     }
     CHECK_FALSE(chess::unpackFen("short").ok());
 }
+
+TEST_CASE("puzzle import: packs of growing sizes from one import are nested, most popular first") {
+    ImportFilter f;
+    f.count = SIZE_MAX;
+    PuzzleImporter imp(f);
+    feed(imp, sampleCsv());
+    std::vector<std::vector<std::string>> packs;
+    for (size_t limit : {size_t(10), size_t(30), size_t(60)}) {
+        auto db = storage::Database::open({}, storage::Database::Mode::Memory);
+        REQUIRE(db.ok());
+        auto n = imp.write(*db, {}, limit);
+        REQUIRE(n.ok());
+        CHECK_EQ(*n, limit);
+        packs.push_back(ids(*db));
+    }
+    for (size_t i = 1; i < packs.size(); ++i)
+        CHECK(std::includes(packs[i].begin(), packs[i].end(), packs[i - 1].begin(), packs[i - 1].end()));
+
+    // The small pack holds the most popular puzzles: none of the left-out ones is more popular.
+    auto small = storage::Database::open({}, storage::Database::Mode::Memory);
+    REQUIRE(small.ok());
+    REQUIRE(imp.write(*small, {}, 10).ok());
+    auto worstIn = small->prepare("SELECT min(popularity) FROM puzzles");
+    REQUIRE(worstIn->step().ok());
+    const int minIn = worstIn->integer(0);
+    auto all = storage::Database::open({}, storage::Database::Mode::Memory);
+    REQUIRE(all.ok());
+    REQUIRE(imp.write(*all, {}, 60).ok());
+    auto out = all->prepare("SELECT max(popularity) FROM puzzles WHERE id NOT IN (" + [&] {
+        std::string list;
+        for (const auto& id : packs[0]) list += (list.empty() ? "'" : ",'") + id + "'";
+        return list;
+    }() + ")");
+    REQUIRE(out->step().ok());
+    const int tier = [](int p) { return p >= 90 ? 0 : p >= 75 ? 1 : p >= 50 ? 2 : 3; }(minIn);
+    const int outTier = [](int p) { return p >= 90 ? 0 : p >= 75 ? 1 : p >= 50 ? 2 : 3; }(out->integer(0));
+    CHECK(outTier >= tier);
+}

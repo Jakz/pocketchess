@@ -28,6 +28,8 @@ int usage() {
                  "       PuzzleImporter <input.csv[.zst]> --sample <N> <out.csv>\n"
                  "  --preset starter|standard|large|huge|all   5k / 25k / 50k / 100k / every puzzle (default large)\n"
                  "  --count N          number of puzzles (overrides --preset)\n"
+                 "  --sizes 50k,100k,500k,1m,all   nested packs from one pass: <out.db> is then a folder of\n"
+                 "                     puzzles-<size>.db, each the best N of one ranking (popularity first)\n"
                  "  --min-rating R  --max-rating R  --min-popularity P  --min-plays N\n"
                  "  --include a,b      themes that must all be present\n"
                  "  --exclude a,b      themes that must not be present\n"
@@ -98,6 +100,7 @@ int main(int argc, char** argv) {
     }
     const std::filesystem::path output = argv[2];
     puzzles::ImportFilter f;
+    std::vector<std::pair<std::string, size_t>> sizes;  // --sizes: label -> puzzles (SIZE_MAX = all)
     for (int i = 3; i < argc; ++i) {
         const std::string a = argv[i];
         auto value = [&]() -> const char* { return i + 1 < argc ? argv[++i] : ""; };
@@ -116,6 +119,16 @@ int main(int argc, char** argv) {
         else if (a == "--include") f.includeThemes = list(value());
         else if (a == "--exclude") f.excludeThemes = list(value());
         else if (a == "--seed") f.seed = static_cast<uint64_t>(std::atoll(value()));
+        else if (a == "--sizes") {
+            for (const std::string& label : list(value())) {
+                const size_t n = label == "all" ? SIZE_MAX
+                                 : label.ends_with("m") ? static_cast<size_t>(std::atoll(label.c_str())) * 1'000'000
+                                 : label.ends_with("k") ? static_cast<size_t>(std::atoll(label.c_str())) * 1'000
+                                                        : static_cast<size_t>(std::atoll(label.c_str()));
+                sizes.push_back({label, n});
+            }
+            f.count = SIZE_MAX;  // every candidate: the packs are prefixes of one ranking
+        }
         else return usage();
     }
 
@@ -132,32 +145,40 @@ int main(int argc, char** argv) {
         return 1;
     }
     std::error_code ec;
-    std::filesystem::create_directories(output.parent_path(), ec);
-    std::filesystem::remove(output, ec);
-    auto db = storage::Database::open(output, storage::Database::Mode::ReadWrite);
-    if (!db) {
-        std::fprintf(stderr, "%s\n", db.error().message().c_str());
-        return 1;
-    }
-    // A content pack is read-only on the device: a single file, no WAL.
-    (void)db->exec("PRAGMA journal_mode=DELETE");
-    auto meta = provenance(input);
-    meta["input"] = input.filename().string();
-    auto written = importer.write(*db, meta);
-    if (!written) {
-        std::fprintf(stderr, "%s\n", written.error().message().c_str());
-        return 1;
-    }
-    if (auto v = db->exec("VACUUM"); !v) std::fprintf(stderr, "VACUUM: %s\n", v.error().message().c_str());
-    db->close();
-
+    // One pack per size (nested: each one the first N of the same ranking), or the single output.
+    std::vector<std::pair<std::string, size_t>> packs;
+    if (sizes.empty()) packs.push_back({output.string(), SIZE_MAX});
+    else
+        for (const auto& [label, n] : sizes) packs.push_back({(output / ("puzzles-" + label + ".db")).string(), n});
     const auto& s = importer.stats();
-    const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-    std::printf("%s: %zu puzzles (rows %llu, rejected %llu, filtered %llu, candidates %llu) in %.1f s, %.1f MB\n",
-                output.string().c_str(), *written, static_cast<unsigned long long>(s.rows),
-                static_cast<unsigned long long>(s.rejected), static_cast<unsigned long long>(s.filtered),
-                static_cast<unsigned long long>(s.candidates), secs,
-                static_cast<double>(std::filesystem::file_size(output, ec)) / (1024.0 * 1024.0));
+    for (const auto& [file, limit] : packs) {
+        const std::filesystem::path path = file;
+        std::filesystem::create_directories(path.parent_path(), ec);
+        std::filesystem::remove(path, ec);
+        auto db = storage::Database::open(path, storage::Database::Mode::ReadWrite);
+        if (!db) {
+            std::fprintf(stderr, "%s\n", db.error().message().c_str());
+            return 1;
+        }
+        // A content pack is read-only on the device: a single file, no WAL.
+        (void)db->exec("PRAGMA journal_mode=DELETE");
+        auto meta = provenance(input);
+        meta["input"] = input.filename().string();
+        if (!sizes.empty()) meta["title"] = "Lichess puzzles " + path.stem().string().substr(8);
+        auto written = importer.write(*db, meta, limit);
+        if (!written) {
+            std::fprintf(stderr, "%s\n", written.error().message().c_str());
+            return 1;
+        }
+        if (auto v = db->exec("VACUUM"); !v) std::fprintf(stderr, "VACUUM: %s\n", v.error().message().c_str());
+        db->close();
+        const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+        std::printf("%s: %zu puzzles (rows %llu, rejected %llu, filtered %llu, candidates %llu) in %.1f s, %.1f MB\n",
+                    path.string().c_str(), *written, static_cast<unsigned long long>(s.rows),
+                    static_cast<unsigned long long>(s.rejected), static_cast<unsigned long long>(s.filtered),
+                    static_cast<unsigned long long>(s.candidates), secs,
+                    static_cast<double>(std::filesystem::file_size(path, ec)) / (1024.0 * 1024.0));
+    }
     for (const auto& r : s.firstRejects) std::printf("  rejected %s\n", r.c_str());
     return 0;
 }
