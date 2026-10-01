@@ -33,6 +33,9 @@
     <ClCompile Include="..\..\src\core\chess\Fen.cpp">
       <Filter>src\core\chess</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\chess\FenCodec.cpp">
+      <Filter>src\core\chess</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\chess\GameTree.cpp">
       <Filter>src\core\chess</Filter>
     </ClCompile>
@@ -138,6 +141,9 @@
       <Filter>src\core\chess</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\chess\Fen.h">
+      <Filter>src\core\chess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\chess\FenCodec.h">
       <Filter>src\core\chess</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\chess\GameTree.h">

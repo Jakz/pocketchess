@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "core/puzzles/PuzzlePack.h"
 
+#include "core/chess/Fen.h"
+#include "core/chess/FenCodec.h"
 #include "core/chess/MoveCodec.h"
 
 #include <algorithm>
@@ -9,21 +11,29 @@ namespace pchess::puzzles {
 
 namespace {
 
-constexpr const char* kColumns = "id, fen, moves, rating, rd, popularity, plays, themes, opening, rnd";
+constexpr int kFormat = 2;
 
-Puzzle readPuzzle(const storage::Statement& s) {
+constexpr const char* kColumns =
+    "p.id, p.pos, p.moves, p.rating, p.popularity, p.themes, o.tags, p.rnd FROM puzzles p "
+    "LEFT JOIN openings o ON o.id = p.opening_id";
+
+Result<Puzzle> readPuzzle(const storage::Statement& s) {
     Puzzle p;
     p.id = s.text(0);
-    p.fen = s.text(1);
-    const auto blob = s.blob(2);
-    p.moves = chess::decodeMovesUnchecked(blob);  // validated at import; the session replays them
+    const auto pos = s.blob(1);
+    auto fen = chess::unpackFen(std::string_view(reinterpret_cast<const char*>(pos.data()), pos.size()));
+    if (!fen) return makeError(ErrorCode::CorruptData, "puzzle " + p.id + ": " + fen.error().context);
+    p.fen = std::move(*fen);
+    auto start = chess::parseFen(p.fen);
+    if (!start) return makeError(ErrorCode::CorruptData, "puzzle " + p.id + ": " + start.error().context);
+    auto moves = chess::decodeMoveIndexes(start.value(), s.blob(2));
+    if (!moves) return makeError(ErrorCode::CorruptData, "puzzle " + p.id + ": " + moves.error().context);
+    p.moves = std::move(*moves);
     p.rating = s.integer(3);
-    p.ratingDeviation = s.integer(4);
-    p.popularity = s.integer(5);
-    p.plays = s.integer(6);
-    p.themes = static_cast<uint64_t>(s.int64(7));
-    p.opening = s.text(8);
-    p.rnd = static_cast<uint32_t>(s.int64(9));
+    p.popularity = s.integer(4);
+    p.themes = static_cast<uint64_t>(s.int64(5));
+    p.opening = s.text(6);
+    p.rnd = static_cast<uint32_t>(s.int64(7));
     return p;
 }
 
@@ -36,6 +46,9 @@ Result<PuzzlePack> PuzzlePack::open(const std::filesystem::path& file) {
 }
 
 Result<PuzzlePack> PuzzlePack::fromDatabase(storage::Database db, std::string name) {
+    if (const int v = db.userVersion(); v != kFormat)
+        return makeError(ErrorCode::Unsupported, name + ": puzzle pack format " + std::to_string(v) + ", this app reads " +
+                                                     std::to_string(kFormat) + " (rebuild it with PuzzleImporter)");
     PuzzlePack p;
     p.db_ = std::move(db);
     p.name_ = std::move(name);
@@ -77,21 +90,23 @@ std::vector<std::string> PuzzlePack::themesOf(uint64_t mask) const {
 }
 
 Result<std::optional<Puzzle>> PuzzlePack::byId(const std::string& id) {
-    auto s = db_.prepare(std::string("SELECT ") + kColumns + " FROM puzzles WHERE id = ?1");
+    auto s = db_.prepare(std::string("SELECT ") + kColumns + " WHERE p.id = ?1");
     if (!s) return s.error();
     s->bind(1, id);
     auto row = s->step();
     if (!row) return row.error();
     if (!*row) return std::optional<Puzzle>();
-    return std::optional<Puzzle>(readPuzzle(*s));
+    auto p = readPuzzle(*s);
+    if (!p) return p.error();
+    return std::optional<Puzzle>(std::move(*p));
 }
 
 Result<std::vector<Puzzle>> PuzzlePack::batch(int lo, int hi, uint64_t include, uint64_t exclude, int limit,
                                               std::optional<std::pair<int, uint32_t>> after) {
     auto s = db_.prepare(std::string("SELECT ") + kColumns +
-                         " FROM puzzles WHERE rating BETWEEN ?1 AND ?2 AND (themes & ?3) = ?3 AND (themes & ?4) = 0"
-                         " AND (rating > ?6 OR (rating = ?6 AND rnd > ?7))"
-                         " ORDER BY rating, rnd LIMIT ?5");
+                         " WHERE p.rating BETWEEN ?1 AND ?2 AND (p.themes & ?3) = ?3 AND (p.themes & ?4) = 0"
+                         " AND (p.rating > ?6 OR (p.rating = ?6 AND p.rnd > ?7))"
+                         " ORDER BY p.rating, p.rnd LIMIT ?5");
     if (!s) return s.error();
     s->bind(1, lo).bind(2, hi).bind(3, static_cast<int64_t>(include)).bind(4, static_cast<int64_t>(exclude));
     s->bind(5, limit);
@@ -101,7 +116,9 @@ Result<std::vector<Puzzle>> PuzzlePack::batch(int lo, int hi, uint64_t include, 
         auto row = s->step();
         if (!row) return row.error();
         if (!*row) break;
-        out.push_back(readPuzzle(*s));
+        auto p = readPuzzle(*s);
+        if (!p) return p.error();
+        out.push_back(std::move(*p));
     }
     return out;
 }

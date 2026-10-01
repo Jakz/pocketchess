@@ -2,6 +2,7 @@
 #include "core/puzzles/PuzzleImport.h"
 
 #include "core/chess/Fen.h"
+#include "core/chess/FenCodec.h"
 #include "core/chess/MoveCodec.h"
 #include "core/chess/San.h"
 
@@ -25,6 +26,23 @@ CREATE TABLE puzzles(
     themes INTEGER NOT NULL,            -- bitmask into themes(bit)
     opening TEXT,
     rnd INTEGER NOT NULL                -- random 31-bit, fixed at import
+) WITHOUT ROWID;
+CREATE INDEX idx_puzzles_rating_rnd ON puzzles(rating, rnd);
+)sql"},
+    // v2 (packs of millions): the position as a packed FEN, moves one byte each, opening tags once,
+    // no RD/plays (used only as import filters).
+    {2, R"sql(
+DROP TABLE puzzles;
+CREATE TABLE openings(id INTEGER PRIMARY KEY, tags TEXT NOT NULL);  -- Lichess OpeningTags
+CREATE TABLE puzzles(
+    id         TEXT PRIMARY KEY,        -- Lichess PuzzleId
+    pos        BLOB NOT NULL,           -- packFen, before the opponent's first move (P12)
+    moves      BLOB NOT NULL,           -- encodeMoveIndexes, first move = opponent
+    rating     INTEGER NOT NULL,
+    popularity INTEGER,
+    themes     INTEGER NOT NULL,        -- bitmask into themes(bit)
+    opening_id INTEGER REFERENCES openings(id),
+    rnd        INTEGER NOT NULL         -- random 31-bit, fixed at import
 ) WITHOUT ROWID;
 CREATE INDEX idx_puzzles_rating_rnd ON puzzles(rating, rnd);
 )sql"},
@@ -61,7 +79,7 @@ void PuzzleImporter::reject(const std::string& why) {
     if (stats_.firstRejects.size() < 10) stats_.firstRejects.push_back("line " + std::to_string(line_) + ": " + why);
 }
 
-bool PuzzleImporter::parse(std::string_view line, Row& out, std::string& why) const {
+bool PuzzleImporter::parse(std::string_view line, Parsed& out, std::string& why) const {
     // PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes,GameUrl,OpeningTags
     const auto f = split(line, ',');
     if (f.size() < 8) {
@@ -108,7 +126,7 @@ bool PuzzleImporter::parse(std::string_view line, Row& out, std::string& why) co
     return true;
 }
 
-bool PuzzleImporter::accepted(const Row& r) const {
+bool PuzzleImporter::accepted(const Parsed& r) const {
     const Puzzle& p = r.puzzle;
     if (p.rating < filter_.minRating || p.rating > filter_.maxRating) return false;
     if (p.popularity < filter_.minPopularity || p.plays < filter_.minPlays) return false;
@@ -117,6 +135,41 @@ bool PuzzleImporter::accepted(const Row& r) const {
         if (!has(t)) return false;
     for (const auto& t : filter_.excludeThemes)
         if (has(t)) return false;
+    return true;
+}
+
+bool PuzzleImporter::pack(Parsed& in, Row& out, std::string& why) {
+    Puzzle& p = in.puzzle;
+    auto pos = chess::packFen(p.fen);
+    if (!pos) {
+        why = p.id + ": " + pos.error().message();
+        return false;
+    }
+    auto start = chess::parseFen(p.fen);
+    if (!start) {
+        why = p.id + ": " + start.error().message();
+        return false;
+    }
+    auto moves = chess::encodeMoveIndexes(start.value(), p.moves);
+    if (!moves) {
+        why = p.id + ": " + moves.error().message();
+        return false;
+    }
+    out.id = std::move(p.id);
+    out.pos = std::move(*pos);
+    out.moves.assign(moves->begin(), moves->end());
+    out.rating = p.rating;
+    out.popularity = p.popularity;
+    for (const std::string& t : in.themes) {
+        auto [it, added] = themeIndex_.emplace(t, static_cast<int>(themeNames_.size()));
+        if (added) themeNames_.push_back(t);
+        if (it->second < 128) out.themes[it->second / 64] |= uint64_t(1) << (it->second % 64);
+    }
+    if (!p.opening.empty()) {
+        auto [it, added] = openingIndex_.emplace(p.opening, static_cast<int>(openingTags_.size()));
+        if (added) openingTags_.push_back(p.opening);
+        out.opening = it->second;
+    }
     return true;
 }
 
@@ -129,61 +182,85 @@ void PuzzleImporter::addLine(std::string_view line) {
         if (line.rfind("PuzzleId,", 0) == 0) return;
     }
     ++stats_.rows;
-    Row row;
+    Parsed parsed;
     std::string why;
-    if (!parse(line, row, why)) return reject(why);
-    if (!accepted(row)) {
+    if (!parse(line, parsed, why)) return reject(why);
+    if (!accepted(parsed)) {
         ++stats_.filtered;
         return;
     }
     // Reservoir sampling (algorithm R): a uniform sample of `count` among all candidates.
     const uint64_t n = ++stats_.candidates;
-    if (reservoir_.size() < filter_.count) {
-        reservoir_.push_back(std::move(row));
-    } else {
+    size_t slot = reservoir_.size();
+    if (reservoir_.size() >= filter_.count) {
         const uint64_t j = random_.next() % n;
-        if (j < filter_.count) reservoir_[static_cast<size_t>(j)] = std::move(row);
+        if (j >= filter_.count) return;
+        slot = static_cast<size_t>(j);
     }
+    Row row;
+    if (!pack(parsed, row, why)) {
+        --stats_.candidates;
+        return reject(why);
+    }
+    if (slot == reservoir_.size()) reservoir_.push_back(std::move(row));
+    else reservoir_[slot] = std::move(row);
 }
 
 Result<size_t> PuzzleImporter::write(storage::Database& db, const std::map<std::string, std::string>& extraMeta) {
     if (auto r = storage::migrate(db, puzzlePackMigrations()); !r) return r.error();
 
     // Theme bits by frequency in the pack (most frequent first); at most 64.
-    std::map<std::string, uint64_t> freq;
+    std::vector<uint64_t> freq(themeNames_.size(), 0);
     for (const Row& r : reservoir_)
-        for (const auto& t : r.themes) ++freq[t];
-    std::vector<std::pair<std::string, uint64_t>> byFreq(freq.begin(), freq.end());
-    std::stable_sort(byFreq.begin(), byFreq.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
-    std::map<std::string, int> bit;
-    for (size_t i = 0; i < byFreq.size() && i < 64; ++i) bit[byFreq[i].first] = static_cast<int>(i);
+        for (size_t t = 0; t < themeNames_.size() && t < 128; ++t)
+            if ((r.themes[t / 64] >> (t % 64)) & 1) ++freq[t];
+    std::vector<size_t> order(themeNames_.size());
+    for (size_t i = 0; i < order.size(); ++i) order[i] = i;
+    std::stable_sort(order.begin(), order.end(), [&](size_t a, size_t b) { return freq[a] > freq[b]; });
+    std::vector<int> bit(themeNames_.size(), -1);
+    size_t used = 0;
+    for (size_t i = 0; i < order.size() && used < 64; ++i)
+        if (freq[order[i]] > 0) bit[order[i]] = static_cast<int>(used++);
+    size_t dropped = 0;
+    for (size_t t = 0; t < freq.size(); ++t) dropped += freq[t] > 0 && bit[t] < 0;
 
     std::sort(reservoir_.begin(), reservoir_.end(), [](const Row& a, const Row& b) {
-        return a.puzzle.rating != b.puzzle.rating ? a.puzzle.rating < b.puzzle.rating : a.puzzle.id < b.puzzle.id;
+        return a.rating != b.rating ? a.rating < b.rating : a.id < b.id;
     });
 
     auto r = db.transaction([&]() -> Result<void> {
         auto th = db.prepare("INSERT INTO themes(bit, name) VALUES(?1, ?2)");
         if (!th) return th.error();
-        for (const auto& [name, b] : bit) {
-            th->bind(1, b).bind(2, name);
+        for (size_t t = 0; t < themeNames_.size(); ++t) {
+            if (bit[t] < 0) continue;
+            th->bind(1, bit[t]).bind(2, themeNames_[t]);
             if (auto e = th->run(); !e) return e;
         }
-        auto ins = db.prepare("INSERT INTO puzzles(id, fen, moves, rating, rd, popularity, plays, themes, opening, rnd) "
-                              "VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)");
+        std::vector<char> openingUsed(openingTags_.size(), 0);
+        for (const Row& row : reservoir_)
+            if (row.opening >= 0) openingUsed[static_cast<size_t>(row.opening)] = 1;
+        auto op = db.prepare("INSERT INTO openings(id, tags) VALUES(?1, ?2)");
+        if (!op) return op.error();
+        for (size_t o = 0; o < openingTags_.size(); ++o) {
+            if (!openingUsed[o]) continue;
+            op->bind(1, static_cast<int64_t>(o + 1)).bind(2, openingTags_[o]);
+            if (auto e = op->run(); !e) return e;
+        }
+        auto ins = db.prepare("INSERT INTO puzzles(id, pos, moves, rating, popularity, themes, opening_id, rnd) "
+                              "VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)");
         if (!ins) return ins.error();
-        for (Row& row : reservoir_) {
-            Puzzle& p = row.puzzle;
-            p.themes = 0;
-            for (const auto& t : row.themes)
-                if (auto it = bit.find(t); it != bit.end()) p.themes |= uint64_t(1) << it->second;
-            p.rnd = static_cast<uint32_t>(random_.next() & 0x7fffffff);
-            const auto blob = chess::encodeMoves(p.moves);
-            ins->bind(1, p.id).bind(2, p.fen).bindBlob(3, blob).bind(4, p.rating).bind(5, p.ratingDeviation);
-            ins->bind(6, p.popularity).bind(7, p.plays).bind(8, static_cast<int64_t>(p.themes));
-            if (p.opening.empty()) ins->bindNull(9);
-            else ins->bind(9, p.opening);
-            ins->bind(10, static_cast<int64_t>(p.rnd));
+        for (const Row& row : reservoir_) {
+            uint64_t mask = 0;
+            for (size_t t = 0; t < themeNames_.size() && t < 128; ++t)
+                if ((row.themes[t / 64] >> (t % 64)) & 1 && bit[t] >= 0) mask |= uint64_t(1) << bit[t];
+            const auto rnd = static_cast<int64_t>(random_.next() & 0x7fffffff);
+            ins->bind(1, row.id)
+                .bindBlob(2, std::vector<uint8_t>(row.pos.begin(), row.pos.end()))
+                .bindBlob(3, std::vector<uint8_t>(row.moves.begin(), row.moves.end()));
+            ins->bind(4, row.rating).bind(5, row.popularity).bind(6, static_cast<int64_t>(mask));
+            if (row.opening >= 0) ins->bind(7, static_cast<int64_t>(row.opening + 1));
+            else ins->bindNull(7);
+            ins->bind(8, rnd);
             if (auto e = ins->run(); !e) return e;
         }
         auto meta = db.prepare("INSERT OR REPLACE INTO meta(key, value) VALUES(?1, ?2)");
@@ -198,7 +275,8 @@ Result<size_t> PuzzleImporter::write(storage::Database& db, const std::map<std::
                            ", popularity >= " + std::to_string(filter_.minPopularity) +
                            ", plays >= " + std::to_string(filter_.minPlays)},
             {"seed", std::to_string(filter_.seed)},
-            {"themes_dropped", std::to_string(byFreq.size() > 64 ? byFreq.size() - 64 : 0)},
+            {"themes_dropped", std::to_string(dropped)},
+            {"format", "2"},
         };
         for (const auto& [k, v] : extraMeta) m[k] = v;
         for (const auto& [k, v] : m) {

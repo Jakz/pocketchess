@@ -6,6 +6,7 @@
 set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/chess/Bitboard.cpp
     ${REPO_ROOT}/src/core/chess/Fen.cpp
+    ${REPO_ROOT}/src/core/chess/FenCodec.cpp
     ${REPO_ROOT}/src/core/chess/GameTree.cpp
     ${REPO_ROOT}/src/core/chess/MoveCodec.cpp
     ${REPO_ROOT}/src/core/chess/MoveGen.cpp

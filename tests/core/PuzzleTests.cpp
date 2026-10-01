@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "core/chess/Fen.h"
+#include "core/chess/FenCodec.h"
 #include "core/chess/MoveCodec.h"
 #include "core/chess/San.h"
 #include "core/puzzles/PuzzleImport.h"
@@ -68,15 +69,18 @@ TEST_CASE("puzzle import: the sample pack has every row, valid move blobs, theme
     CHECK_EQ(st.rejected, uint64_t(0));
     CHECK_EQ(ids(db).size(), size_t(60));
 
-    // Every stored line replays legally from its FEN (the codec checks each move).
-    auto s = db.prepare("SELECT fen, moves, rating, themes FROM puzzles ORDER BY rating");
+    // Every stored line replays legally from its packed position (the codec checks each move).
+    auto s = db.prepare("SELECT pos, moves, rating, themes FROM puzzles ORDER BY rating");
     REQUIRE(s.ok());
     int previous = 0, rows = 0;
     for (auto row = s->step(); row.ok() && *row; row = s->step()) {
-        auto pos = chess::parseFen(s->text(0));
+        const auto packed = s->blob(0);
+        auto fen = chess::unpackFen(std::string_view(reinterpret_cast<const char*>(packed.data()), packed.size()));
+        REQUIRE(fen.ok());
+        auto pos = chess::parseFen(*fen);
         REQUIRE(pos.ok());
         const auto blob = s->blob(1);
-        auto moves = chess::decodeMoves(pos.value(), blob);
+        auto moves = chess::decodeMoveIndexes(pos.value(), blob);
         CHECK(moves.ok());
         CHECK(moves.ok() && moves->size() >= 2);
         CHECK(s->integer(2) >= previous);  // sorted by rating
@@ -393,4 +397,19 @@ TEST_CASE("puzzle session: any checkmating move solves (mate-in-1 exception); in
     Puzzle badFen = p;
     badFen.fen = "not a fen";
     CHECK_FALSE(PuzzleSession(badFen).valid());
+}
+
+TEST_CASE("fen codec: packed positions round-trip and are less than half the size") {
+    for (const char* fen : {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                            "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 w kq - 6 5",
+                            "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3",
+                            "8/8/4k3/8/8/4K3/8/7q b - - 12 142", "4k3/8/8/3pP3/8/8/8/4K3 b - e3 0 60"}) {
+        auto packed = chess::packFen(fen);
+        REQUIRE(packed.ok());
+        auto back = chess::unpackFen(*packed);
+        REQUIRE(back.ok());
+        CHECK_EQ(*back, std::string(fen));
+        CHECK(packed->size() * 2 <= std::string(fen).size() + 10);
+    }
+    CHECK_FALSE(chess::unpackFen("short").ok());
 }

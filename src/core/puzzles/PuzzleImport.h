@@ -13,6 +13,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 namespace pchess::puzzles {
@@ -52,18 +53,30 @@ public:
     Result<size_t> write(storage::Database& db, const std::map<std::string, std::string>& extraMeta = {});
 
 private:
-    struct Row {
+    struct Parsed {
         Puzzle puzzle;
         std::vector<std::string> themes;
     };
-    bool parse(std::string_view line, Row& out, std::string& why) const;
-    bool accepted(const Row& r) const;
+    // The reservoir holds packed rows (~100 bytes), so "all 6 million puzzles" fits in memory.
+    struct Row {
+        std::string id;
+        std::string pos;    // packFen
+        std::string moves;  // encodeMoveIndexes
+        int rating = 0, popularity = 0;
+        uint64_t themes[2] = {0, 0};  // indexes into themeNames_ (at most 128 themes)
+        int opening = -1;              // index into openingTags_
+    };
+    bool parse(std::string_view line, Parsed& out, std::string& why) const;
+    bool accepted(const Parsed& r) const;
+    bool pack(Parsed& in, Row& out, std::string& why);
     void reject(const std::string& why);
 
     ImportFilter filter_;
     ImportStats stats_;
     util::Random random_;
     std::vector<Row> reservoir_;
+    std::vector<std::string> themeNames_, openingTags_;
+    std::unordered_map<std::string, int> themeIndex_, openingIndex_;
     uint64_t line_ = 0;
     bool headerSeen_ = false;
 };

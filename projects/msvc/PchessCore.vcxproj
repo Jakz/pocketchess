@@ -43,6 +43,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\core\chess\Bitboard.cpp" />
     <ClCompile Include="..\..\src\core\chess\Fen.cpp" />
+    <ClCompile Include="..\..\src\core\chess\FenCodec.cpp" />
     <ClCompile Include="..\..\src\core\chess\GameTree.cpp" />
     <ClCompile Include="..\..\src\core\chess\MoveCodec.cpp" />
     <ClCompile Include="..\..\src\core\chess\MoveGen.cpp" />
@@ -80,6 +81,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\core\chess\Bitboard.h" />
     <ClInclude Include="..\..\src\core\chess\Fen.h" />
+    <ClInclude Include="..\..\src\core\chess\FenCodec.h" />
     <ClInclude Include="..\..\src\core\chess\GameTree.h" />
     <ClInclude Include="..\..\src\core\chess\Move.h" />
     <ClInclude Include="..\..\src\core\chess\MoveCodec.h" />
