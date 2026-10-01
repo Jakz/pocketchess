@@ -87,9 +87,21 @@ foreach ($kind in 'puzzles', 'games') {
     $froms = @()
     if (Test-Path $gen) { $froms += $gen }
     if ((Test-Path $sample) -and ($kind -eq 'games' -or $froms.Count -eq 0)) { $froms += $sample }
+    $names = @()
     foreach ($from in $froms) {
         foreach ($f in Get-ChildItem -LiteralPath $from -Filter *.db -File) {
             Copy-IfNewer $f.FullName (Join-Path $Dest "content/$kind/$($f.Name)")
+            $names += $f.Name
+        }
+    }
+    # The bundle mirrors the sources: a pack removed or renamed there must not linger (it would ship).
+    $staged = Join-Path $Dest "content/$kind"
+    if (Test-Path $staged) {
+        foreach ($old in Get-ChildItem -LiteralPath $staged -Filter *.db -File) {
+            if ($names -notcontains $old.Name) {
+                Remove-Item -LiteralPath $old.FullName
+                Write-Host "stage-bundle: removed stale content/$kind/$($old.Name)"
+            }
         }
     }
 }
