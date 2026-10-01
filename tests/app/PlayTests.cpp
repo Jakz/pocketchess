@@ -10,6 +10,7 @@
 #include "support/Golden.h"
 #include "support/Test.h"
 
+#include <algorithm>
 #include <filesystem>
 
 using namespace pchess;
@@ -234,6 +235,17 @@ TEST_CASE("play: several games in progress are saved after every move and resume
         auto played = storage::recentPlayedGames(*h.app->userDb(), 5);
         REQUIRE(played.ok());
         CHECK_EQ(played->size(), size_t(1));
+        // Finished games appear in Games as the "My games" pack.
+        const auto packs = h.app->gamePackNames();
+        CHECK(std::find(packs.begin(), packs.end(), std::string(Application::kMyGames)) != packs.end());
+        h.app->settings().gamesPack = Application::kMyGames;
+        games::GamePack* mine = h.app->gamePack();
+        REQUIRE(mine != nullptr);
+        CHECK_EQ(mine->count(), 1);
+        auto rows = mine->page({}, 0, 5);
+        REQUIRE((rows.ok() && rows->size() == 1));
+        CHECK_EQ((*rows)[0].result, std::string("0-1"));  // resigned as White
+        CHECK(((*rows)[0].white == "You"));
     }
     std::filesystem::remove_all(root, ec);
 }

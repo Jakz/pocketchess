@@ -138,7 +138,8 @@ public:
     games::GamePack* gamePack();
     // assets/openings/*.tsv (Lichess ECO names), loaded on first use; nullptr when missing.
     const games::OpeningBook* openings();
-    std::vector<std::string> gamePackNames() const;
+    static constexpr const char* kMyGames = "My games";  // the finished Play games as a game pack
+    std::vector<std::string> gamePackNames();
     int64_t now() const;  // unix seconds for reviews: the clock plus Settings clock offset (device tests)
     // A date for the user, in local time: "today 10:32", "yesterday 18:05", "28 Sep", "3 Mar 2025".
     std::string dateText(int64_t unixSeconds) const;
@@ -196,6 +197,9 @@ private:
     std::unique_ptr<games::OpeningBook> openings_;
     bool openingsTried_ = false;
     std::string gamePackName_;
+    int myGamesBuilt_ = -1;  // played games in the cached "My games" pack
+    int myGamesCount();
+    std::unique_ptr<games::GamePack> buildMyGames();
     util::Random random_;
     bool sessionReady_ = false;  // false until the Resume question is answered (keeps the old session)
     bool sessionEmpty_ = true;   // what the table holds now (skips redundant clears)

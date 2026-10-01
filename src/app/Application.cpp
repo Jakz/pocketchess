@@ -322,7 +322,42 @@ std::string Application::choosePack(const char* kind, const std::string& wanted)
 }
 
 std::vector<std::string> Application::puzzlePackNames() const { return packNames("puzzles"); }
-std::vector<std::string> Application::gamePackNames() const { return packNames("games"); }
+// Game packs: the files in content/games (and user/content/games), plus "My games" (the user's
+// finished Play games) once there is one.
+std::vector<std::string> Application::gamePackNames() {
+    auto names = packNames("games");
+    if (myGamesCount() > 0) names.push_back(kMyGames);
+    return names;
+}
+
+int Application::myGamesCount() {
+    if (!userDb_.isOpen()) return 0;
+    auto n = storage::playedGameCount(userDb_);
+    return n ? *n : 0;
+}
+
+// The finished Play games as an in-memory game pack (same filters, list and study view as the
+// files), rebuilt when a game was added. Oldest first, so ids (favorites) stay stable.
+std::unique_ptr<games::GamePack> Application::buildMyGames() {
+    auto played = storage::allPlayedGames(userDb_);
+    if (!played) return nullptr;
+    auto db = storage::Database::open({}, storage::Database::Mode::Memory);
+    if (!db) return nullptr;
+    games::GameImporter importer(*db, openings());
+    if (auto r = importer.begin(); !r) return nullptr;
+    for (auto& g : *played) {
+        auto parsed = chess::parsePgnGame(g.pgn);
+        if (!parsed) {
+            Log::warn("app", "my games: game " + std::to_string(g.id) + ": " + parsed.error().message());
+            continue;
+        }
+        (void)importer.add(*parsed);
+    }
+    if (auto r = importer.finish({{"title", kMyGames}}); !r) return nullptr;
+    auto pack = games::GamePack::fromDatabase(std::move(*db), kMyGames);
+    if (!pack) return nullptr;
+    return std::make_unique<games::GamePack>(std::move(*pack));
+}
 
 std::vector<std::string> Application::dueInPack(size_t limit) {
     std::vector<std::string> out;
@@ -372,6 +407,19 @@ const games::OpeningBook* Application::openings() {
 }
 
 games::GamePack* Application::gamePack() {
+    if (settings_.gamesPack == kMyGames) {
+        const int count = myGamesCount();
+        if (count > 0) {
+            if (gamePack_ && gamePackName_ == kMyGames && myGamesBuilt_ == count) return gamePack_.get();
+            if (auto pack = buildMyGames()) {
+                gamePack_ = std::move(pack);
+                gamePackName_ = kMyGames;
+                myGamesBuilt_ = count;
+                Log::info("app", "my games: " + std::to_string(gamePack_->count()) + " games");
+                return gamePack_.get();
+            }
+        }
+    }
     const std::string name = choosePack("games", settings_.gamesPack);
     if (name.empty()) return nullptr;
     if (gamePack_ && gamePackName_ == name) return gamePack_.get();

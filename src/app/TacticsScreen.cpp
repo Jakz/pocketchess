@@ -352,7 +352,7 @@ void TacticsScreen::draw(Canvas& c, const Rect& clip) {
     const int rating = app_.progress() ? app_.progress()->rating() : puzzles::kInitialRating;
     const std::string title = mode_ == Mode::Review
                                   ? "Review · " + std::to_string(queue_.size() + (session_ ? 1 : 0)) + " left"
-                                  : "Tactics · " + std::to_string(rating);
+                                  : "Puzzles · " + std::to_string(rating);
     drawStatusBar(app_, c, *this, title, batteryText(app_));
     if (clip.intersects(l.board)) board_.draw(c, clip, t, app_.pieces(), app_.fonts());
     if (clip.intersects(statusRect_)) {
@@ -465,7 +465,7 @@ void TacticsScreen::openMenu() {
     labels.push_back("Close");
     std::weak_ptr<char> alive = alive_;
     app_.push(std::make_unique<MessageDialog>(
-        app_, mode_ == Mode::Review ? "Review" : "Tactics", "", labels,
+        app_, mode_ == Mode::Review ? "Review" : "Puzzles", "", labels,
         [this, alive, actions](int i) {
             if (alive.expired() || i < 0 || i >= static_cast<int>(actions.size())) return;
             switch (actions[static_cast<size_t>(i)]) {
@@ -528,7 +528,7 @@ bool TacticsScreen::saveSession(std::map<std::string, std::string>& out) const {
     out["tactics.mode"] = mode_ == Mode::Review ? "review" : "train";
     // An unfinished puzzle starts again from its beginning; a finished one is not resumed.
     out["tactics.puzzle"] = session_ && !session_->finished() ? session_->puzzle().id : "";
-    out["summary"] = mode_ == Mode::Review ? "Review session in progress." : "Tactics session in progress.";
+    out["summary"] = mode_ == Mode::Review ? "Review session in progress." : "Puzzle session in progress.";
     return true;
 }
 

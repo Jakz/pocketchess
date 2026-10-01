@@ -33,9 +33,9 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
     const int margin = l.screen.w / 10;
     const int btnH = std::max(kMinTouchPx, l.screen.h / 12);
     const int gap = s.fontPx / 2;
-    // The launcher sits at the bottom (one-hand use): 6 rows + the tools row end one gap above the
+    // The launcher sits at the bottom (one-hand use): 5 rows + the tools row end one gap above the
     // screen edge; title, status line and summary fill the top.
-    const int top = l.screen.h - gap - 7 * (btnH + gap) + gap;
+    const int top = l.screen.h - gap - 6 * (btnH + gap) + gap;
     struct Item {
         int id;
         const char* label;
@@ -44,11 +44,10 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
     };
     const Item items[] = {
         {Play, "Play", "vs engine", true},
-        {Tactics, "Tactics", "puzzles", true},
-        {Games, "Games", "historical games", true},
+        {Tactics, "Puzzles", "train · review", true},
+        {Games, "Games", "historical and your own", true},
         {Openings, "Openings", "named lines and variations", true},
         {Analyze, "Analyze", "", true},
-        {Review, "Review", "failed puzzles", true},
     };
     int y = top;
     for (const Item& it : items) {
@@ -96,7 +95,7 @@ void HomeScreen::refreshSummary() {
         // Only reviews of the active pack: the others wait until their pack is chosen again.
         const int due = static_cast<int>(app_.dueInPack(100000).size());
         for (Button& b : buttons_)
-            if (b.id == Review) b.hint = due > 0 ? std::to_string(due) + " due" : "failed puzzles";
+            if (b.id == Tactics) b.hint = due > 0 ? "train · " + std::to_string(due) + " to review" : "train · review";
         auto hist = pr->history(1);
         if (hist && !hist->empty())
             summary_.push_back("Puzzle rating " + std::to_string(pr->rating()) + " · review due: " + std::to_string(due));
@@ -172,16 +171,27 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
 void HomeScreen::open(int id) {
     switch (id) {
     case Play: startPlay(); break;
-    case Tactics: app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Train)); break;
+    case Tactics: openPuzzles(); break;
     case Games: app_.push(std::make_unique<GamesScreen>(app_)); break;
     case Openings: app_.push(std::make_unique<OpeningsScreen>(app_)); break;
-    case Review: app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Review)); break;
     case Analyze: app_.push(std::make_unique<AnalyzeScreen>(app_, "")); break;
     case SettingsItem: app_.push(std::make_unique<SettingsScreen>(app_)); break;
     case Diagnostics: app_.push(std::make_unique<DiagnosticsScreen>(app_)); break;
     case Import: app_.push(std::make_unique<ImportScreen>(app_)); break;
     default: break;
     }
+}
+
+// Puzzles: training, and the review of failed puzzles (spaced repetition) with how many are due.
+void HomeScreen::openPuzzles() {
+    const int due = static_cast<int>(app_.dueInPack(100000).size());
+    chooseFromList(
+        app_, "Puzzles", {"Train", "Review"},
+        [this](int i) {
+            if (i == 0) app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Train));
+            if (i == 1) app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Review));
+        },
+        6, {"new puzzles at your rating", due > 0 ? std::to_string(due) + " failed puzzles due" : "nothing due"});
 }
 
 void HomeScreen::startPlay() {

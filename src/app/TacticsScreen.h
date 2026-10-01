@@ -26,7 +26,7 @@ public:
     TacticsScreen(Application& app, Mode mode, const std::string& puzzleId = "");
     ~TacticsScreen() override;
     const char* name() const override { return "tactics"; }
-    std::string title() const override { return mode_ == Mode::Review ? "Review" : "Tactics"; }
+    std::string title() const override { return mode_ == Mode::Review ? "Review" : "Puzzles"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;

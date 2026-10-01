@@ -67,5 +67,8 @@ struct PlayStats {
     int games = 0, won = 0, drawn = 0, lost = 0;
 };
 Result<PlayStats> playStats(Database& db);
+Result<int> playedGameCount(Database& db);
+// Every played game, oldest first (the "My games" pack is built in this order: stable ids).
+Result<std::vector<PlayedGame>> allPlayedGames(Database& db);
 
 } // namespace pchess::storage

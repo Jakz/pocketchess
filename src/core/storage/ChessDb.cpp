@@ -262,4 +262,27 @@ Result<std::optional<ActiveGame>> activeGame(Database& db, int64_t id) {
     return std::optional<ActiveGame>(readActive(*s));
 }
 
+Result<int> playedGameCount(Database& db) {
+    auto s = db.prepare("SELECT count(*) FROM played_games");
+    if (!s) return s.error();
+    auto row = s->step();
+    if (!row) return row.error();
+    return s->integer(0);
+}
+
+Result<std::vector<PlayedGame>> allPlayedGames(Database& db) {
+    auto s = db.prepare("SELECT id, date, pgn, result, mode, strength, engine, human FROM played_games "
+                        "ORDER BY date, id");
+    if (!s) return s.error();
+    std::vector<PlayedGame> out;
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        out.push_back(
+            {s->int64(0), s->int64(1), s->text(2), s->text(3), s->text(4), s->text(5), s->text(6), s->text(7)});
+    }
+    return out;
+}
+
 } // namespace pchess::storage
