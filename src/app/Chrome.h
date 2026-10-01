@@ -14,8 +14,9 @@ namespace pchess::app {
 //   actions in the middle, Menu at the right (the Menu key).
 // - Every menu ends with "‹ Back to <screen underneath>" and "Close".
 ui::Rect statusBackRect(const Application& app);
+// `backOverride`: a level inside the screen (an opening family) goes back to the screen itself.
 void drawStatusBar(Application& app, ui::Canvas& c, const Screen& self, const std::string& title,
-                   const std::string& right);
+                   const std::string& right, const std::string& backOverride = {});
 // "‹ Back to Games" for the screen under `self`.
 std::string backMenuLabel(const Application& app, const Screen& self);
 std::string batteryText(Application& app);

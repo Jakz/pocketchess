@@ -28,6 +28,7 @@ Result<int> OpeningBook::addTsv(std::string_view text) {
         Opening o;
         o.eco = std::string(line.substr(0, t1));
         o.name = std::string(line.substr(t1 + 1, t2 - t1 - 1));
+        OpeningLine entry{o.eco, o.name, {}};
         std::string_view pgn = line.substr(t2 + 1);
         chess::Position pos = chess::Position::startPosition();
         bool ok = true;
@@ -44,6 +45,7 @@ Result<int> OpeningBook::addTsv(std::string_view text) {
                 break;
             }
             pos.makeMove(m.value());
+            entry.moves.push_back(m.value());
             ++o.plies;
         }
         if (!ok || o.plies == 0) {
@@ -53,9 +55,18 @@ Result<int> OpeningBook::addTsv(std::string_view text) {
         // The same position can be named by several lines: keep the most specific (longest) name.
         auto [it, inserted] = byKey_.try_emplace(pos.key(), o);
         if (!inserted && o.name.size() > it->second.name.size()) it->second = o;
+        lines_.push_back(std::move(entry));
         ++added;
     }
     return added;
+}
+
+std::vector<std::string> OpeningBook::families() const {
+    std::vector<std::string> out;
+    std::unordered_map<std::string, bool> seen;
+    for (const OpeningLine& l : lines_)
+        if (seen.emplace(l.family(), true).second) out.push_back(l.family());
+    return out;
 }
 
 std::optional<Opening> OpeningBook::classify(const chess::Position& start, std::span<const chess::Move> moves,

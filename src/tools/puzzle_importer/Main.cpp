@@ -26,7 +26,7 @@ int usage() {
     std::fprintf(stderr,
                  "usage: PuzzleImporter <input.csv[.zst]> <out.db> [options]\n"
                  "       PuzzleImporter <input.csv[.zst]> --sample <N> <out.csv>\n"
-                 "  --preset starter|standard|large|huge   5k / 25k / 50k / 100k puzzles (default large)\n"
+                 "  --preset starter|standard|large|huge|all   5k / 25k / 50k / 100k / every puzzle (default large)\n"
                  "  --count N          number of puzzles (overrides --preset)\n"
                  "  --min-rating R  --max-rating R  --min-popularity P  --min-plays N\n"
                  "  --include a,b      themes that must all be present\n"
@@ -103,7 +103,11 @@ int main(int argc, char** argv) {
         auto value = [&]() -> const char* { return i + 1 < argc ? argv[++i] : ""; };
         if (a == "--preset") {
             const std::string p = value();
-            f.count = p == "starter" ? 5'000 : p == "standard" ? 25'000 : p == "huge" ? 100'000 : 50'000;
+            f.count = p == "starter"    ? 5'000
+                      : p == "standard" ? 25'000
+                      : p == "huge"     ? 100'000
+                      : p == "all"      ? SIZE_MAX  // every puzzle that passes the filter
+                                        : 50'000;
         } else if (a == "--count") f.count = static_cast<size_t>(std::atoll(value()));
         else if (a == "--min-rating") f.minRating = std::atoi(value());
         else if (a == "--max-rating") f.maxRating = std::atoi(value());

@@ -52,9 +52,7 @@ platform/*  ->  app  ->  ui  ->  core  ->  (libs)
 
 - **Never overwrite `user/`** (progress, settings, session). Deploy and staging scripts exclude it.
 - Content packs, engines, piece sets and themes are swappable units with manifests (D8, D9).
-- Builds never download anything. Only `scripts/fetch-engines.ps1`, `fetch-lichess.ps1` and
-  `fetch-historical.ps1`
-  touch the network.
+- Builds never download anything. Only `scripts/fetch-engines.ps1`, `fetch-lichess.ps1` and `fetch-historical.ps1` touch the network.
 
 ## Tests
 

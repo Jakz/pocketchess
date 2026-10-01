@@ -55,6 +55,7 @@ set(PCHESS_UI_SOURCES
     ${REPO_ROOT}/src/app/HomeScreen.cpp
     ${REPO_ROOT}/src/app/ImportScreen.cpp
     ${REPO_ROOT}/src/app/Importer.cpp
+    ${REPO_ROOT}/src/app/OpeningsScreen.cpp
     ${REPO_ROOT}/src/app/MoveList.cpp
     ${REPO_ROOT}/src/app/PlayScreen.cpp
     ${REPO_ROOT}/src/app/Screenshot.cpp
@@ -90,6 +91,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/AppTests.cpp
     ${REPO_ROOT}/tests/app/GamesTests.cpp
     ${REPO_ROOT}/tests/app/ImportTests.cpp
+    ${REPO_ROOT}/tests/app/OpeningsTests.cpp
     ${REPO_ROOT}/tests/app/PlayTests.cpp
     ${REPO_ROOT}/tests/app/RedrawTests.cpp
     ${REPO_ROOT}/tests/app/SessionTests.cpp

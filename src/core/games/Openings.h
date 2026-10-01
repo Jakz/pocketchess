@@ -11,6 +11,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace pchess::games {
 
@@ -18,6 +19,13 @@ struct Opening {
     std::string eco;   // "C42"
     std::string name;  // "Petrov's Defense: Classical Attack"
     int plies = 0;     // length of the named line
+};
+
+// One named line of the book, in file order (A00 ... E99).
+struct OpeningLine {
+    std::string eco, name;
+    std::vector<chess::Move> moves;  // from the standard start
+    std::string family() const { return name.substr(0, name.find(':')); }  // "Sicilian Defense"
 };
 
 // ECO names from data/openings/*.tsv (lichess chess-openings, CC0), keyed by position so that
@@ -33,8 +41,13 @@ public:
     std::optional<Opening> classify(const chess::Position& start, std::span<const chess::Move> moves,
                                     int maxPlies = 40) const;
 
+    // Every named line (for browsing), and the family names in first-seen order.
+    const std::vector<OpeningLine>& lines() const { return lines_; }
+    std::vector<std::string> families() const;
+
 private:
     std::unordered_map<uint64_t, Opening> byKey_;
+    std::vector<OpeningLine> lines_;
     int rejected_ = 0;
 };
 

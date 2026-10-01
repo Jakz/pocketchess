@@ -123,6 +123,14 @@ void AnalyzeScreen::setNode(GameNode* node) {
     node_ = node;
     pos_ = tree_.positionAt(node_);
     generateLegalMoves(pos_, legal_);
+    // The deepest named opening on the path (bundled book), shown on the status line.
+    openingName_.clear();
+    if (const games::OpeningBook* book = app_.openings()) {
+        std::vector<Move> path;
+        for (const GameNode* n = node_; n && !n->isRoot(); n = n->parent) path.push_back(n->move);
+        std::reverse(path.begin(), path.end());
+        if (auto o = book->classify(tree_.startPosition(), path)) openingName_ = o->eco + " " + o->name;
+    }
     selected_ = NoSquare;
     refreshBoard(RefreshHint::Content);
     refreshPanel();
@@ -177,6 +185,7 @@ std::string AnalyzeScreen::statusText() const {
         else if (canClaimFiftyMoves(pos_)) s += " · 50 moves";
     }
     if (node_ && !node_->isMainLine()) s += " · variation";
+    if (!openingName_.empty()) s += " · " + openingName_;
     return s;
 }
 

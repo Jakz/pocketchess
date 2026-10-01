@@ -8,6 +8,7 @@
 #include "app/GamesScreen.h"
 #include "app/HomeScreen.h"
 #include "app/ImportScreen.h"
+#include "app/OpeningsScreen.h"
 #include "app/PlayScreen.h"
 #include "app/SettingsScreen.h"
 #include "app/TacticsScreen.h"
@@ -221,6 +222,7 @@ std::unique_ptr<Screen> Application::makeScreen(const std::string& name) {
     if (name == "review") return std::make_unique<TacticsScreen>(*this, TacticsScreen::Mode::Review);
     if (name == "games") return std::make_unique<GamesScreen>(*this);
     if (name == "import") return std::make_unique<ImportScreen>(*this);
+    if (name == "openings") return std::make_unique<OpeningsScreen>(*this);
     if (name == "play")
         return std::make_unique<PlayScreen>(*this, PlaySetup{chess::White, settings_.playStrength, config_.fen});
     Log::warn("app", "unknown or not yet available screen '" + name + "', staying on Home");

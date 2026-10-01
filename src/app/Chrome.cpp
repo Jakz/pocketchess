@@ -11,7 +11,7 @@ Rect statusBackRect(const Application& app) {
 }
 
 void drawStatusBar(Application& app, Canvas& c, const Screen& self, const std::string& title,
-                   const std::string& right) {
+                   const std::string& right, const std::string& backOverride) {
     const BoardTheme& t = app.theme();
     const UiStyle& st = app.style();
     const Rect s = app.layout().status;
@@ -21,7 +21,7 @@ void drawStatusBar(Application& app, Canvas& c, const Screen& self, const std::s
     Font& f = app.fonts().get(st.fontPx, FontStyle::Bold);
     Font& small = app.fonts().get(st.smallPx);
     const int pad = st.fontPx / 2;
-    const std::string back = app.parentTitle(&self);
+    const std::string back = backOverride.empty() ? app.parentTitle(&self) : backOverride;
     if (!back.empty()) {  // a real button: framed, the full height of the bar
         const Rect b = statusBackRect(app).inset(st.stroke * 2);
         c.frame(b, st.stroke, t.frame);

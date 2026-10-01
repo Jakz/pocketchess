@@ -95,6 +95,7 @@ private:
     void editFen();
     void reset(const chess::Position& start);
     std::string statusText() const;
+    std::string openingName_;  // "B90 Sicilian Defense: Najdorf Variation" for the current path
     void drawMoves(ui::Canvas& c);
     void drawEngine(ui::Canvas& c);
 

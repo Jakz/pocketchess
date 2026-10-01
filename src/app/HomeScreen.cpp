@@ -6,6 +6,7 @@
 #include "app/Chrome.h"
 #include "app/DiagnosticsScreen.h"
 #include "app/ImportScreen.h"
+#include "app/OpeningsScreen.h"
 #include "app/Dialogs.h"
 #include "app/GamesScreen.h"
 #include "app/PlayScreen.h"
@@ -22,7 +23,7 @@ namespace pchess::app {
 using namespace ui;
 
 namespace {
-enum Id { Play, Tactics, Games, Analyze, Review, SettingsItem, Import, Diagnostics, Exit };
+enum Id { Play, Tactics, Games, Openings, Analyze, Review, SettingsItem, Import, Diagnostics, Exit };
 }
 
 HomeScreen::HomeScreen(Application& app) : Screen(app) {
@@ -31,9 +32,9 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
     const int margin = l.screen.w / 10;
     const int btnH = std::max(kMinTouchPx, l.screen.h / 12);
     const int gap = s.fontPx / 2;
-    // The launcher sits at the bottom (one-hand use): 5 rows + the tools row end one gap above the
+    // The launcher sits at the bottom (one-hand use): 6 rows + the tools row end one gap above the
     // screen edge; title, status line and summary fill the top.
-    const int top = l.screen.h - gap - 6 * (btnH + gap) + gap;
+    const int top = l.screen.h - gap - 7 * (btnH + gap) + gap;
     struct Item {
         int id;
         const char* label;
@@ -44,6 +45,7 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
         {Play, "Play", "vs engine", true},
         {Tactics, "Tactics", "puzzles", true},
         {Games, "Games", "historical games", true},
+        {Openings, "Openings", "named lines and variations", true},
         {Analyze, "Analyze", "", true},
         {Review, "Review", "failed puzzles", true},
     };
@@ -171,6 +173,7 @@ void HomeScreen::open(int id) {
     case Play: startPlay(); break;
     case Tactics: app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Train)); break;
     case Games: app_.push(std::make_unique<GamesScreen>(app_)); break;
+    case Openings: app_.push(std::make_unique<OpeningsScreen>(app_)); break;
     case Review: app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Review)); break;
     case Analyze: app_.push(std::make_unique<AnalyzeScreen>(app_, "")); break;
     case SettingsItem: app_.push(std::make_unique<SettingsScreen>(app_)); break;
