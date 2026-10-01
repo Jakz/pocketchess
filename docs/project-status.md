@@ -52,6 +52,30 @@ Last updated: 2026-09-30 (M6 features done on desktop: themes, piece sets, Impor
   EngineManager and the analysis panel; goldens updated for the new button row, plus
   `analyze-engine-quick` and `analyze-engine-missing`.
 
+## 2026-10-01 — large collections: packs v2, historical games, all puzzles, openings
+
+- Device: the frame was shifted down and wrapped (photo): the 6.x system panel offsets the
+  framebuffer. `SetPanelType(PANEL_DISABLED)` at start in the app and the self-test; fixed on the
+  reader. Controls moved to the bottom for one-hand use (Games chips, Home launcher, Diagnostics).
+- Game packs v2: moves one byte each (`encodeMoveIndexes`: index among the legal moves sorted by
+  raw value), events/sites/openings in lookup tables, numeric dates/results, URL sites dropped,
+  duplicates skipped (hash of players, date, moves), an index per filter in list order, counts
+  capped at 10,000 ("N+"). Machine annotations ([%clk], [%eval], Lichess computer analysis) are
+  dropped at import. Lichess sample 20k: 6.8 → 3.5 MB; a broadcast month (47k games): 222 → 12 MB.
+- Opening statistics: each game pack has a `book` table (position key, move → games, white, draws,
+  black) for the first 20 plies (moves played in < 3 games dropped in packs of ≥ 10k games);
+  Analyze shows "Book (N): e4 41% d4 33% …" above the move list and names the opening on the
+  status line.
+- Puzzle packs v2: packed FEN (`packFen`: occupancy + nibbles, ~23 bytes), moves one byte each,
+  opening tags once, no RD/plays. 50k: 6.3 → 3.6 MB. `build-content.ps1 -Presets all`: all
+  6.1 M Lichess puzzles in 427 MB (73 bytes each, ~6 min on the PC).
+- Historical games: `scripts/fetch-historical.ps1` (PGN Mentor players + events, optional
+  openings; Lumbra's Gigabase .7z placed by hand, CC BY-NC-SA, extracted with 7-Zip), then
+  `build-content.ps1 -Historical [-FromYear -ToYear -MinElo]` → `historical.db` (PgnImporter
+  folders, `--skip-online`). Not redistributable: stays in data/downloads and data/generated.
+- Openings screen (Home → Openings): 150 families, 3,820 named lines (Lichess, CC0), search by name
+  or ECO, a line opens in Analyze.
+
 ## 2026-09-30 — after the first M6 device review: rendering, color, navigation
 
 - Rendering: buttons looked cropped at the top. Causes fixed: the analysis panel's engine lines ran
