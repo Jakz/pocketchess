@@ -455,6 +455,9 @@ Result<GamePack> GamePack::fromDatabase(storage::Database db, std::string name) 
     GamePack p;
     p.db_ = std::move(db);
     p.name_ = std::move(name);
+    // A puzzle pack shares the format number: check for the games table itself.
+    if (auto probe = p.db_.prepare("SELECT moves FROM games LIMIT 1"); !probe)
+        return makeError(ErrorCode::CorruptData, p.name_ + ": not a game pack (" + probe.error().context + ")");
     // The exact total, without counting millions of rows: meta, else a count.
     const auto m = p.meta();
     if (auto it = m.find("count"); it != m.end()) p.count_ = toInt(it->second);

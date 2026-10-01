@@ -8,13 +8,20 @@
 .EXAMPLE
   scripts/build-content.ps1                       # content/puzzles/large.db (50k puzzles)
   scripts/build-content.ps1 -Presets starter,large
+  scripts/build-content.ps1 -Presets all        # every Lichess puzzle (~6.1 million, ~450 MB)
   scripts/build-content.ps1 -Presets @() -Games   # content/games/lichess-2013-01.db (20k games)
+  scripts/build-content.ps1 -Presets @() -Historical                 # content/games/historical.db (fetch-historical.ps1)
+  scripts/build-content.ps1 -Presets @() -Historical -ToYear 1999 -MinElo 2300
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('starter', 'standard', 'large', 'huge')][string[]]$Presets = @('large'),
+    [ValidateSet('starter', 'standard', 'large', 'huge', 'all')][string[]]$Presets = @('large'),
     [switch]$Games,
     [int]$MaxGames = 20000,
+    [switch]$Historical,          # over-the-board games from scripts/fetch-historical.ps1
+    [int]$FromYear = 0,
+    [int]$ToYear = 0,
+    [int]$MinElo = 0,
     [string]$Configuration = 'Desktop',
     [uint64]$Seed = 1
 )
@@ -51,6 +58,23 @@ if ($Games) {
     $db = Join-Path $RepoRoot 'data\generated\games\lichess-2013-01.db'
     Write-Host "== games: $MaxGames from $source -> $db"
     & $importer $source $db --max $MaxGames --name "Lichess January 2013"
+    if ($LASTEXITCODE) { throw 'PgnImporter failed' }
+}
+
+if ($Historical) {
+    $importer = Tool 'PgnImporter'
+    $sources = @(
+        (Join-Path $downloads 'pgnmentor/pgn'),
+        (Join-Path $downloads 'lumbra/pgn')
+    ) | Where-Object { Test-Path $_ }
+    if (-not $sources) { throw 'No historical games: run scripts/fetch-historical.ps1 first' }
+    $db = Join-Path $RepoRoot 'data/generated/games/historical.db'
+    Write-Host "== historical games: $($sources -join ', ') -> $db"
+    $opts = @('--name', 'Historical games', '--skip-online')
+    if ($FromYear) { $opts += @('--from-year', $FromYear) }
+    if ($ToYear) { $opts += @('--to-year', $ToYear) }
+    if ($MinElo) { $opts += @('--min-elo', $MinElo) }
+    & $importer @sources $db @opts
     if ($LASTEXITCODE) { throw 'PgnImporter failed' }
 }
 exit 0
