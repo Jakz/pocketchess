@@ -29,8 +29,9 @@ protected:
 // Title, wrapped text and a row of buttons. `done(index)` gets the button index, or -1 on Back.
 class MessageDialog final : public Dialog {
 public:
+    // `hints`: an optional second line per button (same order as `buttons`).
     MessageDialog(Application& app, std::string title, std::string text, std::vector<std::string> buttons,
-                  std::function<void(int)> done, bool vertical = false);
+                  std::function<void(int)> done, bool vertical = false, std::vector<std::string> hints = {});
     const char* name() const override { return "message"; }
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
@@ -48,7 +49,7 @@ private:
 // Picks one item from a list of any length: pages of `pageSize` rows plus "More…" and "Close".
 // `done(index)` gets the item's index, or -1 when closed.
 void chooseFromList(Application& app, const std::string& title, std::vector<std::string> items,
-                    std::function<void(int)> done, int pageSize = 6);
+                    std::function<void(int)> done, int pageSize = 6, std::vector<std::string> hints = {});
 
 // A color choice: a grid of swatches (one color, or two halves such as a board's light and dark
 // squares) with their names, the current one framed, and Close. `done(index)` or -1.

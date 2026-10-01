@@ -8,6 +8,7 @@
 
 #include <map>
 #include <span>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -47,6 +48,19 @@ Result<std::vector<PlayedGame>> recentPlayedGames(Database& db, int limit);
 Result<void> setFavorite(Database& db, const std::string& pack, int64_t gameId, bool on, int64_t now);
 Result<bool> isFavorite(Database& db, const std::string& pack, int64_t gameId);
 Result<std::vector<int64_t>> favoriteIds(Database& db, const std::string& pack);
+
+// active_games: Play games in progress, most recently played first.
+struct ActiveGame {
+    int64_t id = 0;  // 0 = not saved yet (saveActiveGame inserts and sets it)
+    int64_t started = 0, lastPlayed = 0;
+    std::string human;  // white / black
+    std::string strength, engine, fen, moves;
+    bool flipped = false;
+};
+Result<int64_t> saveActiveGame(Database& db, const ActiveGame& game);  // insert or update; returns the id
+Result<void> deleteActiveGame(Database& db, int64_t id);
+Result<std::vector<ActiveGame>> activeGames(Database& db);
+Result<std::optional<ActiveGame>> activeGame(Database& db, int64_t id);
 
 // Totals from the user's side (games with a known side and a result), for Home.
 struct PlayStats {

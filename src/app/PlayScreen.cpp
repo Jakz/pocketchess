@@ -48,7 +48,7 @@ PlayScreen::PlayScreen(Application& app, PlaySetup setup) : Screen(app), setup_(
     }
     tree_ = GameTree(start);
     flipped_ = setup_.human == Black;
-    startedAt_ = util::SystemClock::instance().unixSeconds();
+    startedAt_ = app_.now();
     if (const engine::EngineDescriptor* d = app_.engines().engineFor(engine::Role::Play)) engineName_ = d->name;
     util::Log::info("play", std::string("new game: human ") + (setup_.human == White ? "white" : "black") +
                                 ", strength " + setup_.strength + ", engine " +
@@ -229,8 +229,35 @@ void PlayScreen::commitMove(Move m) {
 void PlayScreen::afterMove() {
     const Outcome o = gameOutcome(pos_, tree_.keyHistoryTo(node_));
     if (o.over()) return finish(o.result, terminationText(o.termination));
+    persist();
     app_.sessionChanged();
     if (!humanToMove()) requestEngineMove();
+}
+
+// Games in progress are kept in user/chess.db (active_games) after every move, several at once:
+// Home -> Play lists them with their start and last-played dates.
+void PlayScreen::persist() {
+    storage::Database* db = app_.userDb();
+    if (!db || finished_ || tree_.mainLine().empty()) return;
+    storage::ActiveGame g;
+    g.id = activeId_;
+    g.started = startedAt_;
+    g.lastPlayed = app_.now();
+    g.human = setup_.human == White ? "white" : "black";
+    g.strength = setup_.strength;
+    g.engine = engineName_;
+    g.fen = toFen(tree_.startPosition());
+    for (Move m : tree_.mainLine()) g.moves += (g.moves.empty() ? "" : " ") + toUci(m);
+    g.flipped = flipped_;
+    if (auto id = storage::saveActiveGame(*db, g); id) activeId_ = *id;
+    else util::Log::error("play", "saving the game in progress: " + id.error().message());
+}
+
+void PlayScreen::discardActive() {
+    if (storage::Database* db = app_.userDb(); db && activeId_)
+        if (auto r = storage::deleteActiveGame(*db, activeId_); !r)
+            util::Log::error("play", "removing the game in progress: " + r.error().message());
+    activeId_ = 0;
 }
 
 // --- Engine --------------------------------------------------------------------------------------
@@ -303,6 +330,7 @@ void PlayScreen::undo() {
     tree_.deleteNode(n);
     util::Log::info("play", "undo");
     setNode(parent);
+    persist();
     app_.sessionChanged();
     if (!humanToMove()) requestEngineMove();
 }
@@ -329,6 +357,7 @@ void PlayScreen::finish(const std::string& result, const std::string& reason) {
     refreshBoard(RefreshHint::Content);
     refreshPanel();
     saveGame();
+    discardActive();  // finished: it is in played_games now
     app_.sessionChanged();  // a finished game has nothing to resume
     showResult();
 }
@@ -424,29 +453,44 @@ void PlayScreen::newGame() {
 
 void PlayScreen::openMenu() {
     std::weak_ptr<char> alive = alive_;
+    enum Action { New, Analyze, Abandon, Back };
+    std::vector<std::string> labels{"New game", "Analyze game"};
+    std::vector<Action> actions{New, Analyze};
+    if (!finished_ && activeId_) {
+        labels.push_back("Abandon this game");
+        actions.push_back(Abandon);
+    }
+    labels.push_back(backMenuLabel(app_, *this));
+    actions.push_back(Back);
+    labels.push_back("Close");
     app_.push(std::make_unique<MessageDialog>(
-        app_, "Game", "", std::vector<std::string>{"New game", "Analyze game", backMenuLabel(app_, *this), "Close"},
-        [this, alive](int i) {
-            if (alive.expired()) return;
-            switch (i) {
-            case 0: newGame(); break;
-            case 1: analyzeGame(); break;
-            case 2: leave(); break;
-            default: break;
+        app_, "Game", "", labels,
+        [this, alive, actions](int i) {
+            if (alive.expired() || i < 0 || i >= static_cast<int>(actions.size())) return;
+            switch (actions[static_cast<size_t>(i)]) {
+            case New: newGame(); break;
+            case Analyze: analyzeGame(); break;
+            case Abandon: abandon(); break;
+            case Back: leave(); break;
             }
         },
         true));
 }
 
 void PlayScreen::leave() {
-    if (finished_ || node_->isRoot()) {
-        app_.pop();
-        return;
-    }
+    // A game in progress is saved after every move: leaving keeps it (Home -> Play resumes it).
+    if (!finished_ && !activeId_ && !node_->isRoot()) persist();
+    app_.pop();
+}
+
+void PlayScreen::abandon() {
     std::weak_ptr<char> alive = alive_;
-    app_.push(std::make_unique<MessageDialog>(app_, "Leave this game?", "The game in progress is not saved.",
-                                              std::vector<std::string>{"Leave", "Stay"}, [this, alive](int i) {
-                                                  if (!alive.expired() && i == 0) app_.pop();
+    app_.push(std::make_unique<MessageDialog>(app_, "Abandon this game?", "It is removed from the games in progress.",
+                                              std::vector<std::string>{"Abandon", "Close"}, [this, alive](int i) {
+                                                  if (alive.expired() || i != 0) return;
+                                                  discardActive();
+                                                  finished_ = true;  // nothing to save on leave
+                                                  app_.pop();
                                               }));
 }
 
@@ -463,6 +507,7 @@ bool PlayScreen::saveSession(std::map<std::string, std::string>& out) const {
     out["play.moves"] = moves;
     out["play.started"] = std::to_string(startedAt_);
     out["play.flipped"] = flipped_ ? "true" : "false";
+    if (activeId_) out["play.active_id"] = std::to_string(activeId_);
     out["summary"] = "Game in progress: you play " + std::string(setup_.human == White ? "White" : "Black") + " vs " +
                      (engineName_.empty() ? std::string("the engine") : engineName_) + " (" +
                      capitalized(setup_.strength) + "), " + std::to_string(plies) + (plies == 1 ? " move" : " moves") +
@@ -502,10 +547,22 @@ std::unique_ptr<PlayScreen> PlayScreen::restore(Application& app, const std::map
     const std::string started = get("play.started");
     std::from_chars(started.data(), started.data() + started.size(), p->startedAt_);  // keeps "now" if invalid
     p->flipped_ = get("play.flipped") == "true";
+    const std::string active = get("play.active_id");
+    std::from_chars(active.data(), active.data() + active.size(), p->activeId_);
     p->setNode(n);
     if (gameOutcome(p->pos_, p->tree_.keyHistoryTo(n)).over()) return nullptr;  // never saved as unfinished
     util::Log::info("play", "resumed after " + std::to_string(p->tree_.mainLine().size()) + " plies");
     return p;
+}
+
+std::unique_ptr<PlayScreen> PlayScreen::resume(Application& app, const storage::ActiveGame& g) {
+    return restore(app, {{"play.human", g.human},
+                         {"play.strength", g.strength},
+                         {"play.fen", g.fen},
+                         {"play.moves", g.moves},
+                         {"play.started", std::to_string(g.started)},
+                         {"play.flipped", g.flipped ? "true" : "false"},
+                         {"play.active_id", std::to_string(g.id)}});
 }
 
 // --- Input and lifecycle -------------------------------------------------------------------------

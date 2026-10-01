@@ -154,15 +154,11 @@ TEST_CASE("play: resign, draw claims and leaving a game") {
     h.run("key:back");  // a finished game leaves without asking
     CHECK_EQ(h.top(), std::string("home"));
 
-    // An unfinished game asks first.
+    // An unfinished game leaves without asking: it is kept in the games in progress.
     p = h.start(chess::White);
     REQUIRE(p->playSan("e4"));
     h.pump();
     h.run("key:back");
-    REQUIRE_EQ(h.top(), std::string("message"));
-    h.run("key:ok");  // focus starts on "Stay"
-    CHECK_EQ(h.top(), std::string("play"));
-    h.run("key:back;key:prev;key:ok");  // "Leave"
     CHECK_EQ(h.top(), std::string("home"));
 }
 
@@ -192,6 +188,52 @@ TEST_CASE("play: Home shows the last game and the totals when it comes back") {
         REQUIRE_EQ(home->summary().size(), size_t(2));
         CHECK(home->summary()[0].rfind("Last game: lost as White · Casual · ", 0) == 0);
         CHECK_EQ(home->summary()[1], std::string("Games: 1 · won 0 · drawn 0 · lost 1"));
+    }
+    std::filesystem::remove_all(root, ec);
+}
+
+TEST_CASE("play: several games in progress are saved after every move and resumed by id") {
+    const auto root = std::filesystem::temp_directory_path() / "pchess-play-active";
+    std::error_code ec;
+    std::filesystem::remove_all(root, ec);
+    {
+        PlayHarness h(true, root);
+        PlayScreen* p = h.start(chess::White);
+        REQUIRE(p->playSan("e4"));
+        h.pump();
+        CHECK(p->activeId() != 0);
+        h.run("key:back");  // leaves without asking: the game is kept
+        p = h.start(chess::White, "", "club");
+        REQUIRE(p->playSan("d4"));
+        h.pump();
+        h.run("key:back");
+        auto games = storage::activeGames(*h.app->userDb());
+        REQUIRE(games.ok());
+        REQUIRE_EQ(games->size(), size_t(2));
+        CHECK_EQ(games->front().strength, std::string("club"));  // most recently played first
+        CHECK(games->front().started > 0);
+        CHECK_EQ(h.app->dateText(games->front().started).rfind("today", 0), size_t(0));
+    }
+    {
+        PlayHarness h(true, root);  // after a restart
+        while (h.top() != "home" && h.app->depth() > 1) h.app->pop();  // e.g. the Resume? question
+        auto games = storage::activeGames(*h.app->userDb());
+        REQUIRE((games.ok() && games->size() == 2));
+        const storage::ActiveGame casual = games->back();
+        auto p = PlayScreen::resume(*h.app, casual);
+        REQUIRE(p != nullptr);
+        CHECK_EQ(p->activeId(), casual.id);
+        CHECK(p->tree().mainLine().size() >= 1);
+        PlayScreen* screen = p.get();
+        h.app->push(std::move(p));
+        h.pump();
+        screen->resign();  // finished: moves to played_games, leaves the games in progress
+        auto after = storage::activeGames(*h.app->userDb());
+        REQUIRE(after.ok());
+        CHECK_EQ(after->size(), size_t(1));
+        auto played = storage::recentPlayedGames(*h.app->userDb(), 5);
+        REQUIRE(played.ok());
+        CHECK_EQ(played->size(), size_t(1));
     }
     std::filesystem::remove_all(root, ec);
 }

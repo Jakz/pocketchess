@@ -3,6 +3,8 @@
 
 #include "core/util/Log.h"
 
+#include <ctime>
+
 namespace pchess::util {
 
 CivilTime civilFromUnix(int64_t t) {
@@ -31,6 +33,26 @@ CivilTime civilFromUnix(int64_t t) {
 int64_t SystemClock::unixSeconds() const {
     using namespace std::chrono;
     return duration_cast<seconds>(system_clock::now().time_since_epoch()).count();
+}
+
+int64_t SystemClock::utcOffsetSeconds(int64_t unixSeconds) const {
+    // Standard C only: the broken-down local and UTC times of the same instant, read back as if
+    // both were UTC; their difference is the offset (DST included). std::localtime/gmtime share a
+    // static buffer: copy each result before the next call (one UI thread uses this).
+    const std::time_t t = static_cast<std::time_t>(unixSeconds);
+    std::tm local{}, utc{};
+    if (const std::tm* l = std::localtime(&t)) local = *l;
+    else return 0;
+    if (const std::tm* u = std::gmtime(&t)) utc = *u;
+    else return 0;
+    auto days = [](const std::tm& x) {  // days since 1970-01-01 of a broken-down date
+        const int y = x.tm_year + 1900 - (x.tm_mon < 2), m = (x.tm_mon + 9) % 12;
+        const int era = (y >= 0 ? y : y - 399) / 400, yoe = y - era * 400;
+        const int doy = (153 * m + 2) / 5 + x.tm_mday - 1, doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        return int64_t(era) * 146097 + doe - 719468;
+    };
+    auto secs = [&](const std::tm& x) { return days(x) * 86400 + x.tm_hour * 3600 + x.tm_min * 60 + x.tm_sec; };
+    return secs(local) - secs(utc);
 }
 
 SystemClock& SystemClock::instance() {

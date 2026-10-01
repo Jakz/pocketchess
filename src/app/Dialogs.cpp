@@ -34,7 +34,7 @@ Rect Dialog::contentRect() const {
 // --- MessageDialog ------------------------------------------------------------------------------
 
 MessageDialog::MessageDialog(Application& app, std::string title, std::string text, std::vector<std::string> buttons,
-                             std::function<void(int)> done, bool vertical)
+                             std::function<void(int)> done, bool vertical, std::vector<std::string> hints)
     : Dialog(app), title_(std::move(title)), text_(std::move(text)), done_(std::move(done)) {
     const UiStyle& s = app_.style();
     const Rect screen = app_.layout().screen;
@@ -57,6 +57,7 @@ MessageDialog::MessageDialog(Application& app, std::string title, std::string te
         Button b;
         b.rect = cells[i];
         b.label = buttons[i];
+        if (i < hints.size()) b.hint = hints[i];
         b.id = static_cast<int>(i);
         b.primary = !vertical && i + 1 == buttons.size();
         buttons_.push_back(b);
@@ -194,33 +195,38 @@ void SwatchDialog::onKey(const InputEvent& e) {
 namespace {
 
 void showListPage(Application& app, std::shared_ptr<const std::vector<std::string>> items, std::string title,
-                  std::shared_ptr<std::function<void(int)>> done, int page, int pageSize) {
+                  std::shared_ptr<std::function<void(int)>> done, int page, int pageSize,
+                  std::shared_ptr<const std::vector<std::string>> hints) {
     const int n = static_cast<int>(items->size());
     const int first = page * pageSize;
     const int last = std::min(n, first + pageSize);
     std::vector<std::string> buttons(items->begin() + first, items->begin() + last);
+    std::vector<std::string> pageHints;
+    for (int k = first; k < last; ++k)
+        pageHints.push_back(k < static_cast<int>(hints->size()) ? (*hints)[static_cast<size_t>(k)] : std::string());
     const bool more = last < n;
     if (more) buttons.push_back("More… (" + std::to_string(last + 1) + "–" + std::to_string(std::min(n, last + pageSize)) +
                                 " of " + std::to_string(n) + ")");
     buttons.push_back("Close");
     app.push(std::make_unique<MessageDialog>(
         app, title, "", buttons,
-        [&app, items, title, done, page, pageSize, first, last, more](int i) {
+        [&app, items, title, done, page, pageSize, first, last, more, hints](int i) {
             if (i >= 0 && i < last - first) return (*done)(first + i);
-            if (more && i == last - first) return showListPage(app, items, title, done, page + 1, pageSize);
+            if (more && i == last - first) return showListPage(app, items, title, done, page + 1, pageSize, hints);
             (*done)(-1);
         },
-        true));
+        true, pageHints));
 }
 
 } // namespace
 
 void chooseFromList(Application& app, const std::string& title, std::vector<std::string> items,
-                    std::function<void(int)> done, int pageSize) {
+                    std::function<void(int)> done, int pageSize, std::vector<std::string> hints) {
     auto shared = std::make_shared<const std::vector<std::string>>(std::move(items));
     auto cb = std::make_shared<std::function<void(int)>>(std::move(done));
     if (shared->empty()) return (*cb)(-1);
-    showListPage(app, shared, title, cb, 0, std::max(1, pageSize));
+    showListPage(app, shared, title, cb, 0, std::max(1, pageSize),
+                 std::make_shared<const std::vector<std::string>>(std::move(hints)));
 }
 
 // --- PromotionDialog ----------------------------------------------------------------------------

@@ -42,6 +42,21 @@ CREATE TABLE session(
 -- The user's side in each played game (Home statistics).
 ALTER TABLE played_games ADD COLUMN human TEXT;   -- white / black
 )sql"},
+    {4, R"sql(
+-- Games in progress (several at once): saved after every move, removed when finished or abandoned.
+CREATE TABLE active_games(
+    id          INTEGER PRIMARY KEY,
+    started     INTEGER NOT NULL,     -- unix seconds
+    last_played INTEGER NOT NULL,
+    human       TEXT NOT NULL,        -- white / black
+    strength    TEXT NOT NULL,
+    engine      TEXT,                 -- engine name when last played (display)
+    fen         TEXT NOT NULL,        -- start position
+    moves       TEXT NOT NULL,        -- UCI, space separated
+    flipped     INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_active_games_last ON active_games(last_played);
+)sql"},
 };
 
 } // namespace
@@ -182,6 +197,69 @@ FROM played_games WHERE human IS NOT NULL AND result <> '*'
     st.drawn = s->integer(2);
     st.lost = s->integer(3);
     return st;
+}
+
+Result<int64_t> saveActiveGame(Database& db, const ActiveGame& g) {
+    auto s = db.prepare(g.id ? "UPDATE active_games SET started = ?1, last_played = ?2, human = ?3, strength = ?4, "
+                               "engine = ?5, fen = ?6, moves = ?7, flipped = ?8 WHERE id = ?9"
+                             : "INSERT INTO active_games(started, last_played, human, strength, engine, fen, moves, "
+                               "flipped) VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)");
+    if (!s) return s.error();
+    s->bind(1, g.started).bind(2, g.lastPlayed).bind(3, g.human).bind(4, g.strength);
+    if (g.engine.empty()) s->bindNull(5);
+    else s->bind(5, g.engine);
+    s->bind(6, g.fen).bind(7, g.moves).bind(8, g.flipped ? 1 : 0);
+    if (g.id) s->bind(9, g.id);
+    if (auto r = s->run(); !r) return r.error();
+    return g.id ? g.id : db.lastInsertId();
+}
+
+Result<void> deleteActiveGame(Database& db, int64_t id) {
+    auto s = db.prepare("DELETE FROM active_games WHERE id = ?1");
+    if (!s) return s.error();
+    s->bind(1, id);
+    return s->run();
+}
+
+namespace {
+constexpr const char* kActiveColumns =
+    "SELECT id, started, last_played, human, strength, engine, fen, moves, flipped FROM active_games";
+ActiveGame readActive(const Statement& s) {
+    ActiveGame g;
+    g.id = s.int64(0);
+    g.started = s.int64(1);
+    g.lastPlayed = s.int64(2);
+    g.human = s.text(3);
+    g.strength = s.text(4);
+    g.engine = s.text(5);
+    g.fen = s.text(6);
+    g.moves = s.text(7);
+    g.flipped = s.integer(8) != 0;
+    return g;
+}
+} // namespace
+
+Result<std::vector<ActiveGame>> activeGames(Database& db) {
+    auto s = db.prepare(std::string(kActiveColumns) + " ORDER BY last_played DESC, id DESC");
+    if (!s) return s.error();
+    std::vector<ActiveGame> out;
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        out.push_back(readActive(*s));
+    }
+    return out;
+}
+
+Result<std::optional<ActiveGame>> activeGame(Database& db, int64_t id) {
+    auto s = db.prepare(std::string(kActiveColumns) + " WHERE id = ?1");
+    if (!s) return s.error();
+    s->bind(1, id);
+    auto row = s->step();
+    if (!row) return row.error();
+    if (!*row) return std::optional<ActiveGame>();
+    return std::optional<ActiveGame>(readActive(*s));
 }
 
 } // namespace pchess::storage

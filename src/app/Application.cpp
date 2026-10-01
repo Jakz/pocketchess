@@ -19,6 +19,7 @@
 #include "ui/theme/Palette.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <chrono>
 #include <filesystem>
 
@@ -383,6 +384,25 @@ games::GamePack* Application::gamePack() {
     gamePackName_ = name;
     Log::info("app", "game pack " + name + ": " + std::to_string(gamePack_->count()) + " games");
     return gamePack_.get();
+}
+
+std::string Application::dateText(int64_t unixSeconds) const {
+    const util::Clock& clock = config_.clock ? *config_.clock : util::SystemClock::instance();
+    const int64_t nowUnix = clock.unixSeconds();
+    const util::CivilTime t = util::civilFromUnix(unixSeconds + clock.utcOffsetSeconds(unixSeconds));
+    const util::CivilTime n = util::civilFromUnix(nowUnix + clock.utcOffsetSeconds(nowUnix));
+    const util::CivilTime y = util::civilFromUnix(nowUnix - 86400 + clock.utcOffsetSeconds(nowUnix - 86400));
+    char hm[8];
+    std::snprintf(hm, sizeof hm, "%02d:%02d", t.hour, t.minute);
+    auto same = [](const util::CivilTime& a, const util::CivilTime& b) {
+        return a.year == b.year && a.month == b.month && a.day == b.day;
+    };
+    if (same(t, n)) return std::string("today ") + hm;
+    if (same(t, y)) return std::string("yesterday ") + hm;
+    static const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    std::string s = std::to_string(t.day) + " " + months[(t.month - 1) % 12];
+    if (t.year != n.year) s += " " + std::to_string(t.year);
+    return s;
 }
 
 int64_t Application::now() const {

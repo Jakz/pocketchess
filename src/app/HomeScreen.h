@@ -22,6 +22,7 @@ public:
     void onEnter() override;
     // Play setup (side, then strength) -> PlayScreen. The strength becomes the new default.
     void startPlay();
+    void newGame();  // side, then strength
     // "Last session" lines (design notes §6.1), recomputed on every entry.
     const std::vector<std::string>& summary() const { return summary_; }
 

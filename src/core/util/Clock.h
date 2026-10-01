@@ -14,6 +14,8 @@ public:
     virtual int64_t unixSeconds() const = 0;
     // Monotonic time for durations and timeouts.
     virtual std::chrono::steady_clock::time_point now() const = 0;
+    // Local time minus UTC at `unixSeconds` (dates shown to the user). Fakes stay on UTC.
+    virtual int64_t utcOffsetSeconds(int64_t) const { return 0; }
 };
 
 // Calendar fields (UTC, proleptic Gregorian) of unix seconds: PGN dates, file names, reports.
@@ -26,6 +28,7 @@ class SystemClock final : public Clock {
 public:
     int64_t unixSeconds() const override;
     std::chrono::steady_clock::time_point now() const override { return std::chrono::steady_clock::now(); }
+    int64_t utcOffsetSeconds(int64_t unixSeconds) const override;
     static SystemClock& instance();
 };
 

@@ -140,6 +140,8 @@ public:
     const games::OpeningBook* openings();
     std::vector<std::string> gamePackNames() const;
     int64_t now() const;  // unix seconds for reviews: the clock plus Settings clock offset (device tests)
+    // A date for the user, in local time: "today 10:32", "yesterday 18:05", "28 Sep", "3 Mar 2025".
+    std::string dateText(int64_t unixSeconds) const;
 
     // Engines (M2): registry of engines/*/engine.yaml and the job manager.
     engine::EngineRegistry& engineRegistry() { return engineRegistry_; }

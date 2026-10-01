@@ -16,6 +16,7 @@
 #include "core/storage/ChessDb.h"
 #include "core/util/Clock.h"
 
+#include <algorithm>
 #include <cctype>
 
 namespace pchess::app {
@@ -184,6 +185,34 @@ void HomeScreen::open(int id) {
 }
 
 void HomeScreen::startPlay() {
+    // Games in progress first (most recently played), each with its start and last-played dates.
+    std::vector<storage::ActiveGame> games;
+    if (storage::Database* db = app_.userDb())
+        if (auto g = storage::activeGames(*db); g) games = std::move(*g);
+    if (games.empty()) return newGame();
+    std::vector<std::string> labels, hints;
+    for (const auto& g : games) {
+        const int plies = g.moves.empty() ? 0 : static_cast<int>(std::count(g.moves.begin(), g.moves.end(), ' ')) + 1;
+        std::string strength = g.strength;
+        if (!strength.empty()) strength[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(strength[0])));
+        labels.push_back((g.human == "white" ? "White" : "Black") + std::string(" vs ") + strength + " · move " +
+                         std::to_string(plies / 2 + 1));
+        hints.push_back("started " + app_.dateText(g.started) + " · last played " + app_.dateText(g.lastPlayed));
+    }
+    labels.push_back("New game…");
+    hints.push_back("");
+    chooseFromList(
+        app_, "Play", labels,
+        [this, games](int i) {
+            if (i < 0) return;
+            if (static_cast<size_t>(i) == games.size()) return newGame();
+            if (auto p = PlayScreen::resume(app_, games[static_cast<size_t>(i)])) app_.push(std::move(p));
+            else app_.showMessage("Cannot resume", "The saved game could not be read.");
+        },
+        5, hints);
+}
+
+void HomeScreen::newGame() {
     // Choice lists end with Close (chooseFromList): nothing forces a game to start.
     chooseFromList(
         app_, "Play as", {"White", "Black", "Random"},

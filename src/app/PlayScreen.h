@@ -2,6 +2,7 @@
 #pragma once
 
 #include "app/Screen.h"
+#include "core/storage/ChessDb.h"
 #include "core/chess/GameTree.h"
 #include "core/chess/Move.h"
 #include "core/chess/Position.h"
@@ -40,6 +41,9 @@ public:
     bool saveSession(std::map<std::string, std::string>& out) const override;
     // From a saved session (ADR 0011); nullptr if it is invalid.
     static std::unique_ptr<PlayScreen> restore(Application& app, const std::map<std::string, std::string>& session);
+    // A game in progress from user/chess.db (Home -> Play).
+    static std::unique_ptr<PlayScreen> resume(Application& app, const storage::ActiveGame& game);
+    int64_t activeId() const { return activeId_; }
 
     // For tests and scripted sessions.
     const chess::Position& position() const { return pos_; }
@@ -88,6 +92,9 @@ private:
     void newGame();
     void openMenu();
     void leave();
+    void abandon();        // asks, then removes the game from the games in progress
+    void persist();        // saves the game in progress (active_games)
+    void discardActive();
 
     PlaySetup setup_;
     std::string engineName_;
@@ -105,6 +112,7 @@ private:
     bool engineBlocked_ = false;  // engine missing/failed: wait for Retry instead of asking again
     std::string result_ = "*", reason_;
     int64_t savedId_ = 0;
+    int64_t activeId_ = 0;  // active_games row, 0 until the first move is saved
 
     ui::BoardView board_;
     std::vector<ui::Button> buttons_;
