@@ -16,7 +16,7 @@ On the PB634K3 only Prev, Next and Menu reach the app (Back/Home are taken by th
 2. **Bottom bar**, same order everywhere: `←` (back to the screen underneath, whose name is the caption: "Home", "Games"; an opening family goes back to "Openings") at the far left, then `◀` `▶` do what the Prev/Next keys do on
    that screen, with a caption (*move*, *page*, *retry*/*next*, *undo*); then the screen's own
    actions; `Menu` always at the right, the same as the Menu key.
-3. **Menus** end with "← Back to *screen underneath*" and "Close"; every choice list (settings, Play setup) ends with "Close", so nothing forces a choice, so the three hardware keys are
+3. **Menus** end with "← Back to *screen underneath*" and "Close"; every choice list (settings, Play setup) ends with "Close" (nothing forces a choice). The three hardware keys are
    enough everywhere. List screens (Games, Import, Settings) do not move a focus cursor: Prev/Next
    turn pages and the Menu offers "Open a game…", "Choose an item…", or (Settings) the page's settings directly.
 4. **Controls live at the bottom** (one-hand use, decided 2026-10-01): every in-view control group
