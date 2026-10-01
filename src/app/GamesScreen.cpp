@@ -57,14 +57,15 @@ void GamesScreen::layout() {
         b.rect = chipCells[static_cast<size_t>(i)];
         chips_.push_back(b);
     }
-    const auto navCells = splitRow(navRect, 3, pad);
+    const auto navCells = splitRow(navRect, 4, pad);  // [‹] ◀ ▶ Menu
+    backRect_ = navCells[0];
     const char* navLabels[] = {"◀", "▶", "Menu"};  // ◀ ▶ = the Prev/Next keys
     for (int i = 0; i < 3; ++i) {
         Button b;
         b.id = BtnPrev + i;
         b.label = navLabels[i];
         if (i < 2) b.hint = "page";
-        b.rect = navCells[static_cast<size_t>(i)];
+        b.rect = navCells[static_cast<size_t>(i) + 1];
         nav_.push_back(b);
     }
     listRect_ = {pad, l.status.bottom() + pad, l.screen.w - 2 * pad, chipsRect.y - pad - l.status.bottom() - pad};
@@ -202,6 +203,7 @@ void GamesScreen::draw(Canvas& c, const Rect& clip) {
     drawStatusBar(app_, c, *this, title_, right);
     for (const Button& b : chips_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
+    drawBackButton(app_, c, *this, backRect_);
     for (const Button& b : nav_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
     if (!clip.intersects(listRect_)) return;
@@ -246,7 +248,7 @@ void GamesScreen::onEnter() {
 
 void GamesScreen::onGesture(const Gesture& g) {
     if (g.type != Gesture::Type::Tap) return;
-    if (statusBackRect(app_).contains(g.start)) return app_.pop();
+    if (backRect_.contains(g.start)) return app_.pop();
     if (listRect_.contains(g.start) && rowH_ > 0) return open(static_cast<size_t>((g.start.y - listRect_.y) / rowH_));
     switch (hitTest(chips_, g.start)) {
     case BtnPlayer: return editPlayer();

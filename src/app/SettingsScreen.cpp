@@ -38,14 +38,15 @@ SettingsScreen::SettingsScreen(Application& app) : Screen(app) {
     const int pad = s.fontPx / 2;
     footer_ = {pad, l.screen.h - kMinTouchPx - 2 * pad, l.screen.w - 2 * pad, kMinTouchPx + pad};
     body_ = {pad, l.status.bottom() + pad, l.screen.w - 2 * pad, footer_.y - l.status.bottom() - 2 * pad};
-    const auto cells = splitRow({footer_.x, footer_.y + pad, footer_.w, kMinTouchPx}, 3, pad);
+    const auto cells = splitRow({footer_.x, footer_.y + pad, footer_.w, kMinTouchPx}, 4, pad);  // [‹] ◀ ▶ Menu
+    backRect_ = cells[0];
     const char* labels[] = {"◀", "▶", "Menu"};  // ◀ ▶ = the Prev/Next keys
     for (int id : {NavPrev, NavNext, NavMenu}) {
         Button b;
         b.id = id;
         b.label = labels[id];
         if (id != NavMenu) b.hint = "page";
-        b.rect = cells[static_cast<size_t>(id)];
+        b.rect = cells[static_cast<size_t>(id) + 1];
         nav_.push_back(b);
     }
     buildItems();
@@ -284,6 +285,7 @@ void SettingsScreen::draw(Canvas& c, const Rect& clip) {
         }
         c.fill({row.rect.x, row.rect.bottom() - 1, row.rect.w, 1}, blend(t.background, t.frame, 90));
     }
+    drawBackButton(app_, c, *this, backRect_);
     for (const Button& b : nav_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
 }
@@ -323,8 +325,7 @@ void SettingsScreen::activate(int item) {
         util::Log::info("settings", chosen.label + " = " + valueText(chosen));
         changed();
     };
-    if (buttons.size() > 7) return chooseFromList(app_, it.label, buttons, done);  // long lists page
-    app_.push(std::make_unique<MessageDialog>(app_, it.label, "", buttons, done, true));
+    chooseFromList(app_, it.label, buttons, done, 7);  // ends with Close: nothing forces a choice
 }
 
 // Key-only use (the reader's buttons are Prev, Next and Menu): Prev/Next turn pages, Menu offers
@@ -338,22 +339,19 @@ void SettingsScreen::openMenu() {
             labels.push_back(items_[static_cast<size_t>(row.item)].label + ": " +
                              valueText(items_[static_cast<size_t>(row.item)]));
         }
-    app_.push(std::make_unique<MessageDialog>(
-        app_, "Settings", "", std::vector<std::string>{"Change a setting…", backMenuLabel(app_, *this), "Close"},
-        [this, ids, labels](int i) {
-            if (i == 1) return app_.pop();
-            if (i != 0) return;
-            chooseFromList(app_, "Settings " + std::to_string(page_ + 1) + "/" + std::to_string(pages_.size()), labels,
-                           [this, ids](int k) {
-                               if (k >= 0) activate(ids[static_cast<size_t>(k)]);
-                           });
-        },
-        true));
+    // One level: the settings of this page, then Back (chooseFromList adds More… and Close).
+    labels.push_back(backMenuLabel(app_, *this));
+    chooseFromList(app_, "Settings " + std::to_string(page_ + 1) + "/" + std::to_string(pages_.size()), labels,
+                   [this, ids](int k) {
+                       if (k < 0) return;
+                       if (static_cast<size_t>(k) == ids.size()) return app_.pop();
+                       activate(ids[static_cast<size_t>(k)]);
+                   });
 }
 
 void SettingsScreen::onGesture(const Gesture& g) {
     if (g.type != Gesture::Type::Tap) return;
-    if (statusBackRect(app_).contains(g.start)) {
+    if (backRect_.contains(g.start)) {
         app_.pop();
         return;
     }

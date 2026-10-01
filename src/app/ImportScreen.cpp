@@ -28,14 +28,15 @@ void ImportScreen::layout() {
     const UiStyle& s = app_.style();
     const int pad = s.fontPx / 3;
     const Rect navRect{pad, l.screen.h - pad - kMinTouchPx, l.screen.w - 2 * pad, kMinTouchPx};
-    const auto cells = splitRow(navRect, 4, pad);
+    const auto cells = splitRow(navRect, 5, pad);  // [‹] then the four buttons
+    backRect_ = cells[0];
     const char* labels[] = {"◀", "▶", "Rescan", "Menu"};  // ◀ ▶ = the Prev/Next keys
     for (int i = 0; i < 4; ++i) {
         Button b;
         b.id = i;
         b.label = labels[i];
         if (i < 2) b.hint = "page";
-        b.rect = cells[static_cast<size_t>(i)];
+        b.rect = cells[static_cast<size_t>(i) + 1];
         nav_.push_back(b);
     }
     listRect_ = {pad, l.status.bottom() + pad, l.screen.w - 2 * pad, navRect.y - pad - l.status.bottom() - pad};
@@ -86,6 +87,7 @@ void ImportScreen::draw(Canvas& c, const Rect& clip) {
     c.fill(clip, t.background);
     const std::string right = items_.empty() ? "" : std::to_string(page_ + 1) + "/" + std::to_string(pageCount());
     drawStatusBar(app_, c, *this, "Import", right);
+    drawBackButton(app_, c, *this, backRect_);
     for (const Button& b : nav_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
     if (!clip.intersects(listRect_)) return;
@@ -233,7 +235,7 @@ void ImportScreen::choose(size_t index) {
 
 void ImportScreen::onGesture(const Gesture& g) {
     if (g.type != Gesture::Type::Tap) return;
-    if (statusBackRect(app_).contains(g.start)) return app_.pop();
+    if (backRect_.contains(g.start)) return app_.pop();
     if (listRect_.contains(g.start) && rowH_ > 0) {
         const size_t row = static_cast<size_t>((g.start.y - listRect_.y) / rowH_);
         if (row < static_cast<size_t>(rowsPerPage_)) choose(static_cast<size_t>(page_ * rowsPerPage_) + row);

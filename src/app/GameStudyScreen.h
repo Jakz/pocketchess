@@ -69,7 +69,7 @@ private:
 
     ui::BoardView board_;
     std::vector<ui::Button> buttons_;
-    ui::Rect headRect_, commentRect_, movesRect_, buttonsRect_;
+    ui::Rect headRect_, commentRect_, movesRect_, buttonsRect_, backRect_;
     std::vector<MoveHit> hits_;
     std::string error_;
 };

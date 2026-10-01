@@ -56,7 +56,7 @@ private:
     int page_ = 0, total_ = 0;
     std::vector<games::GameRow> rows_;
     std::vector<ui::Button> chips_, nav_;
-    ui::Rect listRect_;
+    ui::Rect listRect_, backRect_;
     int rowH_ = 0;
     std::string message_;  // empty list / no pack
     std::string title_ = "Games";  // the pack's meta title

@@ -95,7 +95,8 @@ void AnalyzeScreen::layoutPanel() {
     movesRect_ = {p.x + pad * 2, engineRect_.bottom(), p.w - pad * 4, avail - engineH};
 
     const char* labels[] = {"◀", "▶", "Flip", "Engine", "Menu"};
-    const auto cells = splitRow(buttonsRect_, 5, pad);
+    const auto cells = splitRow(buttonsRect_, 6, pad);  // [‹] then the five buttons
+    backRect_ = cells[0];
     const bool first = buttons_.empty();
     if (first) {
         for (int i = 0; i < 5; ++i) {
@@ -106,7 +107,7 @@ void AnalyzeScreen::layoutPanel() {
             buttons_.push_back(b);
         }
     }
-    for (int i = 0; i < 5; ++i) buttons_[static_cast<size_t>(i)].rect = cells[static_cast<size_t>(i)];
+    for (int i = 0; i < 5; ++i) buttons_[static_cast<size_t>(i)].rect = cells[static_cast<size_t>(i) + 1];
     Button& eng = buttons_[BtnEngine];
     eng.hint = buttonsHint(engineMode_);
     eng.primary = engineMode_ != EngineMode::Off;
@@ -222,6 +223,7 @@ void AnalyzeScreen::draw(Canvas& c, const Rect& clip) {
     }
     if (!engineRect_.empty() && clip.intersects(engineRect_)) drawEngine(c);
     if (clip.intersects(movesRect_)) drawMoves(c);
+    drawBackButton(app_, c, *this, backRect_);
     for (const Button& b : buttons_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
 }
@@ -520,7 +522,7 @@ void AnalyzeScreen::onGesture(const Gesture& g) {
         if (app_.layout().board.contains(g.start)) openMenu();
         return;
     }
-    if (statusBackRect(app_).contains(g.start)) {
+    if (backRect_.contains(g.start)) {
         app_.pop();
         return;
     }

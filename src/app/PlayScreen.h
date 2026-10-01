@@ -108,7 +108,7 @@ private:
 
     ui::BoardView board_;
     std::vector<ui::Button> buttons_;
-    ui::Rect statusRect_, movesRect_, buttonsRect_;
+    ui::Rect statusRect_, movesRect_, buttonsRect_, backRect_;
     std::shared_ptr<char> alive_ = std::make_shared<char>('\0');
 };
 

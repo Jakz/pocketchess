@@ -62,13 +62,14 @@ void GameStudyScreen::layoutPanel() {
     buttonsRect_ = {p.x + pad, p.bottom() - pad - btnH, p.w - 2 * pad, btnH};
     movesRect_ = {headRect_.x, commentRect_.bottom() + pad / 2, headRect_.w, buttonsRect_.y - pad - commentRect_.bottom()};
     const char* labels[] = {"◀", "▶", "Main", "☆", "Menu"};
-    const auto cells = splitRow(buttonsRect_, 5, pad);
+    const auto cells = splitRow(buttonsRect_, 6, pad);  // [‹] then the five buttons
+    backRect_ = cells[0];
     for (int i = 0; i < 5; ++i) {
         Button b;
         b.id = i;
         b.label = labels[i];
         if (i < 2) b.hint = "move";  // the Prev/Next keys
-        b.rect = cells[static_cast<size_t>(i)];
+        b.rect = cells[static_cast<size_t>(i) + 1];
         buttons_.push_back(b);
     }
 }
@@ -186,6 +187,7 @@ void GameStudyScreen::draw(Canvas& c, const Rect& clip) {
     }
     if (clip.intersects(movesRect_) && loaded_)
         drawMoveList(app_, c, movesRect_, game_.tree, node_, "Next ▶ to step through the game.", &hits_);
+    drawBackButton(app_, c, *this, backRect_);
     for (const Button& b : buttons_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
 }
@@ -195,7 +197,7 @@ void GameStudyScreen::draw(Canvas& c, const Rect& clip) {
 void GameStudyScreen::onGesture(const Gesture& g) {
     if (g.type == Gesture::Type::LongPress) return openMenu();
     if (g.type != Gesture::Type::Tap) return;
-    if (statusBackRect(app_).contains(g.start)) return app_.pop();
+    if (backRect_.contains(g.start)) return app_.pop();
     for (const MoveHit& h : hits_)
         if (h.rect.contains(g.start)) return jumpTo(h.node);
     if (app_.layout().board.contains(g.start)) return next();  // tapping the board steps forward

@@ -39,12 +39,14 @@ DiagnosticsScreen::DiagnosticsScreen(Application& app) : Screen(app) {
     const char* labels[] = {"1 square", "12 squares", "Full", "Touch", "Keys", "Engine", "Timing log", "Bench"};
     const auto rows = splitColumn(grid, 2, pad);
     for (int r = 0; r < 2; ++r) {
-        const auto cells = splitRow(rows[static_cast<size_t>(r)], 4, pad);
+        // The bottom row starts with the back button (ADR 0014).
+        const auto cells = splitRow(rows[static_cast<size_t>(r)], r == 1 ? 5 : 4, pad);
+        if (r == 1) backRect_ = cells[0];
         for (int c = 0; c < 4; ++c) {
             Button b;
             b.id = r * 4 + c;
             b.label = labels[b.id];
-            b.rect = cells[static_cast<size_t>(c)];
+            b.rect = cells[static_cast<size_t>(c + (r == 1 ? 1 : 0))];
             buttons_.push_back(b);
         }
     }
@@ -139,6 +141,7 @@ void DiagnosticsScreen::draw(Canvas& c, const Rect& clip) {
         if (!r.intersects(clip)) continue;
         c.fill(r, cells_[static_cast<size_t>(i)] ? t.ink : ((i & 1) ? t.dark : t.light));
     }
+    drawBackButton(app_, c, *this, backRect_);
     for (const Button& b : buttons_) {
         Button bb = b;
         if (b.id == BtnKeys && keyCapture_) bb.primary = true;
@@ -347,7 +350,7 @@ void DiagnosticsScreen::onGesture(const Gesture& g) {
         log("drag " + std::to_string(g.start.x) + "," + std::to_string(g.start.y) + " -> " + std::to_string(g.end.x) +
             "," + std::to_string(g.end.y));
     if (g.type != Gesture::Type::Tap) return;
-    if (statusBackRect(app_).contains(g.start)) {
+    if (backRect_.contains(g.start)) {
         app_.pop();
         return;
     }

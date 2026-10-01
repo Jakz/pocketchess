@@ -12,15 +12,13 @@ On the PB634K3 only Prev, Next and Menu reach the app (Back/Home are taken by th
 
 ## Decision
 
-1. **Top bar**: the left quarter is a framed button "‹ *screen underneath*" (its `Screen::title()`,
-   found on the stack: "‹ Games" in a game, "‹ Home" elsewhere). It is the only on-screen way back.
-   The bar is 7.5 mm tall (was 5.4 mm); the board lost 3 px per square for it (131 px on the reader).
-2. **Bottom bar**, same order everywhere: `◀` `▶` at the left do what the Prev/Next keys do on
+1. **Top bar**: title and status only, no controls (revised 2026-10-01: a back button at the top contradicted one-hand use). The bar is 5.4 mm tall again; the board keeps 134 px squares.
+2. **Bottom bar**, same order everywhere: `←` (back to the screen underneath, whose name is the caption: "Home", "Games"; an opening family goes back to "Openings") at the far left, then `◀` `▶` do what the Prev/Next keys do on
    that screen, with a caption (*move*, *page*, *retry*/*next*, *undo*); then the screen's own
    actions; `Menu` always at the right, the same as the Menu key.
-3. **Menus** end with "‹ Back to *screen underneath*" and "Close", so the three hardware keys are
+3. **Menus** end with "← Back to *screen underneath*" and "Close"; every choice list (settings, Play setup) ends with "Close", so nothing forces a choice, so the three hardware keys are
    enough everywhere. List screens (Games, Import, Settings) do not move a focus cursor: Prev/Next
-   turn pages and the Menu offers "Open a game…", "Choose an item…" or "Change a setting…".
+   turn pages and the Menu offers "Open a game…", "Choose an item…", or (Settings) the page's settings directly.
 4. **Controls live at the bottom** (one-hand use, decided 2026-10-01): every in-view control group
    (button bars, filter chips, the Home launcher, the Diagnostics grid) sits at the bottom of the
    screen, directly above the bottom bar. Only modal dialogs are centered.

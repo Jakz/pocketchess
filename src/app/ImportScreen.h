@@ -41,7 +41,7 @@ private:
 
     std::vector<ImportItem> items_;
     std::vector<ui::Button> nav_;
-    ui::Rect listRect_;
+    ui::Rect listRect_, backRect_;
     int rowH_ = 0, rowsPerPage_ = 8, page_ = 0;
 };
 

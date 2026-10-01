@@ -263,7 +263,7 @@ TEST_CASE("import screen: keys only - Prev/Next turn pages, Menu chooses an item
     CHECK_EQ(std::string(h.app->top()->name()), std::string("message"));
     REQUIRE(runScript(*h.app, "key:ok").ok());
     REQUIRE(h.screen() != nullptr);
-    REQUIRE(runScript(*h.app, "key:menu;key:next;key:next;key:ok").ok());  // "‹ Back to Home"
+    REQUIRE(runScript(*h.app, "key:menu;key:next;key:next;key:ok").ok());  // "← Back to Home"
     CHECK_EQ(std::string(h.app->top()->name()), std::string("home"));
     std::error_code ec;
     h.app.reset();

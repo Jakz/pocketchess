@@ -72,13 +72,14 @@ void PlayScreen::layoutPanel() {
     buttonsRect_ = {p.x + pad, p.bottom() - pad - btnH, p.w - 2 * pad, btnH};
     movesRect_ = {p.x + pad * 2, statusRect_.bottom(), p.w - pad * 4, buttonsRect_.y - pad - statusRect_.bottom()};
     const char* labels[] = {"◀", "Flip", "Draw", "Resign", "Menu"};  // ◀ = the Prev key: undo
-    const auto cells = splitRow(buttonsRect_, 5, pad);
+    const auto cells = splitRow(buttonsRect_, 6, pad);  // [‹] then the five buttons
+    backRect_ = cells[0];
     for (int i = 0; i < 5; ++i) {
         Button b;
         b.id = i;
         b.label = labels[i];
         if (i == 0) b.hint = "undo";
-        b.rect = cells[static_cast<size_t>(i)];
+        b.rect = cells[static_cast<size_t>(i) + 1];
         buttons_.push_back(b);
     }
 }
@@ -166,6 +167,7 @@ void PlayScreen::draw(Canvas& c, const Rect& clip) {
     if (clip.intersects(movesRect_))
         drawMoveList(app_, c, movesRect_, tree_, node_,
                      setup_.human == White ? "You play White: tap a piece, then a square." : "You play Black.");
+    drawBackButton(app_, c, *this, backRect_);
     for (const Button& b : buttons_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
 }
@@ -523,7 +525,7 @@ void PlayScreen::onGesture(const Gesture& g) {
         if (app_.layout().board.contains(g.start)) openMenu();
         return;
     }
-    if (statusBackRect(app_).contains(g.start)) return leave();
+    if (backRect_.contains(g.start)) return leave();
     if (app_.layout().board.contains(g.start)) {
         if (app_.settings().tapToMove) onSquare(board_.squareAt(g.start));
         return;

@@ -55,7 +55,7 @@ private:
     std::vector<Item> items_;
     std::vector<std::vector<Row>> pages_;
     std::vector<ui::Button> nav_;  // Prev page / Next page
-    ui::Rect body_, footer_;
+    ui::Rect body_, footer_, backRect_;
     int page_ = 0;
 };
 

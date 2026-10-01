@@ -76,7 +76,7 @@ void Application::rescanEngines() {
 void Application::computeLayout() {
     Layout& l = layout_;
     l.screen = canvas_.bounds();
-    const int statusH = profile_.mm(7.5);  // the top bar holds the Back button: close to 9 mm
+    const int statusH = profile_.mm(5.4);  // title and status only: controls are at the bottom
     const int minPanel = profile_.mm(26);
     int board = std::min(l.screen.w, l.screen.h - statusH - minPanel);
     l.square = board / 8;

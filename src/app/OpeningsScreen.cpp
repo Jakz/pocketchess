@@ -49,14 +49,15 @@ void OpeningsScreen::layout() {
     const int pad = s.fontPx / 3;
     // Controls at the bottom (one-hand use, ADR 0014): ◀ ▶ page, Find, Menu.
     const Rect navRect{pad, l.screen.h - pad - kMinTouchPx, l.screen.w - 2 * pad, kMinTouchPx};
-    const auto cells = splitRow(navRect, 4, pad);
+    const auto cells = splitRow(navRect, 5, pad);  // [‹] then the four buttons
+    backRect_ = cells[0];
     const char* labels[] = {"◀", "▶", "Find", "Menu"};
     for (int i = 0; i < 4; ++i) {
         Button b;
         b.id = i;
         b.label = labels[i];
         if (i < 2) b.hint = "page";
-        b.rect = cells[static_cast<size_t>(i)];
+        b.rect = cells[static_cast<size_t>(i) + 1];
         nav_.push_back(b);
     }
     listRect_ = {pad, l.status.bottom() + pad, l.screen.w - 2 * pad, navRect.y - pad - l.status.bottom() - pad};
@@ -139,6 +140,7 @@ void OpeningsScreen::showPage() {
         if (b.id == BtnPrev) b.enabled = page_ > 0;
         if (b.id == BtnNext) b.enabled = page_ + 1 < pageCount();
     }
+    app_.invalidate(backRect_, RefreshHint::Content);  // its caption follows the level
     app_.invalidate(listRect_, RefreshHint::Page);
     app_.invalidate(app_.layout().status, RefreshHint::Content);
     for (const Button& b : nav_) app_.invalidate(b.rect, RefreshHint::Content);
@@ -158,7 +160,8 @@ void OpeningsScreen::draw(Canvas& c, const Rect& clip) {
     const UiStyle& s = app_.style();
     c.fill(clip, t.background);
     const std::string right = std::to_string(page_ + 1) + "/" + std::to_string(pageCount());
-    drawStatusBar(app_, c, *this, heading_, right, family_.empty() && query_.empty() ? "" : "Openings");
+    drawStatusBar(app_, c, *this, heading_, right);
+    drawBackButton(app_, c, *this, backRect_, family_.empty() && query_.empty() ? "" : "Openings");
     for (const Button& b : nav_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
     if (!clip.intersects(listRect_)) return;
@@ -249,7 +252,7 @@ void OpeningsScreen::openMenu() {
 
 void OpeningsScreen::onGesture(const Gesture& g) {
     if (g.type != Gesture::Type::Tap) return;
-    if (statusBackRect(app_).contains(g.start)) {
+    if (backRect_.contains(g.start)) {
         // Inside a family or a search, Back first returns to the families.
         if (!family_.empty() || !query_.empty()) return showFamilies();
         return app_.pop();

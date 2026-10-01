@@ -83,7 +83,7 @@ private:
 
     ui::BoardView board_;
     std::vector<ui::Button> buttons_;
-    ui::Rect statusRect_, infoRect_, buttonsRect_;
+    ui::Rect statusRect_, infoRect_, buttonsRect_, backRect_;
     util::Timer timer_;
     std::shared_ptr<char> alive_ = std::make_shared<char>('\0');
 };

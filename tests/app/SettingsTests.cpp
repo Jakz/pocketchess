@@ -143,12 +143,13 @@ TEST_CASE("settings screen: keys only - Prev/Next turn pages, Menu changes a set
     CHECK_EQ(h.screen()->page(), 1);
     h.run("key:prev");
     CHECK_EQ(h.screen()->page(), 0);
-    h.run("key:menu;key:ok");  // "Change a setting…": the rows of this page
-    h.run("key:ok");           // Mode: Color -> Monochrome
+    h.run("key:menu;key:ok");  // the menu lists this page's settings: Mode, Color -> Monochrome
     CHECK(h.app->settings().mono);
     h.app->settings().mono = false;
     h.app->applySettings();
-    h.run("key:menu;key:next;key:ok");  // "‹ Back to Home"
+    // "← Back to Home" is the last entry, just before Close, on the menu's last page.
+    h.run("key:menu;key:prev;key:prev;key:ok");  // Close, More… -> the last page
+    h.run("key:prev;key:prev;key:ok");          // Close, ← Back to Home
     CHECK(h.screen() == nullptr);
     CHECK_EQ(std::string(h.app->top()->name()), std::string("home"));
 }

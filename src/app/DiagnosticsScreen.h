@@ -46,7 +46,7 @@ private:
     ui::Rect testCell(int i) const;
 
     std::vector<ui::Button> buttons_;
-    ui::Rect infoRect_, testRect_, logRect_;
+    ui::Rect infoRect_, testRect_, logRect_, backRect_;
     std::vector<std::string> info_;
     std::deque<std::string> log_;
     std::vector<bool> cells_;

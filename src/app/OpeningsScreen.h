@@ -52,7 +52,7 @@ private:
     std::string heading_ = "Openings";
     std::string family_, query_;
     std::vector<ui::Button> nav_;
-    ui::Rect listRect_;
+    ui::Rect listRect_, backRect_;
     int rowH_ = 0, rowsPerPage_ = 8, page_ = 0;
 };
 

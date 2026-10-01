@@ -184,8 +184,9 @@ void HomeScreen::open(int id) {
 }
 
 void HomeScreen::startPlay() {
-    app_.push(std::make_unique<MessageDialog>(
-        app_, "Play as", "", std::vector<std::string>{"White", "Black", "Random"},
+    // Choice lists end with Close (chooseFromList): nothing forces a game to start.
+    chooseFromList(
+        app_, "Play as", {"White", "Black", "Random"},
         [this](int side) {
             if (side < 0) return;
             chess::Color human = side == 0 ? chess::White : chess::Black;
@@ -197,8 +198,8 @@ void HomeScreen::startPlay() {
                 t[0] = static_cast<char>(t[0] - 'a' + 'A');
                 texts.push_back((l == app_.settings().playStrength ? "✓ " : "") + t);
             }
-            app_.push(std::make_unique<MessageDialog>(
-                app_, "Strength", "", texts,
+            chooseFromList(
+                app_, "Strength", texts,
                 [this, human](int i) {
                     if (i < 0) return;
                     PlaySetup setup;
@@ -210,9 +211,8 @@ void HomeScreen::startPlay() {
                     }
                     app_.push(std::make_unique<PlayScreen>(app_, setup));
                 },
-                true));
-        },
-        true));
+                8);
+        });
 }
 
 void HomeScreen::moveFocus(int delta) {

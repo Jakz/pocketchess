@@ -54,13 +54,14 @@ void TacticsScreen::layoutPanel() {
     infoRect_ = {statusRect_.x, statusRect_.bottom(), statusRect_.w, buttonsRect_.y - pad - statusRect_.bottom()};
     const char* labels[] = {"◀", "▶", "Hint", "Solution", "Menu"};
     const char* hints[] = {"retry", "next", "", "", ""};
-    const auto cells = splitRow(buttonsRect_, 5, pad);
+    const auto cells = splitRow(buttonsRect_, 6, pad);  // [‹] then the five buttons
+    backRect_ = cells[0];
     for (int i = 0; i < 5; ++i) {
         Button b;
         b.id = i;
         b.label = labels[i];
         b.hint = hints[i];
-        b.rect = cells[static_cast<size_t>(i)];
+        b.rect = cells[static_cast<size_t>(i) + 1];
         buttons_.push_back(b);
     }
 }
@@ -362,6 +363,7 @@ void TacticsScreen::draw(Canvas& c, const Rect& clip) {
         Font& small = app_.fonts().get(s.smallPx);
         drawLines(c, infoRect_, small.wrap(info_, infoRect_.w), small, blend(t.background, t.ink, 170));
     }
+    drawBackButton(app_, c, *this, backRect_);
     for (const Button& b : buttons_)
         if (clip.intersects(b.rect)) drawButton(c, b, t, app_.fonts(), s);
 }
@@ -419,7 +421,7 @@ void TacticsScreen::onGesture(const Gesture& g) {
         if (app_.layout().board.contains(g.start)) openMenu();
         return;
     }
-    if (statusBackRect(app_).contains(g.start)) return app_.pop();
+    if (backRect_.contains(g.start)) return app_.pop();
     if (app_.layout().board.contains(g.start)) {
         if (app_.settings().tapToMove) onSquare(board_.squareAt(g.start));
         return;

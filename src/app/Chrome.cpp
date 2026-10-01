@@ -1,17 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "app/Chrome.h"
 
+#include <algorithm>
+
 namespace pchess::app {
 
 using namespace ui;
 
-Rect statusBackRect(const Application& app) {
-    const Rect s = app.layout().status;
-    return {s.x, s.y, s.w / 4, s.h};
-}
-
-void drawStatusBar(Application& app, Canvas& c, const Screen& self, const std::string& title,
-                   const std::string& right, const std::string& backOverride) {
+void drawStatusBar(Application& app, Canvas& c, const Screen&, const std::string& title, const std::string& right) {
     const BoardTheme& t = app.theme();
     const UiStyle& st = app.style();
     const Rect s = app.layout().status;
@@ -21,22 +17,27 @@ void drawStatusBar(Application& app, Canvas& c, const Screen& self, const std::s
     Font& f = app.fonts().get(st.fontPx, FontStyle::Bold);
     Font& small = app.fonts().get(st.smallPx);
     const int pad = st.fontPx / 2;
-    const std::string back = backOverride.empty() ? app.parentTitle(&self) : backOverride;
-    if (!back.empty()) {  // a real button: framed, the full height of the bar
-        const Rect b = statusBackRect(app).inset(st.stroke * 2);
-        c.frame(b, st.stroke, t.frame);
-        f.drawCentered(c, b, fitText(f, "‹ " + back, b.w - pad), t.ink);
-    }
-    f.drawCentered(c, {s.x + s.w / 4, s.y, s.w / 2, s.h - st.stroke}, fitText(f, title, s.w / 2 - pad), t.ink);
-    if (!right.empty()) {
-        const int w = small.measure(right);
-        small.draw(c, s.right() - pad - w, s.y + (s.h - small.ascent() - small.descent()) / 2 + small.ascent(), right, t.ink);
-    }
+    const int rightW = right.empty() ? 0 : small.measure(right) + pad;
+    const int titleW = s.w - 2 * std::max(rightW, s.w / 6);
+    f.drawCentered(c, {s.x + (s.w - titleW) / 2, s.y, titleW, s.h - st.stroke}, fitText(f, title, titleW), t.ink);
+    if (!right.empty())
+        small.draw(c, s.right() - pad - small.measure(right),
+                   s.y + (s.h - small.ascent() - small.descent()) / 2 + small.ascent(), right, t.ink);
+}
+
+void drawBackButton(Application& app, Canvas& c, const Screen& self, const Rect& r, const std::string& override) {
+    if (r.empty() || !r.intersects(c.clip())) return;
+    Button b;
+    b.label = "←";
+    b.hint = override.empty() ? app.parentTitle(&self) : override;
+    if (b.hint.empty()) b.hint = "Home";
+    b.rect = r;
+    drawButton(c, b, app.theme(), app.fonts(), app.style());
 }
 
 std::string backMenuLabel(const Application& app, const Screen& self) {
     const std::string back = app.parentTitle(&self);
-    return "‹ Back to " + (back.empty() ? std::string("Home") : back);
+    return "← Back to " + (back.empty() ? std::string("Home") : back);
 }
 
 std::string batteryText(Application& app) {
