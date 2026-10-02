@@ -112,6 +112,37 @@ CREATE TABLE mistake_scans(
     found   INTEGER NOT NULL
 );
 )sql"},
+    {7, R"sql(
+-- Opening practice (M7): one row per drill, updated after every move of the user.
+CREATE TABLE drill_runs(
+    id       INTEGER PRIMARY KEY,
+    pack     TEXT NOT NULL,           -- the game pack whose statistics were the book
+    side     TEXT NOT NULL,           -- white / black
+    start    TEXT NOT NULL,           -- UCI moves from the standard start before the drill
+    opening  TEXT NOT NULL,           -- "B90 Sicilian Defense: Najdorf Variation" or ""
+    started  INTEGER NOT NULL,
+    updated  INTEGER NOT NULL,
+    moves    INTEGER NOT NULL DEFAULT 0,   -- moves played in the drill (both sides)
+    main     INTEGER NOT NULL DEFAULT 0,   -- the user's moves: the most played one
+    book     INTEGER NOT NULL DEFAULT 0,   -- another book move
+    missed   INTEGER NOT NULL DEFAULT 0,   -- not found (the book move was shown)
+    finished INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_drill_runs_updated ON drill_runs(updated);
+
+-- Every move of the user: position (FEN), outcome 0 main / 1 book / 2 missed, the move played and its share.
+CREATE TABLE drill_moves(
+    run_id  INTEGER NOT NULL REFERENCES drill_runs(id) ON DELETE CASCADE,
+    ply     INTEGER NOT NULL,         -- from the drill's start
+    fen     TEXT NOT NULL,
+    played  TEXT NOT NULL,            -- the move made (UCI): the user's, or the shown one
+    outcome INTEGER NOT NULL,
+    share   INTEGER NOT NULL,         -- % of the book's games with that move
+    wrong   TEXT,                     -- the first try outside the book (UCI)
+    hinted  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(run_id, ply)
+) WITHOUT ROWID;
+)sql"},
 };
 
 } // namespace
@@ -449,6 +480,44 @@ Result<std::vector<StoredMistake>> mistakes(Database& db) {
         out.push_back(std::move(m));
     }
     return out;
+}
+
+Result<int64_t> saveDrillRun(Database& db, const DrillRun& r) {
+    auto s = db.prepare(r.id ? "UPDATE drill_runs SET pack = ?1, side = ?2, start = ?3, opening = ?4, started = ?5, "
+                               "updated = ?6, moves = ?7, main = ?8, book = ?9, missed = ?10, finished = ?11 WHERE id = ?12"
+                             : "INSERT INTO drill_runs(pack, side, start, opening, started, updated, moves, main, book, "
+                               "missed, finished) VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)");
+    if (!s) return s.error();
+    s->bind(1, r.pack).bind(2, r.side).bind(3, r.start).bind(4, r.opening).bind(5, r.started).bind(6, r.updated);
+    s->bind(7, r.moves).bind(8, r.main).bind(9, r.book).bind(10, r.missed).bind(11, r.finished ? 1 : 0);
+    if (r.id) s->bind(12, r.id);
+    if (auto res = s->run(); !res) return res.error();
+    return r.id ? r.id : db.lastInsertId();
+}
+
+Result<void> addDrillMove(Database& db, int64_t runId, const DrillMove& m) {
+    auto s = db.prepare("INSERT OR REPLACE INTO drill_moves(run_id, ply, fen, played, outcome, share, wrong, hinted) "
+                        "VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)");
+    if (!s) return s.error();
+    s->bind(1, runId).bind(2, m.ply).bind(3, m.fen).bind(4, m.played).bind(5, m.outcome).bind(6, m.share);
+    if (m.wrong.empty()) s->bindNull(7);
+    else s->bind(7, m.wrong);
+    s->bind(8, m.hinted ? 1 : 0);
+    return s->run();
+}
+
+Result<DrillStats> drillStats(Database& db) {
+    auto s = db.prepare("SELECT count(*), coalesce(sum(main), 0), coalesce(sum(book), 0), coalesce(sum(missed), 0) "
+                        "FROM drill_runs");
+    if (!s) return s.error();
+    auto row = s->step();
+    if (!row) return row.error();
+    DrillStats st;
+    st.runs = s->integer(0);
+    st.main = s->integer(1);
+    st.book = s->integer(2);
+    st.missed = s->integer(3);
+    return st;
 }
 
 Result<std::vector<PlayedGame>> allPlayedGames(Database& db) {

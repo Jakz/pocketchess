@@ -72,6 +72,9 @@
     <ClCompile Include="..\..\src\core\games\GuessSession.cpp">
       <Filter>src\core\games</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\games\OpeningDrill.cpp">
+      <Filter>src\core\games</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\puzzles\MistakeFinder.cpp">
       <Filter>src\core\puzzles</Filter>
     </ClCompile>
@@ -192,6 +195,9 @@
       <Filter>src\core\games</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\games\GuessSession.h">
+      <Filter>src\core\games</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\games\OpeningDrill.h">
       <Filter>src\core\games</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\puzzles\MistakeFinder.h">

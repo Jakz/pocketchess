@@ -111,4 +111,27 @@ Result<void> saveMistakeScan(Database& db, int64_t gameId, const std::vector<Sto
                              const std::string& engine, int64_t now);
 Result<std::vector<StoredMistake>> mistakes(Database& db);  // oldest first
 
+// drill_runs / drill_moves: opening practice (M7). A run is saved after every move of the user.
+struct DrillRun {
+    int64_t id = 0;  // 0 = not saved yet
+    std::string pack, side, start, opening;
+    int64_t started = 0, updated = 0;
+    int moves = 0, main = 0, book = 0, missed = 0;
+    bool finished = false;
+};
+struct DrillMove {
+    int ply = 0;
+    std::string fen, played;
+    int outcome = 0;  // 0 main, 1 book, 2 missed
+    int share = 0;
+    std::string wrong;
+    bool hinted = false;
+};
+Result<int64_t> saveDrillRun(Database& db, const DrillRun& run);  // insert or update; returns the id
+Result<void> addDrillMove(Database& db, int64_t runId, const DrillMove& move);
+struct DrillStats {
+    int runs = 0, main = 0, book = 0, missed = 0;
+};
+Result<DrillStats> drillStats(Database& db);
+
 } // namespace pchess::storage
