@@ -46,7 +46,7 @@ TEST_CASE("stats: one page per mode, read from chess.db and progress.db") {
         app->flush();
         auto* s = dynamic_cast<StatsScreen*>(app->top());
         REQUIRE(s != nullptr);
-        REQUIRE_EQ(s->pages().size(), size_t(5));
+        REQUIRE_EQ(s->pages().size(), size_t(6));
         for (const auto& p : s->pages()) CHECK(p.rows.empty());  // nothing recorded yet: the hints show
         app->pop();
         app->flush();

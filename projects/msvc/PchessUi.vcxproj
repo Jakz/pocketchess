@@ -45,6 +45,7 @@
     <ClCompile Include="..\..\src\app\GuessScreen.cpp" />
     <ClCompile Include="..\..\src\app\DrillScreen.cpp" />
     <ClCompile Include="..\..\src\app\StatsScreen.cpp" />
+    <ClCompile Include="..\..\src\app\EndgameScreen.cpp" />
     <ClCompile Include="..\..\src\app\MistakeScan.cpp" />
     <ClCompile Include="..\..\src\app\GamesScreen.cpp" />
     <ClCompile Include="..\..\src\app\HeadlessHost.cpp" />
@@ -87,6 +88,7 @@
     <ClInclude Include="..\..\src\app\GuessScreen.h" />
     <ClInclude Include="..\..\src\app\DrillScreen.h" />
     <ClInclude Include="..\..\src\app\StatsScreen.h" />
+    <ClInclude Include="..\..\src\app\EndgameScreen.h" />
     <ClInclude Include="..\..\src\app\MistakeScan.h" />
     <ClInclude Include="..\..\src\app\GamesScreen.h" />
     <ClInclude Include="..\..\src\app\HeadlessHost.h" />

@@ -69,6 +69,9 @@
     <ClCompile Include="..\..\src\core\games\GamePack.cpp">
       <Filter>src\core\games</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\games\Endgames.cpp">
+      <Filter>src\core\games</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\games\GuessSession.cpp">
       <Filter>src\core\games</Filter>
     </ClCompile>
@@ -195,6 +198,9 @@
       <Filter>src\core\engine</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\games\GamePack.h">
+      <Filter>src\core\games</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\games\Endgames.h">
       <Filter>src\core\games</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\games\GuessSession.h">

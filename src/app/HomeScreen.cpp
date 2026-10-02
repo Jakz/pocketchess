@@ -5,6 +5,7 @@
 #include "app/Application.h"
 #include "app/Chrome.h"
 #include "app/DiagnosticsScreen.h"
+#include "app/EndgameScreen.h"
 #include "app/ImportScreen.h"
 #include "app/MistakeScan.h"
 #include "app/OpeningsScreen.h"
@@ -199,13 +200,16 @@ void HomeScreen::openPuzzles() {
     std::string mineHint = mine > 0 ? std::to_string(mine) + " to solve" : "from your Play games";
     if (unchecked > 0) mineHint += " · " + std::to_string(unchecked) + (unchecked == 1 ? " new game" : " new games");
     chooseFromList(
-        app_, "Puzzles", {"Train", "Review", "My mistakes"},
+        app_, "Puzzles", {"Train", "Review", "My mistakes", "Endgames"},
         [this](int i) {
             if (i == 0) app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Train));
             if (i == 1) app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Review));
             if (i == 2) openMistakes();
+            if (i == 3) EndgameScreen::choose(app_);
         },
-        6, {"new puzzles at your rating", due > 0 ? std::to_string(due) + " failed puzzles due" : "nothing due", mineHint});
+        6,
+        {"new puzzles at your rating", due > 0 ? std::to_string(due) + " failed puzzles due" : "nothing due", mineHint,
+         "mates, pawn and rook endings vs the engine"});
 }
 
 // Games not checked yet go through the engine first (a progress dialog with Stop), then the

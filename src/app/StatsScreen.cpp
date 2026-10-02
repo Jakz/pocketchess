@@ -4,6 +4,7 @@
 #include "app/Application.h"
 #include "app/Chrome.h"
 #include "app/Dialogs.h"
+#include "app/EndgameScreen.h"
 #include "app/TacticsScreen.h"
 #include "core/storage/ChessDb.h"
 
@@ -155,6 +156,35 @@ void StatsScreen::build() {
         }
     }
     pages_.push_back(std::move(mine));
+
+    // Endgames: per task, solved and tried.
+    Page end{"Endgames", {}, {}, "No endgame tried yet: Home → Puzzles → Endgames."};
+    if (db) {
+        auto records = storage::endgameRecords(*db);
+        const auto tasks = EndgameScreen::loadTasks(app_);
+        if (records && !records->empty()) {
+            int solved = 0, alone = 0, attempts = 0, wins = 0;
+            for (const auto& [id, r] : *records) {
+                solved += r.solved > 0;
+                alone += r.solvedAlone > 0;
+                attempts += r.attempts;
+                wins += r.solved;
+            }
+            end.rows = {{"Positions solved", std::to_string(solved) + " of " + std::to_string(tasks.size())},
+                        {"Solved on your own", std::to_string(alone)},
+                        {"Attempts", std::to_string(attempts) + " · " + pctText(wins, attempts) + " solved"},
+                        {"Positions", ""}};
+            for (const auto& t : tasks) {
+                auto it = records->find(t.id);
+                if (it == records->end()) continue;
+                const auto& r = it->second;
+                end.rows.push_back({t.title, r.solved ? "✓ " + std::to_string(r.solved) + "/" + std::to_string(r.attempts) +
+                                                            (r.fewestMoves ? " · " + std::to_string(r.fewestMoves) + " moves" : "")
+                                                      : "✗ 0/" + std::to_string(r.attempts)});
+            }
+        }
+    }
+    pages_.push_back(std::move(end));
     page_ = std::clamp(page_, 0, static_cast<int>(pages_.size()) - 1);
 }
 

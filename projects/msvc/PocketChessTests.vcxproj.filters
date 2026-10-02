@@ -51,6 +51,9 @@
     <ClCompile Include="..\..\tests\app\BackupTests.cpp">
       <Filter>tests\app</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\tests\app\EndgameTests.cpp">
+      <Filter>tests\app</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\tests\app\MistakesTests.cpp">
       <Filter>tests\app</Filter>
     </ClCompile>

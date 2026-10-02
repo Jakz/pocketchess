@@ -3,6 +3,7 @@
 
 #include "app/AnalyzeScreen.h"
 #include "app/DiagnosticsScreen.h"
+#include "app/EndgameScreen.h"
 #include "app/Dialogs.h"
 #include "app/DrillScreen.h"
 #include "app/GameStudyScreen.h"
@@ -262,6 +263,7 @@ std::unique_ptr<Screen> Application::restoreScreen(const std::map<std::string, s
     if (it->second == "study") return GameStudyScreen::restore(*this, session);
     if (it->second == "guess") return GuessScreen::restore(*this, session);
     if (it->second == "drill") return DrillScreen::restore(*this, session);
+    if (it->second == "endgame") return EndgameScreen::restore(*this, session);
     return nullptr;
 }
 
