@@ -6,6 +6,7 @@
 #include "app/Chrome.h"
 #include "app/DiagnosticsScreen.h"
 #include "app/ImportScreen.h"
+#include "app/MistakeScan.h"
 #include "app/OpeningsScreen.h"
 #include "app/Dialogs.h"
 #include "app/GamesScreen.h"
@@ -182,16 +183,54 @@ void HomeScreen::open(int id) {
     }
 }
 
-// Puzzles: training, and the review of failed puzzles (spaced repetition) with how many are due.
+HomeScreen::~HomeScreen() = default;
+
+// Puzzles: training, the review of failed puzzles (spaced repetition) with how many are due, and the
+// mistakes found in the user's own games.
 void HomeScreen::openPuzzles() {
     const int due = static_cast<int>(app_.dueInPack(100000).size());
+    const int mine = static_cast<int>(TacticsScreen::mistakeQueue(app_).size());
+    int unchecked = 0;
+    if (storage::Database* db = app_.userDb())
+        if (auto g = storage::uncheckedPlayedGames(*db); g) unchecked = static_cast<int>(g->size());
+    std::string mineHint = mine > 0 ? std::to_string(mine) + " to solve" : "from your Play games";
+    if (unchecked > 0) mineHint += " · " + std::to_string(unchecked) + (unchecked == 1 ? " new game" : " new games");
     chooseFromList(
-        app_, "Puzzles", {"Train", "Review"},
+        app_, "Puzzles", {"Train", "Review", "My mistakes"},
         [this](int i) {
             if (i == 0) app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Train));
             if (i == 1) app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Review));
+            if (i == 2) openMistakes();
         },
-        6, {"new puzzles at your rating", due > 0 ? std::to_string(due) + " failed puzzles due" : "nothing due"});
+        6, {"new puzzles at your rating", due > 0 ? std::to_string(due) + " failed puzzles due" : "nothing due", mineHint});
+}
+
+// Games not checked yet go through the engine first (a progress dialog with Stop), then the
+// mistakes open as puzzles. Without an engine, the mistakes already found still open.
+void HomeScreen::openMistakes() {
+    int unchecked = 0;
+    if (storage::Database* db = app_.userDb())
+        if (auto g = storage::uncheckedPlayedGames(*db); g) unchecked = static_cast<int>(g->size());
+    auto openScreen = [this] { app_.push(std::make_unique<TacticsScreen>(app_, TacticsScreen::Mode::Mistakes)); };
+    if (unchecked == 0 || !app_.engines().available(engine::Role::Hint)) return openScreen();
+    scan_ = std::make_unique<MistakeScan>(app_);
+    auto dialog = std::make_unique<MessageDialog>(app_, "Checking your games", "Starting the engine…\n ",
+                                                  std::vector<std::string>{"Stop"}, [this](int) {
+                                                      if (scan_) scan_->cancel();
+                                                  });
+    MessageDialog* d = dialog.get();
+    app_.push(std::move(dialog));
+    scan_->start(
+        [this, d](const MistakeScan::Status& s) {
+            if (app_.top() != d) return;
+            d->setText("Game " + std::to_string(s.game) + " of " + std::to_string(s.games) + " · position " +
+                       std::to_string(s.position) + " of " + std::to_string(s.positions) + "\n" +
+                       std::to_string(s.found) + (s.found == 1 ? " mistake" : " mistakes") + " found so far");
+        },
+        [this, d, openScreen](const MistakeScan::Status&, bool) {
+            if (app_.top() == d) app_.pop();  // finished: the dialog goes; stopped: Stop already closed it
+            openScreen();
+        });
 }
 
 void HomeScreen::startPlay() {

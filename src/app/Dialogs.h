@@ -36,6 +36,8 @@ public:
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;
+    // Progress text: re-wrapped into the lines the first text made room for.
+    void setText(std::string text);
 
 private:
     void finish(int index);

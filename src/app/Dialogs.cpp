@@ -80,6 +80,19 @@ void MessageDialog::draw(Canvas& c, const Rect&) {
     }
 }
 
+void MessageDialog::setText(std::string text) {
+    const UiStyle& s = app_.style();
+    Font& body = app_.fonts().get(s.fontPx);
+    const size_t room = lines_.size();
+    text_ = std::move(text);
+    lines_ = body.wrap(text_, rect_.w - 2 * s.fontPx);
+    if (lines_.size() > room) lines_.resize(room);
+    while (lines_.size() < room) lines_.emplace_back();
+    app_.invalidate({rect_.x + s.fontPx, rect_.y + titleH_, rect_.w - 2 * s.fontPx,
+                     static_cast<int>(room) * body.lineHeight() + s.fontPx},
+                    RefreshHint::Content);
+}
+
 void MessageDialog::finish(int index) {
     auto done = std::move(done_);
     app_.pop();  // `this` stays alive until the end of the event (graveyard)

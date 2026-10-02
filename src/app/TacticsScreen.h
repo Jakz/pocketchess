@@ -3,10 +3,12 @@
 
 #include "app/Screen.h"
 #include "core/puzzles/PuzzleSession.h"
+#include "core/storage/ChessDb.h"
 #include "core/util/Scheduler.h"
 #include "ui/board/BoardView.h"
 #include "ui/widgets/Widgets.h"
 
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -21,12 +23,12 @@ namespace pchess::app {
 // ("Check with engine").
 class TacticsScreen final : public Screen {
 public:
-    enum class Mode { Train, Review };
+    enum class Mode { Train, Review, Mistakes };  // Mistakes: My mistakes (chess.db), unsolved and due ones
 
     TacticsScreen(Application& app, Mode mode, const std::string& puzzleId = "");
     ~TacticsScreen() override;
     const char* name() const override { return "tactics"; }
-    std::string title() const override { return mode_ == Mode::Review ? "Review" : "Puzzles"; }
+    std::string title() const override;
     void draw(ui::Canvas& c, const ui::Rect& clip) override;
     void onGesture(const ui::Gesture& g) override;
     void onKey(const ui::InputEvent& e) override;
@@ -44,6 +46,9 @@ public:
     void retry();
     void showSolution();
     int reviewsLeft() const { return static_cast<int>(queue_.size()); }
+    // My mistakes still to do: never tried, or due again (ids "m<id>"; progress.db pack "My mistakes").
+    static std::vector<std::string> mistakeQueue(Application& app);
+    static constexpr const char* kMistakesPack = "My mistakes";
     const std::vector<ui::Button>& buttons() const { return buttons_; }
 
 private:
@@ -73,7 +78,8 @@ private:
     Mode mode_;
     std::optional<puzzles::PuzzleSession> session_;
     std::unordered_set<std::string> seen_;
-    std::vector<std::string> queue_;  // Review: due puzzle ids still to do
+    std::vector<std::string> queue_;  // Review / Mistakes: puzzle ids still to do
+    std::map<std::string, storage::StoredMistake> mistakes_;  // Mistakes: by puzzle id
     chess::Move lastWrong_;
     chess::Square selected_ = chess::NoSquare;
     chess::Square hintSquare_ = chess::NoSquare;

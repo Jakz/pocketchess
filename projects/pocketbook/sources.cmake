@@ -28,6 +28,7 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/games/GamePack.cpp
     ${REPO_ROOT}/src/core/games/GuessSession.cpp
     ${REPO_ROOT}/src/core/games/Openings.cpp
+    ${REPO_ROOT}/src/core/puzzles/MistakeFinder.cpp
     ${REPO_ROOT}/src/core/puzzles/Progress.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzleImport.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzlePack.cpp
@@ -52,6 +53,7 @@ set(PCHESS_UI_SOURCES
     ${REPO_ROOT}/src/app/Dialogs.cpp
     ${REPO_ROOT}/src/app/GameStudyScreen.cpp
     ${REPO_ROOT}/src/app/GuessScreen.cpp
+    ${REPO_ROOT}/src/app/MistakeScan.cpp
     ${REPO_ROOT}/src/app/GamesScreen.cpp
     ${REPO_ROOT}/src/app/HeadlessHost.cpp
     ${REPO_ROOT}/src/app/HomeScreen.cpp
@@ -93,6 +95,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/AppTests.cpp
     ${REPO_ROOT}/tests/app/GamesTests.cpp
     ${REPO_ROOT}/tests/app/GuessTests.cpp
+    ${REPO_ROOT}/tests/app/MistakesTests.cpp
     ${REPO_ROOT}/tests/app/ImportTests.cpp
     ${REPO_ROOT}/tests/app/OpeningsTests.cpp
     ${REPO_ROOT}/tests/app/PlayTests.cpp

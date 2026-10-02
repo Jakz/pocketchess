@@ -36,8 +36,41 @@ TacticsScreen::TacticsScreen(Application& app, Mode mode, const std::string& puz
         if (mode_ == Mode::Review)
             queue_ = app_.dueInPack(500);  // reviews of this pack (other packs' reviews wait)
     }
+    if (mode_ == Mode::Mistakes) {
+        if (storage::Database* db = app_.userDb())
+            if (auto all = storage::mistakes(*db); all)
+                for (auto& m : *all) mistakes_["m" + std::to_string(m.id)] = std::move(m);
+        queue_ = mistakeQueue(app_);
+    }
     if (!puzzleId.empty() && load(puzzleId)) return;
     loadNext();
+}
+
+std::string TacticsScreen::title() const {
+    switch (mode_) {
+    case Mode::Review: return "Review";
+    case Mode::Mistakes: return "My mistakes";
+    default: return "Puzzles";
+    }
+}
+
+std::vector<std::string> TacticsScreen::mistakeQueue(Application& app) {
+    std::vector<std::string> fresh, due;
+    storage::Database* db = app.userDb();
+    puzzles::Progress* pr = app.progress();
+    if (!db) return {};
+    auto all = storage::mistakes(*db);
+    if (!all) return {};
+    for (const auto& m : *all) {
+        const std::string id = "m" + std::to_string(m.id);
+        std::optional<puzzles::ReviewState> st;
+        if (pr)
+            if (auto s = pr->state(id); s) st = *s;
+        if (!st || st->attempts == 0) fresh.push_back(id);
+        else if (st->nextReview && *st->nextReview <= app.now()) due.push_back(id);
+    }
+    fresh.insert(fresh.end(), due.begin(), due.end());
+    return fresh;
 }
 
 TacticsScreen::~TacticsScreen() { alive_.reset(); }
@@ -69,6 +102,27 @@ void TacticsScreen::layoutPanel() {
 // --- Choosing puzzles ----------------------------------------------------------------------------
 
 bool TacticsScreen::load(const std::string& id) {
+    if (mode_ == Mode::Mistakes) {
+        auto it = mistakes_.find(id);
+        if (it == mistakes_.end()) return false;
+        puzzles::Puzzle p;
+        p.id = id;
+        p.fen = it->second.fen;
+        auto pos = parseFen(p.fen);
+        if (!pos) return false;
+        Position cur = pos.value();
+        for (size_t i = 0, j = 0; i <= it->second.moves.size(); ++i) {
+            if (i < it->second.moves.size() && it->second.moves[i] != ' ') continue;
+            auto m = parseUci(cur, std::string_view(it->second.moves).substr(j, i - j));
+            if (!m) return false;
+            p.moves.push_back(m.value());
+            cur.makeMove(m.value());
+            j = i + 1;
+        }
+        p.rating = app_.progress() ? app_.progress()->rating() : puzzles::kInitialRating;
+        startSession(std::move(p));
+        return true;
+    }
     puzzles::PuzzlePack* pack = app_.puzzlePack();
     if (!pack) return false;
     auto p = pack->byId(id);
@@ -81,6 +135,18 @@ void TacticsScreen::loadNext() {
     timer_.cancel();
     session_.reset();
     selected_ = hintSquare_ = NoSquare;
+    if (mode_ == Mode::Mistakes) {
+        while (!queue_.empty()) {
+            const std::string id = queue_.front();
+            queue_.erase(queue_.begin());
+            if (load(id)) return;
+        }
+        setStatus("No mistakes to solve", mistakes_.empty()
+                                              ? "Finish a game in Play, then open Puzzles → My mistakes to check it."
+                                              : "Solved mistakes come back here on their review day.");
+        refreshBoard(RefreshHint::Content);
+        return;
+    }
     puzzles::PuzzlePack* pack = app_.puzzlePack();
     if (!pack) {
         setStatus("No puzzle pack installed",
@@ -154,7 +220,8 @@ void TacticsScreen::startSession(puzzles::Puzzle p) {
 
 std::string TacticsScreen::sideText() const {
     if (!session_) return "";
-    return std::string(mode_ == Mode::Review ? "Review · " : "") + (session_->userColor() == White ? "White" : "Black");
+    const char* prefix = mode_ == Mode::Review ? "Review · " : mode_ == Mode::Mistakes ? "Your game · " : "";
+    return prefix + std::string(session_->userColor() == White ? "White" : "Black");
 }
 
 void TacticsScreen::afterOpponent() {
@@ -253,7 +320,8 @@ void TacticsScreen::finish() {
     std::string rating;
     if (puzzles::Progress* pr = app_.progress()) {
         puzzles::PuzzlePack* pack = app_.puzzlePack();
-        auto r = pr->record(pack ? pack->name() : "", p, solved, mode_ == Mode::Train, app_.now());
+        const std::string packName = mode_ == Mode::Mistakes ? kMistakesPack : pack ? pack->name() : "";
+        auto r = pr->record(packName, p, solved, mode_ == Mode::Train, app_.now());
         if (r && mode_ == Mode::Train) {
             const int d = r->ratingAfter - r->ratingBefore;
             head += std::string(" · ") + (d >= 0 ? "+" : "") + std::to_string(d) + " → " + std::to_string(r->ratingAfter);
@@ -262,10 +330,21 @@ void TacticsScreen::finish() {
         }
         if (!r) util::Log::error("tactics", "progress: " + r.error().message());
     }
-    std::string themes;
-    if (puzzles::PuzzlePack* pack = app_.puzzlePack())
-        for (const auto& t : pack->themesOf(p.themes)) themes += (themes.empty() ? "" : ", ") + t;
-    rating = "Puzzle " + std::to_string(p.rating) + (themes.empty() ? "" : " · " + themes);
+    if (auto it = mistakes_.find(p.id); mode_ == Mode::Mistakes && it != mistakes_.end()) {
+        // What the user played in the game, and what it cost.
+        std::string played = it->second.played;
+        if (auto start = parseFen(p.fen); start && !p.moves.empty()) {
+            const Position before = start.value().after(p.moves.front());
+            if (auto m = parseUci(before, it->second.played); m) played = toSan(before, m.value());
+        }
+        rating = "In your game you played " + played + ": winning chance " + std::to_string(it->second.before) +
+                 "% → " + std::to_string(it->second.after) + "%.";
+    } else {
+        std::string themes;
+        if (puzzles::PuzzlePack* pack = app_.puzzlePack())
+            for (const auto& t : pack->themesOf(p.themes)) themes += (themes.empty() ? "" : ", ") + t;
+        rating = "Puzzle " + std::to_string(p.rating) + (themes.empty() ? "" : " · " + themes);
+    }
     setStatus(head, rating);
     app_.sessionChanged();
     if (app_.settings().tacticsAutoNext && session_->state() == PuzzleSession::State::Solved) {
@@ -332,7 +411,8 @@ void TacticsScreen::updateButtons() {
         case BtnRetry: en = session_ && st == S::Wrong; break;
         case BtnSolution: en = playing; break;
         case BtnNext:
-            en = !session_ ? app_.puzzlePack() != nullptr && (mode_ == Mode::Train || !queue_.empty())
+            en = !session_ ? (mode_ == Mode::Mistakes || app_.puzzlePack() != nullptr) &&
+                                 (mode_ == Mode::Train || !queue_.empty())
                            : session_->finished() || (st == S::OpponentToMove && !timer_.active());
             break;
         default: break;
@@ -350,9 +430,10 @@ void TacticsScreen::draw(Canvas& c, const Rect& clip) {
     const Layout& l = app_.layout();
     c.fill(clip, t.background);
     const int rating = app_.progress() ? app_.progress()->rating() : puzzles::kInitialRating;
-    const std::string title = mode_ == Mode::Review
-                                  ? "Review · " + std::to_string(queue_.size() + (session_ ? 1 : 0)) + " left"
-                                  : "Puzzles · " + std::to_string(rating);
+    const std::string left = std::to_string(queue_.size() + (session_ && !session_->finished() ? 1 : 0)) + " left";
+    const std::string title = mode_ == Mode::Review     ? "Review · " + left
+                              : mode_ == Mode::Mistakes ? "My mistakes · " + left
+                                                        : "Puzzles · " + std::to_string(rating);
     drawStatusBar(app_, c, *this, title, batteryText(app_));
     if (clip.intersects(l.board)) board_.draw(c, clip, t, app_.pieces(), app_.fonts());
     if (clip.intersects(statusRect_)) {
@@ -465,7 +546,7 @@ void TacticsScreen::openMenu() {
     labels.push_back("Close");
     std::weak_ptr<char> alive = alive_;
     app_.push(std::make_unique<MessageDialog>(
-        app_, mode_ == Mode::Review ? "Review" : "Puzzles", "", labels,
+        app_, title(), "", labels,
         [this, alive, actions](int i) {
             if (alive.expired() || i < 0 || i >= static_cast<int>(actions.size())) return;
             switch (actions[static_cast<size_t>(i)]) {
@@ -525,10 +606,12 @@ void TacticsScreen::checkWithEngine() {
 // --- Session (ADR 0011) --------------------------------------------------------------------------
 
 bool TacticsScreen::saveSession(std::map<std::string, std::string>& out) const {
-    out["tactics.mode"] = mode_ == Mode::Review ? "review" : "train";
+    out["tactics.mode"] = mode_ == Mode::Review ? "review" : mode_ == Mode::Mistakes ? "mistakes" : "train";
     // An unfinished puzzle starts again from its beginning; a finished one is not resumed.
     out["tactics.puzzle"] = session_ && !session_->finished() ? session_->puzzle().id : "";
-    out["summary"] = mode_ == Mode::Review ? "Review session in progress." : "Puzzle session in progress.";
+    out["summary"] = mode_ == Mode::Review     ? "Review session in progress."
+                     : mode_ == Mode::Mistakes ? "Solving your mistakes."
+                                               : "Puzzle session in progress.";
     return true;
 }
 
@@ -538,8 +621,9 @@ std::unique_ptr<TacticsScreen> TacticsScreen::restore(Application& app, const st
         return it == s.end() ? std::string() : it->second;
     };
     const std::string mode = get("tactics.mode");
-    if (mode != "train" && mode != "review") return nullptr;
-    return std::make_unique<TacticsScreen>(app, mode == "review" ? Mode::Review : Mode::Train, get("tactics.puzzle"));
+    if (mode != "train" && mode != "review" && mode != "mistakes") return nullptr;
+    const Mode m = mode == "review" ? Mode::Review : mode == "mistakes" ? Mode::Mistakes : Mode::Train;
+    return std::make_unique<TacticsScreen>(app, m, get("tactics.puzzle"));
 }
 
 } // namespace pchess::app
