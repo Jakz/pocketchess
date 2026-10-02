@@ -143,6 +143,21 @@ CREATE TABLE drill_moves(
     PRIMARY KEY(run_id, ply)
 ) WITHOUT ROWID;
 )sql"},
+    {8, R"sql(
+-- Endgame practice (M7): one row per attempt at a task of assets/endgames/endgames.tsv.
+CREATE TABLE endgame_attempts(
+    id       INTEGER PRIMARY KEY,
+    endgame  TEXT NOT NULL,           -- task id ("rook-lucena")
+    started  INTEGER NOT NULL,
+    updated  INTEGER NOT NULL,
+    result   INTEGER NOT NULL DEFAULT -1,  -- -1 unfinished, 0 failed, 1 solved
+    moves    INTEGER NOT NULL DEFAULT 0,   -- the user's moves
+    hints    INTEGER NOT NULL DEFAULT 0,
+    undos    INTEGER NOT NULL DEFAULT 0,
+    reason   TEXT                          -- how it ended
+);
+CREATE INDEX idx_endgame_attempts_task ON endgame_attempts(endgame);
+)sql"},
 };
 
 } // namespace
@@ -578,6 +593,42 @@ Result<MistakeStats> mistakeStats(Database& db) {
     auto row = s->step();
     if (!row) return row.error();
     return MistakeStats{s->integer(0), s->integer(1)};
+}
+
+Result<int64_t> saveEndgameAttempt(Database& db, const EndgameAttempt& a) {
+    auto s = db.prepare(a.id ? "UPDATE endgame_attempts SET endgame = ?1, started = ?2, updated = ?3, result = ?4, "
+                               "moves = ?5, hints = ?6, undos = ?7, reason = ?8 WHERE id = ?9"
+                             : "INSERT INTO endgame_attempts(endgame, started, updated, result, moves, hints, undos, "
+                               "reason) VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)");
+    if (!s) return s.error();
+    s->bind(1, a.endgame).bind(2, a.started).bind(3, a.updated).bind(4, a.result).bind(5, a.moves);
+    s->bind(6, a.hints).bind(7, a.undos);
+    if (a.reason.empty()) s->bindNull(8);
+    else s->bind(8, a.reason);
+    if (a.id) s->bind(9, a.id);
+    if (auto r = s->run(); !r) return r.error();
+    return a.id ? a.id : db.lastInsertId();
+}
+
+Result<std::map<std::string, EndgameRecord>> endgameRecords(Database& db) {
+    auto s = db.prepare("SELECT endgame, count(*), coalesce(sum(result = 1), 0), "
+                        "coalesce(sum(result = 1 AND hints = 0 AND undos = 0), 0), "
+                        "min(CASE WHEN result = 1 THEN moves END) FROM endgame_attempts "
+                        "WHERE result >= 0 GROUP BY endgame");
+    if (!s) return s.error();
+    std::map<std::string, EndgameRecord> out;
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        EndgameRecord r;
+        r.attempts = s->integer(1);
+        r.solved = s->integer(2);
+        r.solvedAlone = s->integer(3);
+        r.fewestMoves = s->isNull(4) ? 0 : s->integer(4);
+        out[s->text(0)] = r;
+    }
+    return out;
 }
 
 Result<std::vector<PlayedGame>> allPlayedGames(Database& db) {

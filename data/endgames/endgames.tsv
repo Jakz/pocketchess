@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Endgame practice (ADR 0018). One task per line, tab separated:
+# id	category	title	goal (mate|win|draw)	side (white|black)	moves (draw: moves to hold; 0 = none)	fen	advice
+# Every position was checked with Stockfish 19 (3-4 s): mate/win tasks are won, draw tasks are held.
+mate-queen	Checkmates	Queen and king	mate	white	0	8/8/8/4k3/8/8/8/3QK3 w - - 0 1	Push the king to the edge with the queen a knight's move away, then bring your own king. Mind stalemate.
+mate-rook	Checkmates	Rook and king	mate	white	0	8/8/8/4k3/8/8/8/4K2R w - - 0 1	Box the king in with the rook and shrink the box; the kings in opposition push it back to the edge.
+mate-bishops	Checkmates	Two bishops	mate	white	0	8/8/8/4k3/8/8/8/2B1KB2 w - - 0 1	Side by side the bishops make a wall: drive the king into a corner with your king's help.
+mate-bishop-knight	Checkmates	Bishop and knight (hard)	mate	white	0	8/8/8/4k3/8/8/8/1N2KB2 w - - 0 1	Mate only works in a corner of the bishop's color: drive the king to the edge, then walk it there with the knight's W manoeuvre.
+pawn-sixth	Pawn endings	King in front on the sixth	win	white	0	4k3/8/4K3/4P3/8/8/8/8 w - - 0 1	With your king on the sixth rank in front of the pawn, the pawn queens whoever is to move.
+pawn-opposition	Pawn endings	Opposition with a spare tempo	win	white	0	8/8/3k4/8/3K4/8/3P4/8 w - - 0 1	A pawn move hands the move to Black: take the opposition, then reach a key square in front of the pawn.
+pawn-defend	Pawn endings	Defend king and pawn	draw	black	15	4k3/8/8/4P3/4K3/8/8/8 b - - 0 1	Stay in front of the pawn and take the opposition whenever the white king comes close.
+rook-lucena	Rook endings	Lucena position	win	white	0	1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1	Cut the black king off with a rook check on the d-file, then build a bridge with the rook on the fourth rank.
+rook-philidor	Rook endings	Philidor position	draw	black	20	4k3/R7/1r6/3KP3/8/8/8/8 b - - 0 1	Keep your rook on the sixth rank; once the pawn steps forward, check the king from behind.
+queen-pawn	Queen endings	Queen against a pawn on the seventh	win	white	0	8/8/8/8/8/1k6/2p5/K1Q5 b - - 0 1	Black moves first. Win the pawn or mate: checks and pins make the king block its own pawn.

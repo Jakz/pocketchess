@@ -154,4 +154,20 @@ struct MistakeStats {
 };
 Result<MistakeStats> mistakeStats(Database& db);
 
+// endgame_attempts: endgame practice (M7). Saved when an attempt starts and after every move.
+struct EndgameAttempt {
+    int64_t id = 0;  // 0 = not saved yet
+    std::string endgame;
+    int64_t started = 0, updated = 0;
+    int result = -1;  // -1 unfinished, 0 failed, 1 solved
+    int moves = 0, hints = 0, undos = 0;
+    std::string reason;
+};
+Result<int64_t> saveEndgameAttempt(Database& db, const EndgameAttempt& attempt);
+// Per task (finished attempts only): attempts, solved, solved without hints or take-backs, fewest moves.
+struct EndgameRecord {
+    int attempts = 0, solved = 0, solvedAlone = 0, fewestMoves = 0;
+};
+Result<std::map<std::string, EndgameRecord>> endgameRecords(Database& db);
+
 } // namespace pchess::storage

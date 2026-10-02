@@ -10,6 +10,7 @@ data/fonts/LICENSE-DejaVu.txt => assets/fonts/LICENSE-DejaVu.txt
 data/themes/*.yaml => assets/themes
 data/openings/*.tsv => assets/openings/
 data/openings/COPYING.txt => assets/openings/COPYING.txt
+data/endgames/endgames.tsv => assets/endgames/endgames.tsv
 data/pieces/cburnett/* => assets/pieces/cburnett/
 data/pieces/merida/* => assets/pieces/merida/
 data/pieces/chessnut/* => assets/pieces/chessnut/
