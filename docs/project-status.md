@@ -18,7 +18,7 @@ Last updated: 2026-10-03 (M7: Guess the move, My mistakes, Opening practice, Sta
 | M4 Tactics trainer, rating, review | 🟢 features done: zstd 1.5.7 decoder, `fetch-lichess.ps1`, `PuzzleImporter` + `build-content.ps1` (50k pack = 6 MB), `core/puzzles` (pack, selector, session, progress/rating/review), Tactics and Review screens, Home rating/due count, Tactics settings; pending: device acceptance (30 puzzles, selection < 50 ms, WAL on the user partition) |
 | M5 Historical games | 🟢 features done: `data/openings` (Lichess ECO names, CC0), `core/games` (opening classification, `GameImporter`, `GamePack` filters/pages), `PgnImporter` + `build-content.ps1 -Games` (20k games = 6.5 MB in 27 s), bundled `classics.db`, favorites in `chess.db`, Games browser + study screens, "Analyze from here"; pending: device acceptance (≥ 10k pack, filters < 150 ms, partial page turns) |
 | M6 Themes, piece sets, import, polish | 🟢 features done: YAML board themes (`ThemeManager`, Walnut + Newsprint), SVG piece sets rasterized on the reader (nanosvg, ADR 0012: Cburnett default, Merida, Chessnut, Bold), Import screen (ADR 0013: installs under `user/`, PGN → game pack), Settings v2 (piece set, page-button swap, debug logging), key-only navigation, portable release zips; pending: device acceptance in color and mono, refresh/resource tuning (deferred), touch-target check on the reader |
-| M7 Backlog | 🟡 started: Guess the move, My mistakes (ADR 0015), Opening practice, Stats (ADR 0016); next: user/ backup and restore, endgame positions |
+| M7 Backlog | 🟡 started: Guess the move, My mistakes (ADR 0015), Opening practice, Stats (ADR 0016), backup/restore (ADR 0017); next: endgame positions |
 
 ## 2026-09-29 — first MSVC build fixes
 
@@ -77,6 +77,9 @@ Last updated: 2026-10-03 (M7: Guess the move, My mistakes, Opening practice, Sta
   Menu → Analyze from here. `chess.db` v7: `drill_runs`, `drill_moves` (FEN per move). Golden: `drill`.
 - Stats (Home → Stats): Puzzles (with a rating column chart), Play per strength, Guess the move,
   Opening practice, My mistakes. Goldens: `stats`, `home` (four tools, "M7 preview").
+- Backup (ADR 0017): Stats → Menu → "Back up my progress" → `exports/pocketchess-backup-<time>/`
+  (chess.db, progress.db via VACUUM INTO, backup.txt). Copy the folder into `imports/`: Import shows
+  "Progress backup" → Restore… (checked, current data backed up first, databases reopened, Home).
 
 ## 2026-10-01 — large collections: packs v2, historical games, all puzzles, openings
 
