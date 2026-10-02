@@ -57,6 +57,7 @@
     <ClCompile Include="..\..\src\core\games\GamePack.cpp" />
     <ClCompile Include="..\..\src\core\games\GuessSession.cpp" />
     <ClCompile Include="..\..\src\core\games\OpeningDrill.cpp" />
+    <ClCompile Include="..\..\src\core\storage\Backup.cpp" />
     <ClCompile Include="..\..\src\core\puzzles\MistakeFinder.cpp" />
     <ClCompile Include="..\..\src\core\games\Openings.cpp" />
     <ClCompile Include="..\..\src\core\puzzles\Progress.cpp" />
@@ -100,6 +101,7 @@
     <ClInclude Include="..\..\src\core\games\GamePack.h" />
     <ClInclude Include="..\..\src\core\games\GuessSession.h" />
     <ClInclude Include="..\..\src\core\games\OpeningDrill.h" />
+    <ClInclude Include="..\..\src\core\storage\Backup.h" />
     <ClInclude Include="..\..\src\core\puzzles\MistakeFinder.h" />
     <ClInclude Include="..\..\src\core\games\Openings.h" />
     <ClInclude Include="..\..\src\core\puzzles\Progress.h" />
