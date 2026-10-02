@@ -174,6 +174,7 @@ void StatsScreen::turnPage(int delta) { showPage(page_ + delta); }
 void StatsScreen::openMenu() {
     std::vector<std::string> labels;
     for (const Page& p : pages_) labels.push_back(p.title);
+    labels.push_back("Back up my progress");
     labels.push_back(backMenuLabel(app_, *this));
     labels.push_back("Close");
     const int n = static_cast<int>(pages_.size());
@@ -181,9 +182,18 @@ void StatsScreen::openMenu() {
         app_, "Stats", "", labels,
         [this, n](int i) {
             if (i >= 0 && i < n) showPage(i);
-            else if (i == n) app_.pop();
+            else if (i == n) backUp();
+            else if (i == n + 1) app_.pop();
         },
         true));
+}
+
+// Everything the statistics come from, plus settings and played games (ADR 0017).
+void StatsScreen::backUp() {
+    auto r = app_.backupUserData();
+    if (!r) return app_.showMessage("No backup", r.error().message());
+    app_.showMessage("Backed up", "Saved to exports/" + r->filename().string() +
+                                      ". To restore it, copy that folder into imports/ and open Home → Import.");
 }
 
 // --- Drawing -------------------------------------------------------------------------------------

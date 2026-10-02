@@ -17,7 +17,7 @@ namespace pchess::app {
 
 // Import workflow (design notes §34, ADR 0013): the user copies files into imports/ over USB and
 // opens Import, which scans that one folder on request (never the whole filesystem).
-enum class ImportKind { Pgn, Fen, PuzzlePack, GamePack, PieceSet, Theme, Engine, Unknown };
+enum class ImportKind { Pgn, Fen, PuzzlePack, GamePack, PieceSet, Theme, Engine, Backup, Unknown };
 
 const char* toString(ImportKind kind);
 

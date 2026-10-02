@@ -197,6 +197,24 @@ void ImportScreen::makeGamePack(size_t index) {
     app_.showMessage("Game pack ready", "“" + r->stem().string() + "” is in Games → Menu → Pack….");
 }
 
+// A progress backup replaces chess.db and progress.db after a confirmation; the current data is
+// backed up to exports/ first, so a restore can itself be undone.
+void ImportScreen::restore(size_t index) {
+    if (index >= items_.size()) return;
+    const std::filesystem::path dir = items_[index].path;
+    Application& app = app_;
+    app_.push(std::make_unique<MessageDialog>(
+        app_, "Restore this backup?",
+        "Your puzzle progress, played games, statistics and settings are replaced by the backup's. "
+        "The current ones are saved to exports/ first.",
+        std::vector<std::string>{"Close", "Restore"}, [&app, dir](int i) {
+            if (i != 1) return;
+            auto r = app.restoreUserData(dir);  // returns to Home: this screen is gone afterwards
+            if (!r) return app.showMessage("Not restored", r.error().message());
+            app.showMessage("Restored", "Your previous data is in exports/" + r->filename().string() + ".");
+        }));
+}
+
 void ImportScreen::choose(size_t index) {
     if (index >= items_.size()) return;
     const ImportItem& it = items_[index];
@@ -212,7 +230,10 @@ void ImportScreen::choose(size_t index) {
         labels.push_back("Make a game pack");
         actions.push_back(1);
     }
-    if (it.kind != ImportKind::Pgn && it.kind != ImportKind::Fen) {
+    if (it.kind == ImportKind::Backup) {
+        labels.push_back("Restore…");
+        actions.push_back(3);
+    } else if (it.kind != ImportKind::Pgn && it.kind != ImportKind::Fen) {
         labels.push_back("Install");
         actions.push_back(2);
     }
@@ -226,6 +247,7 @@ void ImportScreen::choose(size_t index) {
             case 0: openInAnalyze(items_[index]); break;
             case 1: makeGamePack(index); break;
             case 2: install(index); break;
+            case 3: restore(index); break;
             }
         },
         true));

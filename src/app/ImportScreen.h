@@ -27,6 +27,7 @@ public:
     void rescan();
     void choose(size_t index);  // the action dialog of one item
     void install(size_t index);
+    void restore(size_t index);
     void makeGamePack(size_t index);
 
 private:

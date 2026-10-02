@@ -15,10 +15,12 @@
 #include "app/SettingsScreen.h"
 #include "app/StatsScreen.h"
 #include "app/TacticsScreen.h"
+#include "core/storage/Backup.h"
 #include "core/storage/ChessDb.h"
 #include "core/util/Clock.h"
 #include "core/util/Files.h"
 #include "core/util/Log.h"
+#include "ui/canvas/PngWriter.h"
 #include "ui/theme/Palette.h"
 
 #include <algorithm>
@@ -62,6 +64,92 @@ void Application::scanAssets() {
     pieceSets_ = PieceSetLibrary();
     pieceSets_.scan(paths_.pieces());
     pieceSets_.scan(paths_.installed("pieces"));
+}
+
+void Application::openUserData() {
+    if (config_.persistSettings) {
+        // Content errors never stop the app (design notes §32): settings then stay in memory.
+        if (auto db = storage::openChessDb(paths_.user() / "chess.db"); !db) {
+            Log::error("app", "chess.db: " + db.error().message() + " - settings will not be saved");
+        } else {
+            userDb_ = std::move(*db);
+            if (auto s = storage::loadSettings(userDb_); s)
+                settings_.fromMap(*s);
+            else
+                Log::error("app", "settings: " + s.error().message());
+            Log::info("app", "chess.db open (journal " + userDb_.journalMode() + ")");
+        }
+        if (auto p = puzzles::Progress::open(paths_.user() / "progress.db"); p)
+            progress_ = std::make_unique<puzzles::Progress>(std::move(*p));
+        else
+            Log::error("app", "progress.db: " + p.error().message() + " - tactics progress will not be saved");
+    }
+    if (!progress_) {  // tests, or progress.db failed: keep tactics working for this session
+        if (auto mem = storage::Database::open({}, storage::Database::Mode::Memory); mem)
+            if (auto p = puzzles::Progress::fromDatabase(std::move(*mem)); p)
+                progress_ = std::make_unique<puzzles::Progress>(std::move(*p));
+    }
+}
+
+// exports/pocketchess-backup-YYYYMMDD-HHMMSS/: chess.db, progress.db (VACUUM INTO: consistent while
+// open) and backup.txt, which marks the folder for Import.
+Result<std::filesystem::path> Application::backupUserData() {
+    if (!userDb_.isOpen()) return makeError(ErrorCode::Unsupported, "Nothing to back up: the user database is not open.");
+    const util::Clock& clock = config_.clock ? *config_.clock : util::SystemClock::instance();
+    const int64_t unix = clock.unixSeconds();
+    const util::CivilTime t = util::civilFromUnix(unix + clock.utcOffsetSeconds(unix));
+    char stamp[32];
+    std::snprintf(stamp, sizeof stamp, "%04d%02d%02d-%02d%02d%02d", t.year, t.month, t.day, t.hour, t.minute, t.second);
+    std::filesystem::path dir = paths_.exports() / ("pocketchess-backup-" + std::string(stamp));
+    for (int i = 2; std::filesystem::exists(dir); ++i)
+        dir = paths_.exports() / ("pocketchess-backup-" + std::string(stamp) + "-" + std::to_string(i));
+    std::error_code ec;
+    std::filesystem::create_directories(dir, ec);
+    if (ec) return makeError(ErrorCode::Io, "cannot create " + dir.string() + ": " + ec.message());
+    if (auto r = storage::backupDatabase(userDb_, dir / "chess.db"); !r) return r.error();
+    if (progress_ && progress_->db().file().has_filename())
+        if (auto r = storage::backupDatabase(progress_->db(), dir / "progress.db"); !r) return r.error();
+    const std::string note = "PocketChess backup\ncreated " + std::string(stamp) + "\n"
+                             "To restore it: copy this folder into imports/ and open Home -> Import.\n";
+    if (auto r = ui::writeFile(dir / "backup.txt", std::vector<uint8_t>(note.begin(), note.end())); !r) return r.error();
+    Log::info("app", "backup: " + dir.string());
+    return dir;
+}
+
+// Replaces user/chess.db and user/progress.db with a backup folder's copies, after checking them
+// and backing up the current ones. The screens go back to Home (they hold no user data then).
+Result<std::filesystem::path> Application::restoreUserData(const std::filesystem::path& dir) {
+    const int chessLatest = static_cast<int>(storage::chessDbMigrations().size());
+    const int progressLatest = static_cast<int>(puzzles::progressMigrations().size());
+    if (auto v = storage::checkBackupFile(dir / "chess.db", chessLatest); !v) return v.error();
+    const bool hasProgress = std::filesystem::exists(dir / "progress.db");
+    if (hasProgress)
+        if (auto v = storage::checkBackupFile(dir / "progress.db", progressLatest); !v) return v.error();
+    auto safety = backupUserData();
+    if (!safety) return safety.error();
+    engines_->cancelAll();
+    userDb_.close();
+    progress_.reset();
+    gamePack_.reset();  // "My games" is built from chess.db
+    gamePackName_.clear();
+    myGamesBuilt_ = -1;
+    std::error_code ec;
+    const std::filesystem::path user = paths_.user();
+    for (const char* f : {"chess.db", "chess.db-wal", "chess.db-shm", "progress.db", "progress.db-wal", "progress.db-shm"}) {
+        if (!hasProgress && std::string(f).rfind("progress", 0) == 0) continue;
+        std::filesystem::remove(user / f, ec);
+    }
+    std::filesystem::copy_file(dir / "chess.db", user / "chess.db", ec);
+    if (!ec && hasProgress) std::filesystem::copy_file(dir / "progress.db", user / "progress.db", ec);
+    Error failure;
+    if (ec) failure = makeError(ErrorCode::Io, "copy failed: " + ec.message() + " (your data is in " + safety->string() + ")");
+    openUserData();  // migrates an older backup to the current schema
+    applySettings();
+    popToRoot();
+    invalidateAll(RefreshHint::Screen);
+    Log::info("app", "restored user data from " + dir.string() + " (previous data: " + safety->string() + ")");
+    if (ec) return failure;
+    return *safety;
 }
 
 void Application::reloadInstalled() {
@@ -108,28 +196,7 @@ void Application::start() {
     }
     scanAssets();
 
-    if (config_.persistSettings) {
-        // Content errors never stop the app (design notes §32): settings then stay in memory.
-        if (auto db = storage::openChessDb(paths_.user() / "chess.db"); !db) {
-            Log::error("app", "chess.db: " + db.error().message() + " - settings will not be saved");
-        } else {
-            userDb_ = std::move(*db);
-            if (auto s = storage::loadSettings(userDb_); s)
-                settings_.fromMap(*s);
-            else
-                Log::error("app", "settings: " + s.error().message());
-            Log::info("app", "chess.db open (journal " + userDb_.journalMode() + ")");
-        }
-        if (auto p = puzzles::Progress::open(paths_.user() / "progress.db"); p)
-            progress_ = std::make_unique<puzzles::Progress>(std::move(*p));
-        else
-            Log::error("app", "progress.db: " + p.error().message() + " - tactics progress will not be saved");
-    }
-    if (!progress_) {  // tests, or progress.db failed: keep tactics working for this session
-        if (auto mem = storage::Database::open({}, storage::Database::Mode::Memory); mem)
-            if (auto p = puzzles::Progress::fromDatabase(std::move(*mem)); p)
-                progress_ = std::make_unique<puzzles::Progress>(std::move(*p));
-    }
+    openUserData();
     // Command-line overrides apply to this session only.
     if (config_.mono) settings_.mono = *config_.mono;
     if (!config_.theme.empty()) {

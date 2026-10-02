@@ -12,7 +12,8 @@ namespace pchess::app {
 
 // Statistics (M7, ADR 0015): one page per mode, read from user/chess.db and user/progress.db on
 // entry. Puzzles (rating chart over the last attempts), Play (per strength), Guess the move,
-// Opening practice and My mistakes. ◀ ▶ (Prev/Next) turn pages; Menu lists them.
+// Opening practice and My mistakes. ◀ ▶ (Prev/Next) turn pages; Menu lists them and backs up the
+// user data to exports/ (ADR 0017).
 class StatsScreen final : public Screen {
 public:
     struct Page {
@@ -40,6 +41,7 @@ private:
 
     void build();
     void openMenu();
+    void backUp();
     void drawChart(ui::Canvas& c, const ui::Rect& r, const std::vector<int>& values);
 
     std::vector<Page> pages_;

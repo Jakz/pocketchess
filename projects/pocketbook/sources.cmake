@@ -34,6 +34,7 @@ set(PCHESS_CORE_SOURCES
     ${REPO_ROOT}/src/core/puzzles/PuzzleImport.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzlePack.cpp
     ${REPO_ROOT}/src/core/puzzles/PuzzleSession.cpp
+    ${REPO_ROOT}/src/core/storage/Backup.cpp
     ${REPO_ROOT}/src/core/storage/ChessDb.cpp
     ${REPO_ROOT}/src/core/storage/Database.cpp
     ${REPO_ROOT}/src/core/util/Clock.cpp
@@ -100,6 +101,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/GuessTests.cpp
     ${REPO_ROOT}/tests/app/DrillTests.cpp
     ${REPO_ROOT}/tests/app/StatsTests.cpp
+    ${REPO_ROOT}/tests/app/BackupTests.cpp
     ${REPO_ROOT}/tests/app/MistakesTests.cpp
     ${REPO_ROOT}/tests/app/ImportTests.cpp
     ${REPO_ROOT}/tests/app/OpeningsTests.cpp

@@ -153,6 +153,11 @@ public:
     void rescanEngines();
     // After Import (ADR 0013): themes, piece sets and engines from the bundle and user/.
     void reloadInstalled();
+    // Progress backup (ADR 0017): exports/pocketchess-backup-<time>/ with chess.db, progress.db and
+    // backup.txt. Restore checks a backup folder, backs up the current data first, replaces it, reopens
+    // the databases and returns to Home; it returns where the previous data went.
+    Result<std::filesystem::path> backupUserData();
+    Result<std::filesystem::path> restoreUserData(const std::filesystem::path& dir);
 
     ui::Canvas& canvas() { return canvas_; }
     ui::FontLibrary& fonts() { return fonts_; }
@@ -204,6 +209,7 @@ private:
     int myGamesBuilt_ = -1;  // played games in the cached "My games" pack
     int myGamesCount();
     std::unique_ptr<games::GamePack> buildMyGames();
+    void openUserData();  // user/chess.db (settings) and user/progress.db; in memory when not persisted
     util::Random random_;
     bool sessionReady_ = false;  // false until the Resume question is answered (keeps the old session)
     bool sessionEmpty_ = true;   // what the table holds now (skips redundant clears)

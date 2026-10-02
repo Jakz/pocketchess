@@ -5,7 +5,10 @@
 #include "core/chess/Pgn.h"
 #include "core/engine/EngineDescriptor.h"
 #include "core/games/GamePack.h"
+#include "core/puzzles/Progress.h"
 #include "core/puzzles/PuzzlePack.h"
+#include "core/storage/Backup.h"
+#include "core/storage/ChessDb.h"
 #include "core/storage/Database.h"
 #include "core/util/Files.h"
 #include "core/util/Log.h"
@@ -64,6 +67,7 @@ const char* toString(ImportKind kind) {
     case ImportKind::PieceSet: return "Piece set";
     case ImportKind::Theme: return "Board theme";
     case ImportKind::Engine: return "Engine";
+    case ImportKind::Backup: return "Progress backup";
     case ImportKind::Unknown: return "Unknown";
     }
     return "?";
@@ -153,7 +157,26 @@ ImportItem Importer::classify(const std::filesystem::path& path, const Installed
             item.valid = true;
             return item;
         }
-        return invalid(item, "a folder without pieceset.yaml or engine.yaml");
+        if (std::filesystem::exists(path / "backup.txt", ec)) {
+            // A progress backup (Stats → Menu → Back up): restored, never installed.
+            item.kind = ImportKind::Backup;
+            auto chess = storage::checkBackupFile(path / "chess.db", static_cast<int>(storage::chessDbMigrations().size()));
+            if (!chess) return invalid(item, chess.error().context);
+            if (std::filesystem::exists(path / "progress.db", ec))
+                if (auto p = storage::checkBackupFile(path / "progress.db",
+                                                      static_cast<int>(puzzles::progressMigrations().size()));
+                    !p)
+                    return invalid(item, p.error().context);
+            std::string created;
+            if (auto note = util::readTextFile(path / "backup.txt", 4096); note) {
+                const size_t at = note->find("created ");
+                if (at != std::string::npos) created = note->substr(at + 8, note->find('\n', at) - at - 8);
+            }
+            item.detail = "progress, games and settings" + (created.empty() ? "" : " · " + created);
+            item.valid = true;
+            return item;
+        }
+        return invalid(item, "a folder without pieceset.yaml, engine.yaml or backup.txt");
     }
 
     const std::string ext = lower(path.extension().string());
