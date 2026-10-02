@@ -57,6 +57,9 @@
     <ClCompile Include="..\..\src\app\DrillScreen.cpp">
       <Filter>src\app</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\app\StatsScreen.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\app\MistakeScan.cpp">
       <Filter>src\app</Filter>
     </ClCompile>
@@ -174,6 +177,9 @@
       <Filter>src\app</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\DrillScreen.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\StatsScreen.h">
       <Filter>src\app</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\MistakeScan.h">

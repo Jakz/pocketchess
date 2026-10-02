@@ -55,6 +55,7 @@ set(PCHESS_UI_SOURCES
     ${REPO_ROOT}/src/app/GameStudyScreen.cpp
     ${REPO_ROOT}/src/app/GuessScreen.cpp
     ${REPO_ROOT}/src/app/DrillScreen.cpp
+    ${REPO_ROOT}/src/app/StatsScreen.cpp
     ${REPO_ROOT}/src/app/MistakeScan.cpp
     ${REPO_ROOT}/src/app/GamesScreen.cpp
     ${REPO_ROOT}/src/app/HeadlessHost.cpp
@@ -98,6 +99,7 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/app/GamesTests.cpp
     ${REPO_ROOT}/tests/app/GuessTests.cpp
     ${REPO_ROOT}/tests/app/DrillTests.cpp
+    ${REPO_ROOT}/tests/app/StatsTests.cpp
     ${REPO_ROOT}/tests/app/MistakesTests.cpp
     ${REPO_ROOT}/tests/app/ImportTests.cpp
     ${REPO_ROOT}/tests/app/OpeningsTests.cpp

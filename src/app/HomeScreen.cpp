@@ -12,6 +12,7 @@
 #include "app/GamesScreen.h"
 #include "app/PlayScreen.h"
 #include "app/SettingsScreen.h"
+#include "app/StatsScreen.h"
 #include "app/TacticsScreen.h"
 #include "core/engine/EngineDescriptor.h"
 #include "core/storage/ChessDb.h"
@@ -25,7 +26,7 @@ namespace pchess::app {
 using namespace ui;
 
 namespace {
-enum Id { Play, Tactics, Games, Openings, Analyze, Review, SettingsItem, Import, Diagnostics, Exit };
+enum Id { Play, Tactics, Games, Openings, Analyze, Review, SettingsItem, Import, Diagnostics, Exit, StatsItem };
 }
 
 HomeScreen::HomeScreen(Application& app) : Screen(app) {
@@ -63,9 +64,10 @@ HomeScreen::HomeScreen(Application& app) : Screen(app) {
     }
     // Less frequent destinations share one row.
     const Item tools[] = {
-        {SettingsItem, "Settings", "", true}, {Import, "Import", "", true}, {Diagnostics, "Diagnostics", "", true}};
-    const auto cells = splitRow({margin, y, l.screen.w - 2 * margin, btnH}, 3, gap);
-    for (size_t i = 0; i < 3; ++i) {
+        {StatsItem, "Stats", "", true}, {SettingsItem, "Settings", "", true}, {Import, "Import", "", true},
+        {Diagnostics, "Diagnostics", "", true}};
+    const auto cells = splitRow({margin, y, l.screen.w - 2 * margin, btnH}, 4, gap);
+    for (size_t i = 0; i < 4; ++i) {
         Button b;
         b.id = tools[i].id;
         b.label = tools[i].label;
@@ -165,7 +167,7 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
     const int pad = s.fontPx;
     small.draw(c, pad, baseline, left, t.ink);
     small.draw(c, l.screen.w - pad - small.measure(right), baseline, right, t.ink);
-    const std::string version = "0.0.1 · M6 preview";
+    const std::string version = "0.0.1 · M7 preview";
     small.draw(c, (l.screen.w - small.measure(version)) / 2, baseline, version, blend(t.background, t.ink, 140));
 }
 
@@ -176,6 +178,7 @@ void HomeScreen::open(int id) {
     case Games: app_.push(std::make_unique<GamesScreen>(app_)); break;
     case Openings: app_.push(std::make_unique<OpeningsScreen>(app_)); break;
     case Analyze: app_.push(std::make_unique<AnalyzeScreen>(app_, "")); break;
+    case StatsItem: app_.push(std::make_unique<StatsScreen>(app_)); break;
     case SettingsItem: app_.push(std::make_unique<SettingsScreen>(app_)); break;
     case Diagnostics: app_.push(std::make_unique<DiagnosticsScreen>(app_)); break;
     case Import: app_.push(std::make_unique<ImportScreen>(app_)); break;
