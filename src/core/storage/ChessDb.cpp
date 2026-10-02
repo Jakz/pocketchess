@@ -88,6 +88,30 @@ CREATE TABLE guess_moves(
     PRIMARY KEY(run_id, ply)
 ) WITHOUT ROWID;
 )sql"},
+    {6, R"sql(
+-- My mistakes (M7): the user's bad moves in finished Play games, found by the engine, as puzzles.
+-- Solving them is recorded in progress.db (pack "My mistakes", puzzle id "m<id>").
+CREATE TABLE mistakes(
+    id       INTEGER PRIMARY KEY,
+    game_id  INTEGER NOT NULL,        -- played_games.id
+    ply      INTEGER NOT NULL,        -- the user's move
+    fen      TEXT NOT NULL,           -- before the opponent's previous move
+    moves    TEXT NOT NULL,           -- UCI: that move, then the better move
+    played   TEXT NOT NULL,           -- the user's move (UCI)
+    before   INTEGER NOT NULL,        -- the user's winning chance (%) before the move
+    after    INTEGER NOT NULL,        -- and after it
+    created  INTEGER NOT NULL,
+    UNIQUE(game_id, ply)
+);
+
+-- Games already checked (found = mistakes stored for it), so each game is analyzed once.
+CREATE TABLE mistake_scans(
+    game_id INTEGER PRIMARY KEY,
+    scanned INTEGER NOT NULL,
+    engine  TEXT,
+    found   INTEGER NOT NULL
+);
+)sql"},
 };
 
 } // namespace
@@ -367,6 +391,64 @@ Result<GuessStats> guessStats(Database& db) {
     st.second = s->integer(3);
     st.missed = s->integer(4);
     return st;
+}
+
+Result<std::vector<PlayedGame>> uncheckedPlayedGames(Database& db) {
+    auto s = db.prepare("SELECT id, date, pgn, result, mode, strength, engine, human FROM played_games "
+                        "WHERE human IS NOT NULL AND result <> '*' "
+                        "AND id NOT IN (SELECT game_id FROM mistake_scans) ORDER BY date, id");
+    if (!s) return s.error();
+    std::vector<PlayedGame> out;
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        out.push_back(
+            {s->int64(0), s->int64(1), s->text(2), s->text(3), s->text(4), s->text(5), s->text(6), s->text(7)});
+    }
+    return out;
+}
+
+Result<void> saveMistakeScan(Database& db, int64_t gameId, const std::vector<StoredMistake>& found,
+                             const std::string& engine, int64_t now) {
+    return db.transaction([&]() -> Result<void> {
+        auto ins = db.prepare("INSERT OR IGNORE INTO mistakes(game_id, ply, fen, moves, played, before, after, created) "
+                              "VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)");
+        if (!ins) return ins.error();
+        for (const StoredMistake& m : found) {
+            ins->bind(1, gameId).bind(2, m.ply).bind(3, m.fen).bind(4, m.moves).bind(5, m.played);
+            ins->bind(6, m.before).bind(7, m.after).bind(8, now);
+            if (auto r = ins->run(); !r) return r;
+        }
+        auto scan = db.prepare("INSERT OR REPLACE INTO mistake_scans(game_id, scanned, engine, found) VALUES(?1, ?2, ?3, ?4)");
+        if (!scan) return scan.error();
+        scan->bind(1, gameId).bind(2, now).bind(3, engine).bind(4, static_cast<int>(found.size()));
+        return scan->run();
+    });
+}
+
+Result<std::vector<StoredMistake>> mistakes(Database& db) {
+    auto s = db.prepare("SELECT id, game_id, ply, fen, moves, played, before, after, created FROM mistakes "
+                        "ORDER BY created, id");
+    if (!s) return s.error();
+    std::vector<StoredMistake> out;
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        StoredMistake m;
+        m.id = s->int64(0);
+        m.gameId = s->int64(1);
+        m.ply = s->integer(2);
+        m.fen = s->text(3);
+        m.moves = s->text(4);
+        m.played = s->text(5);
+        m.before = s->integer(6);
+        m.after = s->integer(7);
+        m.created = s->int64(8);
+        out.push_back(std::move(m));
+    }
+    return out;
 }
 
 Result<std::vector<PlayedGame>> allPlayedGames(Database& db) {

@@ -35,6 +35,8 @@ public:
         uint64_t nodes = 4242;                  // nodes of the final info line
         std::vector<std::string> extraOptions;  // raw "option name ..." lines
         std::vector<std::string> extraGoLines;  // raw lines sent after the info lines of every go
+        // The first line's score (cp, side to move) for a position; unset: 20 (mistake-finder tests).
+        std::function<int(const chess::Position&)> evalCp;
     };
 
     FakeUci() = default;

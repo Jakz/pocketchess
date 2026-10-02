@@ -37,8 +37,9 @@ std::vector<std::string> FakeUci::infoAndBest(bool withBest) {
         std::sort(replies.begin(), replies.end());
         if (!replies.empty()) pv += " " + replies[0];
         std::ostringstream os;
-        os << "info depth " << b_.depth << " seldepth " << b_.depth + 1 << " multipv " << k << " score cp "
-           << (30 - 10 * k) << " nodes " << b_.nodes << " nps 84000 time 50 pv " << pv;
+        const int cp = k == 1 && b_.evalCp ? b_.evalCp(pos_) : 30 - 10 * k;
+        os << "info depth " << b_.depth << " seldepth " << b_.depth + 1 << " multipv " << k << " score cp " << cp
+           << " nodes " << b_.nodes << " nps 84000 time 50 pv " << pv;
         out.push_back(os.str());
     }
     if (withBest) {

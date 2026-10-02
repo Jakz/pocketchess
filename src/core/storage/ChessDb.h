@@ -97,4 +97,18 @@ struct GuessStats {
 };
 Result<GuessStats> guessStats(Database& db);
 
+// mistakes / mistake_scans: My mistakes (M7). Finished games with a known side that no scan has
+// checked yet, oldest first; a scan stores its mistakes and marks the game in one transaction.
+struct StoredMistake {
+    int64_t id = 0, gameId = 0;
+    int ply = 0;
+    std::string fen, moves, played;  // moves: UCI, space separated (puzzle format)
+    int before = 0, after = 0;
+    int64_t created = 0;
+};
+Result<std::vector<PlayedGame>> uncheckedPlayedGames(Database& db);
+Result<void> saveMistakeScan(Database& db, int64_t gameId, const std::vector<StoredMistake>& found,
+                             const std::string& engine, int64_t now);
+Result<std::vector<StoredMistake>> mistakes(Database& db);  // oldest first
+
 } // namespace pchess::storage
