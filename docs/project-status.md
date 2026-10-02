@@ -1,6 +1,6 @@
 # Project status — resume point
 
-Last updated: 2026-10-03 (M7 started: Guess the move and My mistakes on desktop and in the reader build; device runs batched). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
+Last updated: 2026-10-03 (M7: Guess the move, My mistakes, Opening practice, Stats on desktop and in the reader build; device runs batched). Plan: `docs/ai/`. Conventions: `AGENTS.md`.
 
 ## Milestone overview
 
@@ -18,7 +18,7 @@ Last updated: 2026-10-03 (M7 started: Guess the move and My mistakes on desktop 
 | M4 Tactics trainer, rating, review | 🟢 features done: zstd 1.5.7 decoder, `fetch-lichess.ps1`, `PuzzleImporter` + `build-content.ps1` (50k pack = 6 MB), `core/puzzles` (pack, selector, session, progress/rating/review), Tactics and Review screens, Home rating/due count, Tactics settings; pending: device acceptance (30 puzzles, selection < 50 ms, WAL on the user partition) |
 | M5 Historical games | 🟢 features done: `data/openings` (Lichess ECO names, CC0), `core/games` (opening classification, `GameImporter`, `GamePack` filters/pages), `PgnImporter` + `build-content.ps1 -Games` (20k games = 6.5 MB in 27 s), bundled `classics.db`, favorites in `chess.db`, Games browser + study screens, "Analyze from here"; pending: device acceptance (≥ 10k pack, filters < 150 ms, partial page turns) |
 | M6 Themes, piece sets, import, polish | 🟢 features done: YAML board themes (`ThemeManager`, Walnut + Newsprint), SVG piece sets rasterized on the reader (nanosvg, ADR 0012: Cburnett default, Merida, Chessnut, Bold), Import screen (ADR 0013: installs under `user/`, PGN → game pack), Settings v2 (piece set, page-button swap, debug logging), key-only navigation, portable release zips; pending: device acceptance in color and mono, refresh/resource tuning (deferred), touch-target check on the reader |
-| M7 Backlog | 🟡 started: Guess the move, My mistakes (ADR 0015); next candidates: opening drill from the packs' book, endgame positions, stats screen, user/ backup |
+| M7 Backlog | 🟡 started: Guess the move, My mistakes (ADR 0015), Opening practice, Stats (ADR 0016); next: user/ backup and restore, endgame positions |
 
 ## 2026-09-29 — first MSVC build fixes
 
@@ -53,7 +53,7 @@ Last updated: 2026-10-03 (M7 started: Guess the move and My mistakes on desktop 
   EngineManager and the analysis panel; goldens updated for the new button row, plus
   `analyze-engine-quick` and `analyze-engine-missing`.
 
-## 2026-10-03 — M7: Guess the move, My mistakes (ADR 0015)
+## 2026-10-03 — M7: Guess the move, My mistakes, Opening practice, Stats (ADR 0015, 0016)
 
 - Decided with the user: no full device pass per milestone (batched, the user tests occasionally);
   every mode records its statistics in the existing user databases; menus stay as tidy as now.
@@ -71,6 +71,12 @@ Last updated: 2026-10-03 (M7 started: Guess the move and My mistakes on desktop 
   "My mistakes", ids `m<id>`, unrated). The fake test engine takes an evaluation hook.
 - Device (to check when convenient): scan time per game under Eco and Balanced (log lines
   "mistakes: game N: …"), the "guess: random game … ms" time on the 80 MB historical pack.
+- Opening practice (ADR 0016): Openings → a line → Practice as White/Black, or Menu → Practice
+  from the start. The opponent plays the largest game pack's book moves (weighted); your move must
+  be a book move (main / other book / missed after two tries; ◀ hint, ▶ show). Ends with the book;
+  Menu → Analyze from here. `chess.db` v7: `drill_runs`, `drill_moves` (FEN per move). Golden: `drill`.
+- Stats (Home → Stats): Puzzles (with a rating column chart), Play per strength, Guess the move,
+  Opening practice, My mistakes. Goldens: `stats`, `home` (four tools, "M7 preview").
 
 ## 2026-10-01 — large collections: packs v2, historical games, all puzzles, openings
 
