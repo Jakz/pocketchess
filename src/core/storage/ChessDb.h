@@ -134,4 +134,24 @@ struct DrillStats {
 };
 Result<DrillStats> drillStats(Database& db);
 
+// Statistics screen.
+struct StrengthStats {
+    std::string strength;
+    int games = 0, won = 0, drawn = 0, lost = 0;
+};
+Result<std::vector<StrengthStats>> playStatsByStrength(Database& db);  // by games played, most first
+struct RunSummary {
+    std::string title;  // guess: "White – Black, 1858"; drill: the opening (or the start moves)
+    std::string side;
+    int64_t updated = 0;
+    int a = 0, b = 0, c = 0;  // guess: first, second, missed; drill: main, book, missed
+    bool finished = false;
+};
+Result<std::vector<RunSummary>> recentGuessRuns(Database& db, int limit);
+Result<std::vector<RunSummary>> recentDrillRuns(Database& db, int limit);
+struct MistakeStats {
+    int gamesChecked = 0, mistakes = 0;
+};
+Result<MistakeStats> mistakeStats(Database& db);
+
 } // namespace pchess::storage

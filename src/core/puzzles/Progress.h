@@ -64,6 +64,14 @@ public:
     };
     Result<std::vector<RatingPoint>> history(int limit);  // newest first
 
+    // Statistics: puzzles tried and their attempts, for one pack (`only`) or every pack but one.
+    struct Totals {
+        int puzzles = 0, attempts = 0, successes = 0, failures = 0;
+        int solvedFirst = 0;  // solved and never failed
+        int inReview = 0;     // with a review scheduled
+    };
+    Result<Totals> totals(const std::string& pack, bool only);
+
     storage::Database& db() { return db_; }
 
 private:

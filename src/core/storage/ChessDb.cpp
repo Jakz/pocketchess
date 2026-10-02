@@ -520,6 +520,66 @@ Result<DrillStats> drillStats(Database& db) {
     return st;
 }
 
+Result<std::vector<StrengthStats>> playStatsByStrength(Database& db) {
+    auto s = db.prepare(R"sql(
+SELECT coalesce(strength, ''), count(*),
+       coalesce(sum((human = 'white' AND result = '1-0') OR (human = 'black' AND result = '0-1')), 0),
+       coalesce(sum(result = '1/2-1/2'), 0),
+       coalesce(sum((human = 'white' AND result = '0-1') OR (human = 'black' AND result = '1-0')), 0)
+FROM played_games WHERE human IS NOT NULL AND result <> '*'
+GROUP BY 1 ORDER BY 2 DESC, 1
+)sql");
+    if (!s) return s.error();
+    std::vector<StrengthStats> out;
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        out.push_back({s->text(0), s->integer(1), s->integer(2), s->integer(3), s->integer(4)});
+    }
+    return out;
+}
+
+namespace {
+Result<std::vector<RunSummary>> runSummaries(Database& db, const std::string& sql, int limit) {
+    auto s = db.prepare(sql);
+    if (!s) return s.error();
+    s->bind(1, limit);
+    std::vector<RunSummary> out;
+    for (;;) {
+        auto row = s->step();
+        if (!row) return row.error();
+        if (!*row) break;
+        out.push_back({s->text(0), s->text(1), s->int64(2), s->integer(3), s->integer(4), s->integer(5),
+                       s->integer(6) != 0});
+    }
+    return out;
+}
+} // namespace
+
+Result<std::vector<RunSummary>> recentGuessRuns(Database& db, int limit) {
+    return runSummaries(db,
+                        "SELECT title, side, updated, first, second, missed, finished FROM guess_runs "
+                        "WHERE first + second + missed > 0 ORDER BY updated DESC, id DESC LIMIT ?1",
+                        limit);
+}
+
+Result<std::vector<RunSummary>> recentDrillRuns(Database& db, int limit) {
+    return runSummaries(db,
+                        "SELECT CASE WHEN opening <> '' THEN opening ELSE 'From the start' END, side, updated, "
+                        "main, book, missed, finished FROM drill_runs "
+                        "WHERE main + book + missed > 0 ORDER BY updated DESC, id DESC LIMIT ?1",
+                        limit);
+}
+
+Result<MistakeStats> mistakeStats(Database& db) {
+    auto s = db.prepare("SELECT (SELECT count(*) FROM mistake_scans), (SELECT count(*) FROM mistakes)");
+    if (!s) return s.error();
+    auto row = s->step();
+    if (!row) return row.error();
+    return MistakeStats{s->integer(0), s->integer(1)};
+}
+
 Result<std::vector<PlayedGame>> allPlayedGames(Database& db) {
     auto s = db.prepare("SELECT id, date, pgn, result, mode, strength, engine, human FROM played_games "
                         "ORDER BY date, id");

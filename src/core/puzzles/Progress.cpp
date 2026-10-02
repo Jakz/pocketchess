@@ -203,4 +203,23 @@ Result<std::vector<Progress::RatingPoint>> Progress::history(int limit) {
     return out;
 }
 
+Result<Progress::Totals> Progress::totals(const std::string& pack, bool only) {
+    auto s = db_.prepare(std::string("SELECT count(*), coalesce(sum(attempts), 0), coalesce(sum(successes), 0), "
+                                     "coalesce(sum(failures), 0), coalesce(sum(failures = 0 AND successes > 0), 0), "
+                                     "coalesce(sum(next_review IS NOT NULL), 0) FROM puzzle_progress WHERE ") +
+                         (only ? "pack = ?1" : "coalesce(pack, '') <> ?1"));
+    if (!s) return s.error();
+    s->bind(1, pack);
+    auto row = s->step();
+    if (!row) return row.error();
+    Totals t;
+    t.puzzles = s->integer(0);
+    t.attempts = s->integer(1);
+    t.successes = s->integer(2);
+    t.failures = s->integer(3);
+    t.solvedFirst = s->integer(4);
+    t.inReview = s->integer(5);
+    return t;
+}
+
 } // namespace pchess::puzzles
