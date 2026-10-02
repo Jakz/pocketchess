@@ -4,6 +4,7 @@
 #include "app/AnalyzeScreen.h"
 #include "app/DiagnosticsScreen.h"
 #include "app/Dialogs.h"
+#include "app/DrillScreen.h"
 #include "app/GameStudyScreen.h"
 #include "app/GuessScreen.h"
 #include "app/GamesScreen.h"
@@ -192,6 +193,7 @@ std::unique_ptr<Screen> Application::restoreScreen(const std::map<std::string, s
     if (it->second == "tactics") return TacticsScreen::restore(*this, session);
     if (it->second == "study") return GameStudyScreen::restore(*this, session);
     if (it->second == "guess") return GuessScreen::restore(*this, session);
+    if (it->second == "drill") return DrillScreen::restore(*this, session);
     return nullptr;
 }
 
@@ -434,6 +436,22 @@ games::GamePack* Application::gamePack() {
     gamePackName_ = name;
     Log::info("app", "game pack " + name + ": " + std::to_string(gamePack_->count()) + " games");
     return gamePack_.get();
+}
+
+games::GamePack* Application::bookPack() {
+    const std::string name = choosePack("games", "");  // nothing wanted: the largest file
+    if (name.empty()) return nullptr;
+    if (gamePack_ && gamePackName_ == name) return gamePack_.get();
+    if (bookPack_ && bookPackName_ == name) return bookPack_.get();
+    auto pack = games::GamePack::open(packFile("games", name));
+    if (!pack) {
+        Log::error("app", "book pack " + name + ": " + pack.error().message());
+        return nullptr;
+    }
+    bookPack_ = std::make_unique<games::GamePack>(std::move(*pack));
+    bookPackName_ = name;
+    Log::info("app", "book pack " + name + ": " + std::to_string(bookPack_->count()) + " games");
+    return bookPack_.get();
 }
 
 std::string Application::dateText(int64_t unixSeconds) const {

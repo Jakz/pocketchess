@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\tests\app\GuessTests.cpp">
       <Filter>tests\app</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\tests\app\DrillTests.cpp">
+      <Filter>tests\app</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\tests\app\MistakesTests.cpp">
       <Filter>tests\app</Filter>
     </ClCompile>

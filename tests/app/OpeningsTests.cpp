@@ -66,13 +66,14 @@ TEST_CASE("openings: families, their variations, search, and a line opened in An
     for (const auto& it : h.screen()->items()) CHECK(it.title.find("Najdorf") != std::string::npos);
     const size_t plies = h.screen()->items().front().line->moves.size();
     h.screen()->open(0);
+    REQUIRE(runScript(*h.app, "key:ok").ok());  // "Study in Analyze"
     auto* analyze = dynamic_cast<AnalyzeScreen*>(h.app->top());
     REQUIRE(analyze != nullptr);
     CHECK_EQ(analyze->tree().mainLine().size(), plies);
 
-    // Keys only: Menu -> "Open a line…" -> the first one.
+    // Keys only: Menu -> "Open a line…" -> the first one -> "Study in Analyze".
     h.app->pop();
-    REQUIRE(runScript(*h.app, "key:menu;key:ok;key:ok").ok());
+    REQUIRE(runScript(*h.app, "key:menu;key:ok;key:ok;key:ok").ok());
     CHECK(dynamic_cast<AnalyzeScreen*>(h.app->top()) != nullptr);
     std::error_code ec;
     h.app.reset();

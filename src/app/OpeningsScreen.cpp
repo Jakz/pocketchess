@@ -2,6 +2,7 @@
 #include "app/OpeningsScreen.h"
 
 #include "app/AnalyzeScreen.h"
+#include "app/DrillScreen.h"
 #include "app/Application.h"
 #include "app/Chrome.h"
 #include "app/Dialogs.h"
@@ -196,10 +197,18 @@ void OpeningsScreen::open(size_t index) {
     if (index >= items_.size()) return;
     const Item it = items_[index];
     if (!it.line) return showFamily(it.family);
-    chess::GameTree tree;
-    chess::GameNode* n = tree.root();
-    for (chess::Move m : it.line->moves) n = tree.addMove(n, m);
-    app_.push(std::make_unique<AnalyzeScreen>(app_, std::move(tree), it.line->moves));
+    const games::OpeningLine* line = it.line;
+    chooseFromList(app_, line->eco + " " + line->name, {"Study in Analyze", "Practice as White", "Practice as Black"},
+                   [this, line](int i) {
+                       if (i == 0) {
+                           chess::GameTree tree;
+                           chess::GameNode* n = tree.root();
+                           for (chess::Move m : line->moves) n = tree.addMove(n, m);
+                           app_.push(std::make_unique<AnalyzeScreen>(app_, std::move(tree), line->moves));
+                       } else if (i > 0) {
+                           app_.push(std::make_unique<DrillScreen>(app_, line->moves, i == 1 ? chess::White : chess::Black));
+                       }
+                   }, 6, {"the line, the engine and the book", "the book's moves after this line", ""});
 }
 
 void OpeningsScreen::find() {
@@ -211,7 +220,7 @@ void OpeningsScreen::find() {
 }
 
 void OpeningsScreen::openMenu() {
-    enum Action { Choose, Find, All, Back };
+    enum Action { Choose, Find, Practice, All, Back };
     std::vector<std::string> labels;
     std::vector<Action> actions;
     if (!items_.empty()) {  // key-only use: the reader's buttons are Prev, Next and Menu
@@ -220,6 +229,8 @@ void OpeningsScreen::openMenu() {
     }
     labels.push_back("Find an opening…");
     actions.push_back(Find);
+    labels.push_back("Practice from the start…");
+    actions.push_back(Practice);
     if (!family_.empty() || !query_.empty()) {
         labels.push_back("All openings");
         actions.push_back(All);
@@ -241,6 +252,7 @@ void OpeningsScreen::openMenu() {
                 break;
             }
             case Find: find(); break;
+            case Practice: DrillScreen::choose(app_, {}, "Practice from the start"); break;
             case All: showFamilies(); break;
             case Back: app_.pop(); break;
             }

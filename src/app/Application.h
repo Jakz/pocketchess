@@ -136,6 +136,8 @@ public:
     std::vector<std::string> puzzlePackNames() const;  // file stems, sorted
     // Historical games (M5): content/games/<pack>.db (Settings -> Games -> Pack, else the largest).
     games::GamePack* gamePack();
+    // Opening statistics for practice: the largest installed game pack (the most games), any setting.
+    games::GamePack* bookPack();
     // assets/openings/*.tsv (Lichess ECO names), loaded on first use; nullptr when missing.
     const games::OpeningBook* openings();
     static constexpr const char* kMyGames = "My games";  // the finished Play games as a game pack
@@ -197,6 +199,8 @@ private:
     std::unique_ptr<games::OpeningBook> openings_;
     bool openingsTried_ = false;
     std::string gamePackName_;
+    std::unique_ptr<games::GamePack> bookPack_;  // when it is not the current game pack
+    std::string bookPackName_;
     int myGamesBuilt_ = -1;  // played games in the cached "My games" pack
     int myGamesCount();
     std::unique_ptr<games::GamePack> buildMyGames();
