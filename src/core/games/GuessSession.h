@@ -27,7 +27,9 @@ public:
 
     // `line`: the game's main-line moves from `start`; play begins after `fromPly` of them. `score`
     // carries a resumed run's totals.
-    GuessSession(chess::Position start, std::vector<chess::Move> line, Side side, int fromPly = 0, Score score = {});
+    GuessSession(chess::Position start, std::vector<chess::Move> line, Side side, int fromPly, Score score);
+    GuessSession(chess::Position start, std::vector<chess::Move> line, Side side, int fromPly = 0)
+        : GuessSession(std::move(start), std::move(line), side, fromPly, Score()) {}
 
     const chess::Position& position() const { return pos_; }
     int ply() const { return ply_; }  // moves played since `start`
