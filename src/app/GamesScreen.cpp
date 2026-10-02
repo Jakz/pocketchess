@@ -5,6 +5,7 @@
 #include "app/Chrome.h"
 #include "app/Dialogs.h"
 #include "app/GameStudyScreen.h"
+#include "app/GuessScreen.h"
 #include "core/storage/ChessDb.h"
 #include "core/util/Log.h"
 
@@ -328,13 +329,28 @@ void GamesScreen::editOpening() {
     });
 }
 
+// A random game among those the filters show (favorites included), then the side chooser.
+void GamesScreen::guessRandom() {
+    games::GameFilter f = filter_;
+    if (favoritesOnly_) {
+        f.ids = std::vector<int64_t>{};
+        if (storage::Database* db = app_.userDb(); db && app_.gamePack())
+            if (auto ids = storage::favoriteIds(*db, app_.gamePack()->name()); ids) f.ids = std::move(*ids);
+    }
+    const int64_t id = GuessScreen::randomGame(app_, f);
+    if (!id) return app_.showMessage("Guess the moves", "No game matches the filters.");
+    GuessScreen::choose(app_, id, 0, f);
+}
+
 void GamesScreen::openMenu() {
-    enum Action { Open, Pack, Clear, Home };
+    enum Action { Open, Guess, Pack, Clear, Home };
     std::vector<std::string> labels;
     std::vector<Action> actions;
     if (!rows_.empty()) {  // key-only use: the reader's buttons are Prev, Next and Menu
         labels.push_back("Open a game…");
         actions.push_back(Open);
+        labels.push_back("Guess the moves of a random game…");
+        actions.push_back(Guess);
     }
     const auto packs = app_.gamePackNames();
     if (packs.size() > 1) {
@@ -359,6 +375,7 @@ void GamesScreen::openMenu() {
                 }, rowsPerPage_);
                 break;
             }
+            case Guess: guessRandom(); break;
             case Pack:
                 chooseFromList(app_, "Game pack", packs, [this, packs](int p) {
                     if (p < 0) return;

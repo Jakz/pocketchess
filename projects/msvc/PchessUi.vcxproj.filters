@@ -51,6 +51,9 @@
     <ClCompile Include="..\..\src\app\GameStudyScreen.cpp">
       <Filter>src\app</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\app\GuessScreen.cpp">
+      <Filter>src\app</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\app\GamesScreen.cpp">
       <Filter>src\app</Filter>
     </ClCompile>
@@ -159,6 +162,9 @@
       <Filter>src\app</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\GameStudyScreen.h">
+      <Filter>src\app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\GuessScreen.h">
       <Filter>src\app</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\GamesScreen.h">

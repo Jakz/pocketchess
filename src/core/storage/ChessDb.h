@@ -71,4 +71,30 @@ Result<int> playedGameCount(Database& db);
 // Every played game, oldest first (the "My games" pack is built in this order: stable ids).
 Result<std::vector<PlayedGame>> allPlayedGames(Database& db);
 
+// guess_runs / guess_moves: Guess the move (M7). A run is saved after every guessed move, so an
+// interrupted run keeps its score and can be resumed (session) or counted (stats).
+struct GuessRun {
+    int64_t id = 0;  // 0 = not saved yet
+    std::string pack;
+    int64_t gameId = 0;
+    std::string side;  // white / black / both
+    std::string title;
+    int64_t started = 0, updated = 0;
+    int fromPly = 0, ply = 0, plies = 0;
+    int first = 0, second = 0, missed = 0;
+    bool finished = false;
+};
+Result<int64_t> saveGuessRun(Database& db, const GuessRun& run);  // insert or update; returns the id
+// outcome: 0 first try, 1 second try / hint, 2 missed. `wrong`: the first wrong try (UCI) or "".
+Result<void> addGuessMove(Database& db, int64_t runId, int ply, int outcome, const std::string& wrong, bool hinted);
+Result<std::optional<GuessRun>> guessRun(Database& db, int64_t id);
+
+// Totals over every run (finished or not).
+struct GuessStats {
+    int runs = 0, finished = 0, first = 0, second = 0, missed = 0;
+    int guessed() const { return first + second + missed; }
+    int percent() const { return guessed() ? (200 * first + 100 * second) / (2 * guessed()) : 0; }
+};
+Result<GuessStats> guessStats(Database& db);
+
 } // namespace pchess::storage

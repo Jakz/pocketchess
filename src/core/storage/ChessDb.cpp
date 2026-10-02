@@ -57,6 +57,37 @@ CREATE TABLE active_games(
 );
 CREATE INDEX idx_active_games_last ON active_games(last_played);
 )sql"},
+    {5, R"sql(
+-- Guess the move (M7): one row per run through a game, updated after every guessed move.
+CREATE TABLE guess_runs(
+    id         INTEGER PRIMARY KEY,
+    pack       TEXT NOT NULL,         -- games pack name ("My games" included)
+    game_id    INTEGER NOT NULL,
+    side       TEXT NOT NULL,         -- white / black / both
+    title      TEXT NOT NULL,         -- "White – Black, 1858" (lists, stats)
+    started    INTEGER NOT NULL,      -- unix seconds
+    updated    INTEGER NOT NULL,
+    from_ply   INTEGER NOT NULL,      -- where the run began
+    ply        INTEGER NOT NULL,      -- where it is now
+    plies      INTEGER NOT NULL,      -- main-line length
+    first      INTEGER NOT NULL DEFAULT 0,
+    second     INTEGER NOT NULL DEFAULT 0,
+    missed     INTEGER NOT NULL DEFAULT 0,
+    finished   INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_guess_runs_updated ON guess_runs(updated);
+CREATE INDEX idx_guess_runs_game ON guess_runs(pack, game_id);
+
+-- Every guessed move: outcome 0 = first try, 1 = second try or hint, 2 = missed (shown).
+CREATE TABLE guess_moves(
+    run_id  INTEGER NOT NULL REFERENCES guess_runs(id) ON DELETE CASCADE,
+    ply     INTEGER NOT NULL,         -- the game move's ply (0 = White's first move)
+    outcome INTEGER NOT NULL,
+    wrong   TEXT,                     -- the first wrong try (UCI), if any
+    hinted  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(run_id, ply)
+) WITHOUT ROWID;
+)sql"},
 };
 
 } // namespace
@@ -268,6 +299,74 @@ Result<int> playedGameCount(Database& db) {
     auto row = s->step();
     if (!row) return row.error();
     return s->integer(0);
+}
+
+Result<int64_t> saveGuessRun(Database& db, const GuessRun& r) {
+    auto s = db.prepare(r.id ? "UPDATE guess_runs SET pack = ?1, game_id = ?2, side = ?3, title = ?4, started = ?5, "
+                               "updated = ?6, from_ply = ?7, ply = ?8, plies = ?9, first = ?10, second = ?11, "
+                               "missed = ?12, finished = ?13 WHERE id = ?14"
+                             : "INSERT INTO guess_runs(pack, game_id, side, title, started, updated, from_ply, ply, "
+                               "plies, first, second, missed, finished) "
+                               "VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)");
+    if (!s) return s.error();
+    s->bind(1, r.pack).bind(2, r.gameId).bind(3, r.side).bind(4, r.title).bind(5, r.started).bind(6, r.updated);
+    s->bind(7, r.fromPly).bind(8, r.ply).bind(9, r.plies).bind(10, r.first).bind(11, r.second).bind(12, r.missed);
+    s->bind(13, r.finished ? 1 : 0);
+    if (r.id) s->bind(14, r.id);
+    if (auto res = s->run(); !res) return res.error();
+    return r.id ? r.id : db.lastInsertId();
+}
+
+Result<void> addGuessMove(Database& db, int64_t runId, int ply, int outcome, const std::string& wrong, bool hinted) {
+    auto s = db.prepare("INSERT OR REPLACE INTO guess_moves(run_id, ply, outcome, wrong, hinted) "
+                        "VALUES(?1, ?2, ?3, ?4, ?5)");
+    if (!s) return s.error();
+    s->bind(1, runId).bind(2, ply).bind(3, outcome);
+    if (wrong.empty()) s->bindNull(4);
+    else s->bind(4, wrong);
+    s->bind(5, hinted ? 1 : 0);
+    return s->run();
+}
+
+Result<std::optional<GuessRun>> guessRun(Database& db, int64_t id) {
+    auto s = db.prepare("SELECT id, pack, game_id, side, title, started, updated, from_ply, ply, plies, first, second, "
+                        "missed, finished FROM guess_runs WHERE id = ?1");
+    if (!s) return s.error();
+    s->bind(1, id);
+    auto row = s->step();
+    if (!row) return row.error();
+    if (!*row) return std::optional<GuessRun>();
+    GuessRun r;
+    r.id = s->int64(0);
+    r.pack = s->text(1);
+    r.gameId = s->int64(2);
+    r.side = s->text(3);
+    r.title = s->text(4);
+    r.started = s->int64(5);
+    r.updated = s->int64(6);
+    r.fromPly = s->integer(7);
+    r.ply = s->integer(8);
+    r.plies = s->integer(9);
+    r.first = s->integer(10);
+    r.second = s->integer(11);
+    r.missed = s->integer(12);
+    r.finished = s->integer(13) != 0;
+    return std::optional<GuessRun>(std::move(r));
+}
+
+Result<GuessStats> guessStats(Database& db) {
+    auto s = db.prepare("SELECT count(*), coalesce(sum(finished), 0), coalesce(sum(first), 0), "
+                        "coalesce(sum(second), 0), coalesce(sum(missed), 0) FROM guess_runs");
+    if (!s) return s.error();
+    auto row = s->step();
+    if (!row) return row.error();
+    GuessStats st;
+    st.runs = s->integer(0);
+    st.finished = s->integer(1);
+    st.first = s->integer(2);
+    st.second = s->integer(3);
+    st.missed = s->integer(4);
+    return st;
 }
 
 Result<std::vector<PlayedGame>> allPlayedGames(Database& db) {

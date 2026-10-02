@@ -5,6 +5,7 @@
 #include "app/DiagnosticsScreen.h"
 #include "app/Dialogs.h"
 #include "app/GameStudyScreen.h"
+#include "app/GuessScreen.h"
 #include "app/GamesScreen.h"
 #include "app/HomeScreen.h"
 #include "app/ImportScreen.h"
@@ -190,6 +191,7 @@ std::unique_ptr<Screen> Application::restoreScreen(const std::map<std::string, s
     if (it->second == "analyze") return AnalyzeScreen::restore(*this, session);
     if (it->second == "tactics") return TacticsScreen::restore(*this, session);
     if (it->second == "study") return GameStudyScreen::restore(*this, session);
+    if (it->second == "guess") return GuessScreen::restore(*this, session);
     return nullptr;
 }
 

@@ -5,6 +5,7 @@
 #include "app/Application.h"
 #include "app/Chrome.h"
 #include "app/Dialogs.h"
+#include "app/GuessScreen.h"
 #include "core/chess/San.h"
 #include "core/storage/ChessDb.h"
 #include "core/util/Log.h"
@@ -222,7 +223,7 @@ void GameStudyScreen::onKey(const InputEvent& e) {
 }
 
 void GameStudyScreen::openMenu() {
-    enum Action { Variations, Analyze, Flip, Info, Back };
+    enum Action { Variations, Analyze, Guess, Flip, Info, Back };
     std::vector<std::string> labels;
     std::vector<Action> actions;
     if (node_ && node_->children.size() > 1) {
@@ -232,6 +233,8 @@ void GameStudyScreen::openMenu() {
     if (loaded_) {
         labels.push_back("Analyze from here");
         actions.push_back(Analyze);
+        labels.push_back(node_ && !node_->isRoot() ? "Guess the moves from here…" : "Guess the moves…");
+        actions.push_back(Guess);
     }
     labels.push_back("Flip board");
     actions.push_back(Flip);
@@ -249,6 +252,13 @@ void GameStudyScreen::openMenu() {
             switch (actions[static_cast<size_t>(i)]) {
             case Variations: chooseVariation(); break;
             case Analyze: analyzeHere(); break;
+            case Guess: {
+                // From the main-line position at or before the current node.
+                const GameNode* n = node_;
+                while (n && !n->isMainLine()) n = n->parent;
+                GuessScreen::choose(app_, gameId_, n ? n->ply : 0);
+                break;
+            }
             case Flip:
                 flipped_ = !flipped_;
                 refreshBoard();

@@ -49,6 +49,7 @@ private:
     void chooseResult();
     void editOpening();
     void openMenu();
+    void guessRandom();
 
     games::GameFilter filter_;
     bool favoritesOnly_ = false;

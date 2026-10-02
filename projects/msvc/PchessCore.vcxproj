@@ -55,6 +55,7 @@
     <ClCompile Include="..\..\src\core\chess\Zobrist.cpp" />
     <ClCompile Include="..\..\src\core\engine\EngineDescriptor.cpp" />
     <ClCompile Include="..\..\src\core\games\GamePack.cpp" />
+    <ClCompile Include="..\..\src\core\games\GuessSession.cpp" />
     <ClCompile Include="..\..\src\core\games\Openings.cpp" />
     <ClCompile Include="..\..\src\core\puzzles\Progress.cpp" />
     <ClCompile Include="..\..\src\core\puzzles\PuzzleImport.cpp" />
@@ -95,6 +96,7 @@
     <ClInclude Include="..\..\src\core\engine\Engine.h" />
     <ClInclude Include="..\..\src\core\engine\EngineDescriptor.h" />
     <ClInclude Include="..\..\src\core\games\GamePack.h" />
+    <ClInclude Include="..\..\src\core\games\GuessSession.h" />
     <ClInclude Include="..\..\src\core\games\Openings.h" />
     <ClInclude Include="..\..\src\core\puzzles\Progress.h" />
     <ClInclude Include="..\..\src\core\puzzles\Puzzle.h" />
