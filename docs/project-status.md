@@ -84,6 +84,12 @@ Last updated: 2026-10-03 (M7: Guess the move, My mistakes, Opening practice, Sta
   with Q, R, BB, BN; pawn endings; Lucena; Philidor; Q vs pawn). The engine defends (or attacks) at
   "maximum"; ◀ take back, ▶ hint; solved/failed by `EndgameJudge`. `chess.db` v8:
   `endgame_attempts`; Stats → Endgames page. Goldens: `endgame`, `stats` (6 pages).
+- Setup tool (ADR 0019, docs/installer.md): `pocketchess-setup fetch --historical --puzzles 500k`,
+  `install [--group NAME]`, `reset-launcher`. Cross-built with Zig for windows-x64, linux-x64,
+  macos-arm64 and macos-x64 (`projects/tools/build-tools.ps1 -Package` →
+  `out/installer/PocketChess-setup-<platform>.zip`, 85 MB, without historical.db). Launcher icon
+  from `data/icons/`. Tried against a fake reader folder; the real `view.json` (firmware 6.10)
+  still has to be checked on the next USB connection.
 
 ## 2026-10-01 — large collections: packs v2, historical games, all puzzles, openings
 
