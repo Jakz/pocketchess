@@ -16,6 +16,9 @@
     <Filter Include="tests\ui">
       <UniqueIdentifier>{7CB3B3EA-D444-52F2-9072-FE60C663D03C}</UniqueIdentifier>
     </Filter>
+    <Filter Include="tests\tools">
+      <UniqueIdentifier>{3F1E6A52-8C0B-4E21-9D4F-6A2B1C7D0E11}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\tests\app\AnalysisPanelTests.cpp">
@@ -86,6 +89,15 @@
     </ClCompile>
     <ClCompile Include="..\..\tests\core\UciEngineTests.cpp">
       <Filter>tests\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\tests\tools\SetupTests.cpp">
+      <Filter>tests\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\tools\setup\Json.cpp">
+      <Filter>tests\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\tools\setup\Launcher.cpp">
+      <Filter>tests\tools</Filter>
     </ClCompile>
     <ClCompile Include="..\..\tests\core\YamlTests.cpp">
       <Filter>tests\core</Filter>

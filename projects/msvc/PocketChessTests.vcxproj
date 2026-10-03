@@ -75,6 +75,9 @@
     <ClCompile Include="..\..\tests\app\TacticsTests.cpp" />
     <ClCompile Include="..\..\tests\core\UciEngineTests.cpp" />
     <ClCompile Include="..\..\tests\core\YamlTests.cpp" />
+    <ClCompile Include="..\..\tests\tools\SetupTests.cpp" />
+    <ClCompile Include="..\..\src\tools\setup\Json.cpp" />
+    <ClCompile Include="..\..\src\tools\setup\Launcher.cpp" />
     <ClCompile Include="..\..\tests\support\FakeEngine.cpp" />
     <ClCompile Include="..\..\tests\TestMain.cpp" />
     <ClCompile Include="..\..\tests\app\AppTests.cpp" />

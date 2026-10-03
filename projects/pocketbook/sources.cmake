@@ -130,5 +130,8 @@ set(PCHESS_TEST_SOURCES
     ${REPO_ROOT}/tests/support/Test.cpp
     ${REPO_ROOT}/tests/support/TestTools.cpp
     ${REPO_ROOT}/tests/ui/UiTests.cpp
+    ${REPO_ROOT}/tests/tools/SetupTests.cpp
+    ${REPO_ROOT}/src/tools/setup/Json.cpp
+    ${REPO_ROOT}/src/tools/setup/Launcher.cpp
 )
 
