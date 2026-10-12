@@ -168,7 +168,7 @@ void HomeScreen::draw(Canvas& c, const Rect& clip) {
     const int pad = s.fontPx;
     small.draw(c, pad, baseline, left, t.ink);
     small.draw(c, l.screen.w - pad - small.measure(right), baseline, right, t.ink);
-    const std::string version = "0.0.1 · M7 preview";
+    const std::string version = "0.1.0";
     small.draw(c, (l.screen.w - small.measure(version)) / 2, baseline, version, blend(t.background, t.ink, 140));
 }
 
