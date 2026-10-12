@@ -1,7 +1,7 @@
 # Licensing assessment
 
-Status: written 2026-10-01 for future reference. PocketChess is currently for **personal use only**;
-nothing below has been acted on. Before any public release, work through "Before shipping".
+Status: written 2026-10-01; the "Before shipping" checklist was worked through on 2026-10-12 for
+the first public release (0.1.0): see the notes under each item.
 This is a practical engineering assessment, not legal advice.
 
 ## Summary
@@ -28,7 +28,9 @@ This is a practical engineering assessment, not legal advice.
   (`projects/pocketbook/engines/*/engine.lock`) plus our build files (`projects/pocketbook/engines/`,
   `build-engine.ps1`). We do not patch Stockfish's sources. Upstream sources live in
   `libs/stockfish*` (local, not in Git).
-- **Stockfish NNUE network** (`nn-1a298aa575a0.nnue`, shipped beside the binary): assumed to be
+- **Stockfish NNUE network** (`nn-1a298aa575a0.nnue`, shipped beside the binary): CC0-1.0, verified
+  2026-10-12 in official-stockfish/networks ("All networks in this repository were uploaded by the
+  authors under the CC0 license"). Earlier note, kept: assumed to be
   distributed by the Stockfish project as part of the GPL program. **Not verified**: check the
   network's licence statement before a release.
 
@@ -101,3 +103,16 @@ suggesting endorsement (no logos; "for PocketBook" wording is fine, "PocketBook 
 6. Historical games for users: either a separate CC BY-NC-SA Lumbra-derived download (only if the
    app stays free), user-built packs (`fetch-historical.ps1` + `build-content.ps1 -Historical`, or
    on the reader Import → "Make a game pack"), or permission from PGN Mentor.
+
+Done for 0.1.0 (2026-10-12):
+
+1. `projects/not-redistributable.txt` lists `historical.db`; every `-Package` step (reader zip,
+   Windows zip, installer zips) leaves it out (`scripts/zip-folder.ps1 -ExcludeFile`).
+2. Both bundles and the installer packages carry `LICENSE.txt` and `THIRD-PARTY-NOTICES.txt`;
+   `stage-bundle.ps1` copies Stockfish's `Copying.txt` and `AUTHORS` next to each engine. The notices
+   name the source repository, whose release tags are the corresponding source.
+3. The repository goes public with a tag per release.
+4. NNUE: CC0-1.0 (see above).
+5. `data/pieces/bold/LICENSE.txt` added.
+6. User-built packs: `pocketchess-setup fetch --historical` (ADR 0019) downloads PGN Mentor files
+   for the user's own use and builds the pack on their computer.
