@@ -4,6 +4,8 @@
 # The optional [windows] / [pocketbook] prefix limits a line to one target. A '*' in the source
 # copies every matching file into the destination folder. Engines come from projects/engines.txt.
 
+LICENSE => LICENSE.txt
+THIRD-PARTY-NOTICES.txt => THIRD-PARTY-NOTICES.txt
 data/fonts/DejaVuSans.ttf => assets/fonts/DejaVuSans.ttf
 data/fonts/DejaVuSans-Bold.ttf => assets/fonts/DejaVuSans-Bold.ttf
 data/fonts/LICENSE-DejaVu.txt => assets/fonts/LICENSE-DejaVu.txt

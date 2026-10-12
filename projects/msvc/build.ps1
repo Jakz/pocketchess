@@ -46,7 +46,7 @@ if ($Package) {
         Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $stage "pocketchess\$d")
         New-Item -ItemType Directory -Force -Path (Join-Path $stage "pocketchess\$d") | Out-Null
     }
-    & (Join-Path $RepoRoot 'scripts\zip-folder.ps1') -Folder $stage -Zip $zip
+    & (Join-Path $RepoRoot 'scripts\zip-folder.ps1') -Folder $stage -Zip $zip -ExcludeFile (Join-Path $RepoRoot 'projects\not-redistributable.txt')
     Write-Host "Package: $zip"
 }
 exit 0

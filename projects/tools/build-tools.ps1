@@ -27,7 +27,7 @@ $targets = @{
     'macos-x64'   = 'x86_64-macos'
 }
 # Content that must not be redistributed (docs/licensing.md): fetched by the tool instead.
-$notShipped = @('historical.db')
+$notShipped = Join-Path $RepoRoot 'projects\not-redistributable.txt'
 
 function Find-Tool([string]$name, [string[]]$candidates) {
     foreach ($c in $candidates) { if ($c -and (Test-Path $c)) { return (Resolve-Path $c).Path } }
@@ -83,14 +83,12 @@ if ($Package) {
         Copy-Item (Join-Path $build "pocketchess-setup$exe") $stage
         foreach ($t in 'PgnImporter', 'PuzzleImporter') { Copy-Item (Join-Path $build "$t$exe") (Join-Path $stage 'tools') }
         Copy-Item -Recurse $bundle (Join-Path $stage 'reader\applications')
-        foreach ($f in $notShipped) {
-            Get-ChildItem -Recurse -File (Join-Path $stage 'reader') -Filter $f | ForEach-Object {
-                Write-Host "not shipped: $($_.Name)"; Remove-Item $_.FullName }
-        }
         Copy-Item (Join-Path $RepoRoot 'data\icons\*.bmp') (Join-Path $stage 'reader\icons')
         Copy-Item (Join-Path $RepoRoot 'docs\installer.md') (Join-Path $stage 'README.txt')
+        Copy-Item (Join-Path $RepoRoot 'LICENSE') (Join-Path $stage 'LICENSE.txt')
+        Copy-Item (Join-Path $RepoRoot 'THIRD-PARTY-NOTICES.txt') $stage
         $zip = Join-Path $outDir "PocketChess-setup-$p.zip"
-        & (Join-Path $RepoRoot 'scripts\zip-folder.ps1') -Folder $stage -Zip $zip
+        & (Join-Path $RepoRoot 'scripts\zip-folder.ps1') -Folder $stage -Zip $zip -ExcludeFile $notShipped
         Remove-Item -Recurse -Force $stage
         Write-Host ("Package: {0} ({1:N0} MB)" -f $zip, ((Get-Item $zip).Length / 1MB))
     }

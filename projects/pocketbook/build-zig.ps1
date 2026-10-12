@@ -115,7 +115,7 @@ if ($LASTEXITCODE) { throw 'Staging failed' }
 if ($Package) {
     $zip = Join-Path $outRoot "pocketchess-$Configuration.zip"
     if (Test-Path $zip) { Remove-Item $zip }
-    & (Join-Path $RepoRoot 'scripts\zip-folder.ps1') -Folder $bundle -Zip $zip
+    & (Join-Path $RepoRoot 'scripts\zip-folder.ps1') -Folder $bundle -Zip $zip -ExcludeFile (Join-Path $RepoRoot 'projects\not-redistributable.txt')
     Write-Host "Package: $zip"
 }
 Write-Host "PocketBook build OK: $bundle"

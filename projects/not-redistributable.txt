@@ -1,0 +1,3 @@
+# Files that must never be packaged for distribution (docs/licensing.md): matched by file name by
+# scripts/zip-folder.ps1 -ExcludeFile, used by every -Package step. pocketchess-setup fetches them.
+historical.db

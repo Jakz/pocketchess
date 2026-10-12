@@ -10,12 +10,18 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Folder,
-    [Parameter(Mandatory)][string]$Zip
+    [Parameter(Mandatory)][string]$Zip,
+    # A list of file names that are left out (projects/not-redistributable.txt; '#' comments).
+    [string]$ExcludeFile = ''
 )
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 $root = (Resolve-Path -LiteralPath $Folder).Path.TrimEnd('\') + '\'
+$excluded = @()
+if ($ExcludeFile) {
+    $excluded = @(Get-Content -LiteralPath $ExcludeFile | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+}
 if (Test-Path -LiteralPath $Zip) { Remove-Item -LiteralPath $Zip }
 $archive = [IO.Compression.ZipFile]::Open($Zip, [IO.Compression.ZipArchiveMode]::Create)
 try {
@@ -24,6 +30,8 @@ try {
         if ($item.PSIsContainer) {
             # Empty folders (imports/, logs/ ...) are kept as directory entries.
             if (-not (Get-ChildItem -LiteralPath $item.FullName -Force)) { [void]$archive.CreateEntry($name + '/') }
+        } elseif ($excluded -contains $item.Name) {
+            Write-Host "zip-folder: not packaged (not redistributable): $name"
         } else {
             [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $item.FullName, $name,
                 [IO.Compression.CompressionLevel]::Optimal)

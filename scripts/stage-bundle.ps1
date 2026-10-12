@@ -70,6 +70,12 @@ if (Test-Path $stagedEngines) {
 foreach ($id in $engineIds) {
     $yaml = Join-Path $RepoRoot "data/engines/$id/engine.yaml"
     if (Test-Path $yaml) { Copy-IfNewer $yaml (Join-Path $Dest "engines/$id/engine.yaml") }
+    # GPL: the engine's licence and authors travel with its binary (upstream files, libs/<id>/).
+    foreach ($doc in 'Copying.txt', 'AUTHORS') {
+        $docFile = Join-Path $RepoRoot "libs/$id/$doc"
+        if (Test-Path $docFile) { Copy-IfNewer $docFile (Join-Path $Dest "engines/$id/$doc") }
+        else { Write-Warning "stage-bundle: libs/$id/$doc missing (scripts/fetch-engines.ps1): needed for a release" }
+    }
     $binDir = Join-Path $RepoRoot "out/engines/$id/$engineTarget"
     if (Test-Path $binDir) {
         foreach ($f in Get-ChildItem -LiteralPath $binDir -File) { Copy-IfNewer $f.FullName (Join-Path $Dest "engines/$id/$($f.Name)") }

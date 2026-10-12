@@ -1,0 +1,45 @@
+PocketChess — third-party notices
+==================================
+
+PocketChess is free software under the GNU General Public License, version 3 or later (LICENSE).
+Source code: https://github.com/Jakz/pocketchess (each release is a tag there).
+
+It includes or ships the following works. Licence texts are next to them in the bundle (and in the
+source repository at the paths given).
+
+Engines (separate programs, run as child processes)
+----------------------------------------------------
+- Stockfish 19 and Stockfish 11 — GPL-3.0. Copyright the Stockfish authors (engines/<id>/AUTHORS),
+  licence engines/<id>/Copying.txt. Unmodified upstream sources at the tags pinned in
+  projects/pocketbook/engines/<id>/engine.lock (sf_19, sf_11), built with
+  projects/pocketbook/engines/ and build-engine.ps1; https://github.com/official-stockfish/Stockfish
+- Stockfish evaluation network nn-1a298aa575a0.nnue — CC0-1.0 (official-stockfish/networks:
+  "All networks in this repository were uploaded by the authors under the CC0 license").
+
+Libraries
+---------
+- SQLite 3.53.4 — public domain. https://sqlite.org
+- nanosvg (Mikko Mononen) — zlib licence (libs/nanosvg/LICENSE.txt).
+- SDL 3.4.16 (Windows build only, SDL3.dll) — zlib licence. https://libsdl.org
+- zstd 1.5.7 decoder (desktop tools only) — BSD-3-Clause (libs/zstd/LICENSE).
+- musl libc — MIT; LLVM libc++ / libc++abi / libunwind — Apache-2.0 WITH LLVM-exception
+  (statically linked into the reader app, the engines and the desktop tools by Zig).
+
+Fonts and pieces
+----------------
+- DejaVu Sans, DejaVu Sans Bold — Bitstream Vera licence with public-domain changes
+  (assets/fonts/LICENSE-DejaVu.txt).
+- Cburnett pieces (Colin M.L. Burnett) — GPL-2.0-or-later (assets/pieces/cburnett/LICENSE.txt);
+  Bold is derived from them (assets/pieces/bold/LICENSE.txt).
+- Merida pieces (Armando Hernandez Marroquin) — GPL-2.0-or-later (assets/pieces/merida/LICENSE.txt).
+- Chessnut pieces (Alexis Luengas) — Apache-2.0 (assets/pieces/chessnut/LICENSE.txt).
+
+Data
+----
+- Opening names: lichess-org/chess-openings — CC0 (assets/openings/COPYING.txt).
+- Puzzles: the Lichess puzzle database — CC0 (https://database.lichess.org).
+- Classics: historical game scores with PocketChess's own annotations.
+- Historical games (PGN Mentor) are NOT included: pocketchess-setup downloads them for your own use.
+
+"Stockfish", "Lichess" and "PocketBook" are names of their owners, used here only to describe
+compatibility; PocketChess is not affiliated with or endorsed by them.

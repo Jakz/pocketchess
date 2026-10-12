@@ -1,0 +1,4 @@
+The Bold piece set has no SVG files of its own: it is drawn from ../cburnett (Colin M.L. Burnett)
+with strokes 1.8 times as wide (pieceset.yaml: base, stroke_scale). Like Cburnett it is distributed
+under the GNU General Public License, version 2 or (at your option) any later version; PocketChess
+uses it under GPL-3.0-or-later (see LICENSE at the repository root for the full text).
