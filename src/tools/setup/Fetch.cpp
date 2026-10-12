@@ -34,6 +34,19 @@ bool hasCommand(const std::string& name) {
 #endif
 }
 
+// curl and tar: on Windows the ones in System32 (bsdtar reads ZIP files; a GNU tar from Git Bash or
+// MSYS earlier on PATH does not, and takes "C:" for a remote host). Elsewhere the ones on PATH.
+std::string systemTool(const char* name) {
+#ifdef _WIN32
+    if (const char* root = std::getenv("SystemRoot")) {
+        const fs::path p = fs::path(root) / "System32" / (std::string(name) + ".exe");
+        std::error_code ec;
+        if (fs::exists(p, ec)) return quote(p);
+    }
+#endif
+    return name;
+}
+
 std::string today() {
     const std::time_t t = std::time(nullptr);
     char buf[16];
@@ -80,7 +93,7 @@ bool download(const std::string& url, const fs::path& file) {
     fs::create_directories(file.parent_path(), ec);
     const fs::path part = file.string() + ".part";
     // -f: fail on HTTP errors, -L: follow redirects, -C -: resume a partial download.
-    if (run("curl -fL --retry 3 --retry-delay 2 -C - -o " + quote(part) + " " + quote(url)) != 0) {
+    if (run(systemTool("curl") + " -fL --retry 3 --retry-delay 2 -C - -o " + quote(part) + " " + quote(url)) != 0) {
         std::fprintf(stderr, "download failed: %s\n", url.c_str());
         return false;
     }
@@ -96,7 +109,7 @@ std::optional<std::string> fetchText(const std::string& url) {
     const fs::path tmp = fs::temp_directory_path() / "pocketchess-setup-page.html";
     std::error_code ec;
     fs::remove(tmp, ec);
-    if (run("curl -fsSL -o " + quote(tmp) + " " + quote(url)) != 0) return std::nullopt;
+    if (run(systemTool("curl") + " -fsSL -o " + quote(tmp) + " " + quote(url)) != 0) return std::nullopt;
     std::ifstream in(tmp, std::ios::binary);
     std::stringstream ss;
     ss << in.rdbuf();
@@ -108,7 +121,7 @@ bool extractZip(const fs::path& zip, const fs::path& dir) {
     std::error_code ec;
     fs::create_directories(dir, ec);
     // bsdtar (Windows 10+, macOS) reads ZIP files; GNU tar (most Linux) does not: unzip there.
-    if (run("tar -xf " + quote(zip) + " -C " + quote(dir)) == 0) return true;
+    if (run(systemTool("tar") + " -xf " + quote(zip) + " -C " + quote(dir)) == 0) return true;
     if (hasCommand("unzip") && run("unzip -o -q " + quote(zip) + " -d " + quote(dir)) == 0) return true;
     std::fprintf(stderr, "cannot extract %s (needs tar with ZIP support, or unzip)\n", zip.string().c_str());
     return false;
