@@ -142,8 +142,13 @@ bool installPacks(const Layout& l, const fs::path& reader, const std::vector<std
             std::fprintf(stderr, "no pack %s: run `pocketchess-setup fetch` first\n", pack.string().c_str());
             return false;
         }
-        const fs::path dir = user / (name.rfind("puzzles", 0) == 0 ? "puzzles" : "games");
+        const char* kind = name.rfind("puzzles", 0) == 0 ? "puzzles" : "games";
+        const fs::path dir = user / kind;
         std::error_code ec;
+        if (fs::exists(l.bundle() / "pocketchess" / "content" / kind / pack.filename(), ec)) {
+            std::printf("%s ships with the app: skipped\n", pack.filename().string().c_str());
+            continue;
+        }
         fs::create_directories(dir, ec);
         if (sameFile(pack, dir / pack.filename())) {
             std::printf("%s already on the reader\n", pack.filename().string().c_str());
